@@ -1,5 +1,5 @@
 # Zotero Figure
-> 儿童节快乐！
+> 基于pdffigure2解析PDF图表并展示在侧边栏的小插件
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/1fce021d-846c-4e35-8202-00dedf31dd9b)
 
