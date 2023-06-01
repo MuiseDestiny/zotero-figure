@@ -1,7 +1,7 @@
 # Zotero Figure
 > 基于pdffigure2解析PDF图表并展示在侧边栏的小插件
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/1fce021d-846c-4e35-8202-00dedf31dd9b)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ce475f1d-3fd1-46f4-957b-41ec2e33e449)
 
 ## 主要功能
 
