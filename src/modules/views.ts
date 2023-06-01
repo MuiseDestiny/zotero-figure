@@ -39,7 +39,7 @@ export default class Views {
         const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`)
         const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`)
 
-        
+
         // const cmdPath = "C:\\Users\\polygon\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe"
         // const javaPath = "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe"
 
@@ -47,7 +47,7 @@ export default class Views {
         const args = [
           javaPath,
           "-jar",
-          OS.Path.join(zoteroDir, "pdffigures.jar"),
+          OS.Path.join(zoteroDir, "pdffigures2.jar"),
           filename,
           "-d",
           OS.Path.join(dataDir, key),
