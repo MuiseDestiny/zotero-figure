@@ -20,10 +20,11 @@
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/1e23d93b-25aa-428e-88cd-8087b5591f13)
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/3052fcaf-8152-4ca4-abbf-6574188700e8)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/d6e0b9a4-9c73-499f-87a4-8c39d5305fd2)
 
 2. 配置cmd路径
-3. 配置java路径
+
+4. 配置java路径
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6ef7c2af-5733-48f4-82dc-73a582b65bb3)
 
