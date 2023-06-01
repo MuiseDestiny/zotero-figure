@@ -1,9 +1,9 @@
 # Zotero Plugin Template
 
-![GitHub Repo stars](https://img.shields.io/github/stars/windingwind/zotero-better-notes?label=zotero-better-notes)
-![GitHub Repo stars](https://img.shields.io/github/stars/windingwind/zotero-pdf-preview?label=zotero-pdf-preview)
-![GitHub Repo stars](https://img.shields.io/github/stars/windingwind/zotero-pdf-translate?label=zotero-pdf-translate)
-![GitHub Repo stars](https://img.shields.io/github/stars/windingwind/zotero-tag?label=zotero-tag)
+![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-better-notes?label=zotero-better-notes)
+![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-pdf-preview?label=zotero-pdf-preview)
+![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-pdf-translate?label=zotero-pdf-translate)
+![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-tag?label=zotero-tag)
 ![GitHub Repo stars](https://img.shields.io/github/stars/iShareStuff/ZoteroTheme?label=zotero-theme)
 ![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-reference?label=zotero-reference)
 ![GitHub Repo stars](https://img.shields.io/github/stars/MuiseDestiny/zotero-citation?label=zotero-citation)
@@ -21,41 +21,41 @@ This is a plugin template for [Zotero](https://www.zotero.org/). Plugins using t
 
 📖[Plugin Development Documentation](https://zotero.yuque.com/books/share/8d230829-6004-4934-b4c6-685a7001bfa0/vec88d)(Chinese, provides English translation)
 
-🛠️[Zotero Plugin Toolkit](https://github.com/windingwind/zotero-plugin-toolkit) | [API Documentation](https://github.com/windingwind/zotero-plugin-toolkit/blob/master/docs/zotero-plugin-toolkit.md)
+🛠️[Zotero Plugin Toolkit](https://github.com/MuiseDestiny/zotero-plugin-toolkit) | [API Documentation](https://github.com/MuiseDestiny/zotero-plugin-toolkit/blob/master/docs/zotero-plugin-toolkit.md)
 
-ℹ️[Zotero Type Definitions](https://github.com/windingwind/zotero-types)
+ℹ️[Zotero Type Definitions](https://github.com/MuiseDestiny/zotero-types)
 
 📜[Zotero Source Code](https://github.com/zotero/zotero)
 
-📌[Zotero Plugin Template](https://github.com/windingwind/zotero-plugin-template)(This repo)
+📌[Zotero Plugin Template](https://github.com/MuiseDestiny/zotero-plugin-template)(This repo)
 
 > 👍You are currently in `bootstrap` extension mode. To use `overlay` mode, plsase switch to `overlay` branch in git.
 
 > 👁 Watch this repo so that you can be notified whenever there are fixes & updates.
 
-If you are using this repo, I recommended that you put this badge ([![Using Zotero Plugin Template](https://img.shields.io/badge/Using-Zotero%20Plugin%20Template-blue?style=flat-square&logo=github)](https://github.com/windingwind/zotero-plugin-template)) on your README:
+If you are using this repo, I recommended that you put this badge ([![Using Zotero Plugin Template](https://img.shields.io/badge/Using-Zotero%20Plugin%20Template-blue?style=flat-square&logo=github)](https://github.com/MuiseDestiny/zotero-plugin-template)) on your README:
 
 ```md
-[![Using Zotero Plugin Template](https://img.shields.io/badge/Using-Zotero%20Plugin%20Template-blue?style=flat-square&logo=github)](https://github.com/windingwind/zotero-plugin-template)
+[![Using Zotero Plugin Template](https://img.shields.io/badge/Using-Zotero%20Plugin%20Template-blue?style=flat-square&logo=github)](https://github.com/MuiseDestiny/zotero-plugin-template)
 ```
 
 ## Features
 
 - Event-driven, functional programming, under extensive skeleton;
 - Simple and user-friendly, works out-of-the-box.
-- Abundant examples in `src/modules/examples.ts`, covering most of the commonly used APIs in plugins(using [zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit));
+- Abundant examples in `src/modules/examples.ts`, covering most of the commonly used APIs in plugins(using [zotero-plugin-toolkit](https://github.com/MuiseDestiny/zotero-plugin-toolkit));
 - TypeScript support:
-  - Full type definition support for the whole Zotero project, which is written in JavaScript(using [zotero-types](https://github.com/windingwind/zotero-types));
+  - Full type definition support for the whole Zotero project, which is written in JavaScript(using [zotero-types](https://github.com/MuiseDestiny/zotero-types));
   - Global variables and environment setup;
 - Plugin build/test/release workflow:
   - Automatically generate/update plugin id/version, update configrations, and set environment variables(`development/production`);
   - Automatically build and reload code in Zotero;
   - Automatically release to GitHub(using [release-it](https://github.com/release-it/release-it));
-- ⭐[New!]Compatibilities for Zotero 6 & Zotero 7.(using [zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit))
+- ⭐[New!]Compatibilities for Zotero 6 & Zotero 7.(using [zotero-plugin-toolkit](https://github.com/MuiseDestiny/zotero-plugin-toolkit))
 
 ## Examples
 
-This repo provides examples for [zotero-plugin-toolkit](https://github.com/windingwind/zotero-plugin-toolkit) APIs.
+This repo provides examples for [zotero-plugin-toolkit](https://github.com/MuiseDestiny/zotero-plugin-toolkit) APIs.
 
 Search `@example` in `src/examples.ts`. The examples are called in `src/hooks.ts`.
 
@@ -225,7 +225,7 @@ You can also:
 
 ### About Hooks
 
-> See also [`src/hooks.ts`](https://github.com/windingwind/zotero-plugin-template/blob/bootstrap/src/hooks.ts)
+> See also [`src/hooks.ts`](https://github.com/MuiseDestiny/zotero-plugin-template/blob/bootstrap/src/hooks.ts)
 
 1. When install/enable/startup triggered from Zotero, `bootstrap.js` > `startup` is called
    - Wait for Zotero ready
@@ -239,7 +239,7 @@ You can also:
 
 ### About Global Variables
 
-> See also [`src/index.ts`](https://github.com/windingwind/zotero-plugin-template/blob/bootstrap/src/index.ts)
+> See also [`src/index.ts`](https://github.com/MuiseDestiny/zotero-plugin-template/blob/bootstrap/src/index.ts)
 
 The bootstrapped plugin runs in a sandbox, which does not have default global variables like `Zotero` or `window`, which we used to have in the overlay plugins' window environment.
 
@@ -268,7 +268,7 @@ You only need to maintain one `preferences.xhtml` which runs natively on Zotero 
     </tr>
 </table>
 
-https://github.com/windingwind/zotero-plugin-template/blob/08d72a4e2b3bacff574f537bbd06cb33e6b22480/src/modules/examples.ts#L73-L85
+https://github.com/MuiseDestiny/zotero-plugin-template/blob/08d72a4e2b3bacff574f537bbd06cb33e6b22480/src/modules/examples.ts#L73-L85
 
 > `<preferences>` element is deprecated. Please use the full pref-key in the elements' `preference` attribute. Like:
 
@@ -311,7 +311,7 @@ Steps in `scripts/build.js`:
 
 Zotero docs are outdated and incomplete. Clone https://github.com/zotero/zotero and search the keyword globally.
 
-> ⭐The [zotero-types](https://github.com/windingwind/zotero-types) provides most frequently used Zotero APIs. It's included in this template by default. Your IDE would provide hint for most of the APIs.
+> ⭐The [zotero-types](https://github.com/MuiseDestiny/zotero-types) provides most frequently used Zotero APIs. It's included in this template by default. Your IDE would provide hint for most of the APIs.
 
 A trick for finding the API you want:
 

@@ -1,15 +1,15 @@
 {
-  "name": "zotero-addon-template",
-  "version": "0.1.6",
-  "description": "Zotero Addon Template",
+  "name": "zotero-figure",
+  "version": "0.0.0",
+  "description": "Zotero Figure",
   "config": {
-    "addonName": "Zotero Addon Template",
-    "addonID": "addontemplate@euclpts.com",
-    "addonRef": "addontemplate",
-    "addonInstance": "AddonTemplate",
-    "prefsPrefix": "extensions.zotero.addontemplate",
-    "releasepage": "https://github.com/windingwind/zotero-addon-template/releases/latest/download/zotero-addon-template.xpi",
-    "updaterdf": "https://raw.githubusercontent.com/windingwind/zotero-addon-template/bootstrap/update.json"
+    "addonName": "Zotero Figure",
+    "addonID": "zoterofigure@polygon.org",
+    "addonRef": "zoterofigure",
+    "addonInstance": "zoterofigure",
+    "prefsPrefix": "extensions.zotero.zoterofigure",
+    "releasepage": "https://github.com/MuiseDestiny/zotero-figure/releases/latest/download/zotero-figure.xpi",
+    "updaterdf": "https://raw.githubusercontent.com/MuiseDestiny/zotero-figure/bootstrap/update.json"
   },
   "main": "src/index.ts",
   "scripts": {
@@ -31,14 +31,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/windingwind/zotero-addon-template.git"
+    "url": "git+https://github.com/MuiseDestiny/zotero-figure.git"
   },
-  "author": "windingwind",
+  "author": "Polygon",
   "license": "AGPL-3.0-or-later",
   "bugs": {
-    "url": "https://github.com/windingwind/zotero-addon-template/issues"
+    "url": "https://github.com/MuiseDestiny/zotero-figure/issues"
   },
-  "homepage": "https://github.com/windingwind/zotero-addon-template#readme",
+  "homepage": "https://github.com/MuiseDestiny/zotero-figure#readme",
   "dependencies": {
     "zotero-plugin-toolkit": "^2.1.3"
   },
