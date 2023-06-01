@@ -16,7 +16,7 @@
 ## 配置步骤
 > 因为还在雏形，为了蹭六一热度，当前版本配置比较繁琐，也会比较卡，只是尝鲜，见谅（5.31晚上才开始写的）。
 
-1. 下载[pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar)移动到Zotero储存目录下
+1. 下载[pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar)移动到Zotero储存目录（如何查看该目录？见下图）下
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/1e23d93b-25aa-428e-88cd-8087b5591f13)
 
