@@ -98,14 +98,32 @@ export default class Views {
   }
 
   private async renderPanel(panel: XUL.TabPanel, figures: Figure[]) {
-    const maxWidth = 300
-    const vbox = ztoolkit.UI.appendElement({
-      namespace: "xul",
-      tag: "vbox",
-      styles: {
-        margin: "10px"
-      }
-    }, panel)
+    // const maxWidth = 300
+    const vbox = ztoolkit.UI.appendElement(
+      {
+        tag: "relatedbox",
+        classList: ["zotero-editpane-related"],
+        namespace: "xul",
+        ignoreIfExists: true,
+        attributes: {
+          flex: "1",
+        },
+        children: [
+          {
+            tag: "vbox",
+            namespace: "xul",
+            classList: ["zotero-box"],
+            attributes: {
+              flex: "1",
+            },
+            styles: {
+              paddingLeft: "0px",
+              paddingRight: "0px"
+            },
+            children: []
+          }
+        ]
+      }, panel).querySelector("vbox") as XUL.Box
     figures.sort((a: any, b: any) => Number(a.page) - Number(b.page))
     for (let figure of figures) {
       const imageData = await Zotero.File.getBinaryContentsAsync(figure.renderURL);
@@ -122,8 +140,8 @@ export default class Views {
           namespace: "html",
           tag: "div",
           styles: {
-            display: "flex",
-            flexDirection: "column",
+            display: "initial",
+            // flexDirection: "column",
           },
           children: [
             {
@@ -134,14 +152,14 @@ export default class Views {
               styles: {
                 display: "inline-block", 
                 wordWrap: "break-word",
-                width: `${maxWidth}px`
+                width: "100%"
               }
             },
             {
               tag: "img",
               styles: {
                 maxHeight: "100%",
-                maxWidth: `${maxWidth}px`
+                maxWidth: `100%`
               },
               attributes: {
                 src: base64data as string
