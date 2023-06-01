@@ -30,3 +30,8 @@
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6ef7c2af-5733-48f4-82dc-73a582b65bb3)
 
+## 致谢
+- [pdffigures2](https://github.com/allenai/pdffigures2) 
+- [zotero-better-notes](https://github.com/windingwind/zotero-better-notes)
+
+
