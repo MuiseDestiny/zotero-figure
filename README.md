@@ -1,5 +1,5 @@
 # Zotero Figure
-> 基于pdffigure2解析PDF图表并展示在侧边栏的小插件
+> 基于[pdffigure2](http://pdffigures2.allenai.org/)解析PDF图表并展示在侧边栏的小插件
 
 > 特别注意，本项目不接受图表解析错误的issue，因为图表解析并非本插件的功能，本插件只是把pdffigure2和Zotero链接起来
 
