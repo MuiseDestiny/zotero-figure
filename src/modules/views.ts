@@ -1,7 +1,37 @@
 import { config } from "../../package.json";
 
 export default class Views {
+  private id = config.addonRef
   constructor() {
+    this.addStyle()
+  }
+
+  private addStyle(parentNode?: HTMLElement) {
+    ztoolkit.UI.appendElement({
+      tag: "style",
+      id: `${config.addonRef}-style`,
+      namespace: "html",
+      properties: {
+        innerHTML: `
+          #${this.id} {
+          }
+          #${this.id} .figure-box {
+            padding: 10px;
+            transition: background-color .23s;
+          }
+          #${this.id} .figure-box:hover {
+            background-color: rgba(0,0,0, 0.05);
+          }
+          #${this.id} .figure-box .caption {
+            margin-bottom: 5px;
+          }
+          #${this.id} .figure-box .figure, #${this.id} .figure-box .caption {
+            cursor: pointer;
+          }
+        `
+      },
+      // #output-container div.streaming span:after,  
+    }, parentNode || document.documentElement);
   }
 
   /**
@@ -36,12 +66,8 @@ export default class Views {
         const dataDir = OS.Path.join(addonDir, "data")
         const figureDir = OS.Path.join(addonDir, "figure")
 
-        const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`)
-        const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`)
-
-
-        // const cmdPath = "C:\\Users\\polygon\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe"
-        // const javaPath = "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe"
+        const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`) as string
+        const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`) as string
 
         const key = pdfItem.key
         const args = [
@@ -89,7 +115,7 @@ export default class Views {
             await Zotero.Promise.delay(1000)
           }
           if (targetFile) {
-            const figures = JSON.parse(await Zotero.File.getContentsAsync(targetFile) as string) as Figure[]
+            const figures = window.eval(await Zotero.File.getContentsAsync(targetFile, "gbk") as string) as Figure[]
             ztoolkit.log(figures)
             await this.renderPanel(panel, figures)
           } else {
@@ -105,36 +131,35 @@ export default class Views {
 
   private async renderPanel(panel: XUL.TabPanel, figures: Figure[]) {
     // const maxWidth = 300
-    const vbox = ztoolkit.UI.appendElement(
+    const container = ztoolkit.UI.appendElement(
       {
         tag: "relatedbox",
-        classList: ["zotero-editpane-related"],
+        id: this.id,
         namespace: "xul",
-        ignoreIfExists: true,
         attributes: {
           flex: "1",
         },
         styles: {
-          padding: "10px"
+          // padding: "10px"
         },
         children: [
           {
-            tag: "vbox",
+            tag: "div",
             namespace: "xul",
-            classList: ["zotero-box"],
-            attributes: {
-              flex: "1",
-            },
+            classList: ["container"],
             styles: {
-              paddingLeft: "0px",
-              paddingRight: "0px"
+              display: "inline",
             },
             children: []
           }
         ]
-      }, panel).querySelector("vbox") as XUL.Box
+      }, panel).querySelector("div.container") as XUL.Box
     figures.sort((a: any, b: any) => Number(a.page) - Number(b.page))
-    for (let figure of figures) {
+    const popupWin = new ztoolkit.ProgressWindow("Loading Figures", { closeOtherProgressWindows: true, closeTime: -1})
+      .createLine({ text: `[${0}/${figures.length}] 0%`, progress: 0 })
+    .show()
+    figures.forEach(async (figure) => {
+      ztoolkit.log(figure.caption)
       const imageData = await Zotero.File.getBinaryContentsAsync(figure.renderURL);
       const array = new window.Uint8Array(imageData.length);
       for (let i = 0; i < imageData.length; i++) {
@@ -144,51 +169,105 @@ export default class Views {
       const reader = new window.FileReader();
       reader.readAsDataURL(blob);
       reader.onloadend = function () {
-        const base64data = reader.result;
+        const base64data = reader.result as string;
         ztoolkit.UI.appendElement({
           namespace: "html",
           tag: "div",
+          classList: ["figure-box"],
           styles: {
-            display: "initial",
+            // display: "initial",
             // flexDirection: "column",
           },
           children: [
             {
               tag: "span",
+              classList: ["caption"],
               properties: {
                 innerText: figure.caption,
               },
               styles: {
-                display: "inline-block", 
+                display: "inline-block",
                 wordWrap: "break-word",
-                width: "100%"
-              }
+                width: "100%",
+                textAlign: "justify"
+              },
+              listeners: [
+                {
+                  type: "click",
+                  listener: async () => {
+                    ztoolkit.log(figure)
+                    const reader = await ztoolkit.Reader.getReader()
+                    const pdfWin = (reader!._iframeWindow as any).wrappedJSObject
+                    const height = pdfWin.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3]
+                    pdfWin.eval(`
+                      PDFViewerApplication.pdfViewer.scrollPageIntoView({
+                        pageNumber: ${figure.page + 1},
+                        destArray: ${JSON.stringify([null, { name: "XYZ" }, figure.regionBoundary.x1, height - figure.regionBoundary.y1, pdfWin.PDFViewerApplication.pdfViewer._pages[0].scale])},
+                        allowNegativeOffset: false,
+                        ignoreDestinationZoom: false
+                      })
+                    `);
+                    new ztoolkit.ProgressWindow(`To ${figure.figType}`, { closeOtherProgressWindows: true, closeTime: 500 })
+                      .createLine({ text: figure.caption.slice(0, 30) + "...", type: "success" })
+                      .show()
+                  }
+                }
+              ]
             },
             {
               tag: "img",
+              classList: ["figure"],
               styles: {
                 maxHeight: "100%",
                 maxWidth: `100%`
               },
               attributes: {
-                src: base64data as string
-              }
+                src: base64data
+              },
+              listeners: [
+                {
+                  type: "click",
+                  listener: () => {
+                    new ztoolkit.Clipboard()
+                      .addImage(base64data)
+                      .copy()
+                    new ztoolkit.ProgressWindow(`Copy ${figure.figType}`, { closeOtherProgressWindows: true, closeTime: 500 })
+                      .createLine({ text: figure.caption.slice(0, 30) + "...", type: "success" })
+                      .show()
+                  }
+                }
+              ]
             },
             
           ]
 
-        }, vbox)
-      };
-      
-    }
+        }, container)
+        const i = figures.indexOf(figure) + 1
+        const progress = 100 * i / figures.length
+        popupWin.changeLine({ text: `[${i}/${figures.length}] ${(progress).toFixed(2)}%`, progress: progress })
+        if (i == figures.length - 1) {
+          popupWin.changeLine({ text: `[${i}/${figures.length}] 100%`, type: "success" })
+          popupWin.startCloseTimer(3000)
+        }
+      }
+    })
   }
 
 }
 
 
+interface Boundary{
+  x1: number;
+  x2: number;
+  y1: number;
+  y2: number;
+}
 interface Figure {
   caption: string;
   name: string;
   page: number;
-  renderURL: string
+  renderURL: string;
+  regionBoundary: Boundary;
+  captionBoundary: Boundary;
+  figType: "Figure" | "Table"
 }
