@@ -35,13 +35,19 @@ export default class Views {
         const addonDir = OS.Path.join(zoteroDir, config.addonRef)
         const dataDir = OS.Path.join(addonDir, "data")
         const figureDir = OS.Path.join(addonDir, "figure")
-        const wtPath = "C:\\Users\\polygon\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe"
-        const javaPath = "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe"
+
+        const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`)
+        const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`)
+
+        
+        // const cmdPath = "C:\\Users\\polygon\\AppData\\Local\\Microsoft\\WindowsApps\\wt.exe"
+        // const javaPath = "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe"
+
         const key = pdfItem.key
         const args = [
           javaPath,
           "-jar",
-          OS.Path.join(zoteroDir, "pdffigures2-assembly-0.0.12-SNAPSHOT.jar"),
+          OS.Path.join(zoteroDir, "pdffigures.jar"),
           filename,
           "-d",
           OS.Path.join(dataDir, key),
@@ -76,7 +82,7 @@ export default class Views {
           }
           let targetFile: string | undefined = getTargetFile();
           if (!targetFile) {
-            await Zotero.Utilities.Internal.exec(wtPath, args);
+            await Zotero.Utilities.Internal.exec(cmdPath, args);
           }
           let count = 0
           while (!(targetFile = getTargetFile()) && count < 10) {
@@ -107,6 +113,9 @@ export default class Views {
         ignoreIfExists: true,
         attributes: {
           flex: "1",
+        },
+        styles: {
+          padding: "10px"
         },
         children: [
           {
