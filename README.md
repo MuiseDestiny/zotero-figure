@@ -1,5 +1,6 @@
 # Zotero Figure
 > 基于pdffigure2解析PDF图表并展示在侧边栏的小插件
+> 特别注意，本项目不接受图表解析错误的issue，因为图表解析并非本插件的功能，本插件只是把pdffigure2和Zotero链接起来
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ce475f1d-3fd1-46f4-957b-41ec2e33e449)
 
