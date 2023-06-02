@@ -20,7 +20,7 @@
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/d6e0b9a4-9c73-499f-87a4-8c39d5305fd2)
 
-2. 安装java sdk，配置java路径
+2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
 > 只需要配置java路径，cmd那个不用管
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6ef7c2af-5733-48f4-82dc-73a582b65bb3)
