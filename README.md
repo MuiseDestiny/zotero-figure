@@ -3,10 +3,8 @@
 
 > 特别注意，本项目不接受图表解析错误的issue，因为图表解析并非本插件的功能，本插件只是把pdffigure2和Zotero链接起来
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/fb32a8e0-8cfc-4a49-bb69-471c7220ef47)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/341cf5c5-db4b-4a64-a1f7-ae0d0b771619)
 
-
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ce475f1d-3fd1-46f4-957b-41ec2e33e449)
 
 ## 主要功能
 
