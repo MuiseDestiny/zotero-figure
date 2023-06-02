@@ -4,6 +4,9 @@
 > 特别注意，本项目不接受图表解析错误的issue，因为图表解析并非本插件的功能，本插件只是把pdffigure2和Zotero链接起来
 
 
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/e60c2fbe-e36d-41e3-a42d-74d51e22facf)
+
+
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/341cf5c5-db4b-4a64-a1f7-ae0d0b771619)
 
 
