@@ -28,7 +28,7 @@
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
 > 注意，路径不要有引号，比如，路径不是`"C:/XXX/xxx/java.exe"`而是`C:/XXX/xxx/java.exe`，最后以`java.exe`结尾
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ecef304f-8d88-4c6b-a930-53737ca632ca)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/15cb95e1-1902-40ff-a59a-b0b44f309333)
 
 ## 致谢
 - [pdffigures2](https://github.com/allenai/pdffigures2) 
