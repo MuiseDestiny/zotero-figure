@@ -18,11 +18,12 @@
 
 ## 配置步骤
 
-1. 下载[pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar)移动到Zotero储存目录（如何查看该目录？见下图）下
+1. 下载[pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar)移动到Zotero储存目录下
+> 下图点击`打开数据文件夹`，**这个文件夹不要有中文**，如果有中文建议重命名后，在首选项重新选择它
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/1e23d93b-25aa-428e-88cd-8087b5591f13)
+![打开数据文件夹](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6b85cb30-0946-416e-99ed-9ea14f57f2df)
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/d6e0b9a4-9c73-499f-87a4-8c39d5305fd2)
+![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
 > 只需要配置java路径，cmd那个不用管
