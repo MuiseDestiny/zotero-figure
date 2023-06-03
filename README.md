@@ -3,7 +3,7 @@
 
 > 特别注意，本项目**不接受**图表解析错误的 issue，因为图表解析并非本插件的功能，本插件只是把 pdffigure2 和 Zotero 连接起来
 
-Window 使用截图
+Windows 使用截图
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/e60c2fbe-e36d-41e3-a42d-74d51e22facf)
 
@@ -31,7 +31,7 @@ Mac 使用截图
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
-> 注意，路径不要有引号，比如，路径不是`"C:/XXX/xxx/java.exe"`而是`C:/XXX/xxx/java.exe`，最后以`java.exe`结尾
+> windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`; Mac 输入参考 `/usr/bin/java`
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/15cb95e1-1902-40ff-a59a-b0b44f309333)
 
