@@ -35,6 +35,8 @@ Mac 使用截图
 
 >   Mac 输入参考 `/usr/bin/java`
 
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ffb3c82a-7a34-46dd-9b14-64797ad2944b)
+
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/15cb95e1-1902-40ff-a59a-b0b44f309333)
 
 ## 致谢
