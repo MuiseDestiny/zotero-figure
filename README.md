@@ -1,10 +1,15 @@
 # Zotero Figure
 > 基于[pdffigure2](http://pdffigures2.allenai.org/)解析PDF图表并展示在侧边栏的小插件
 
-> 特别注意，本项目不接受图表解析错误的issue，因为图表解析并非本插件的功能，本插件只是把pdffigure2和Zotero链接起来
+> 特别注意，本项目**不接受**图表解析错误的 issue，因为图表解析并非本插件的功能，本插件只是把 pdffigure2 和 Zotero 连接起来
 
+Window 使用截图
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/e60c2fbe-e36d-41e3-a42d-74d51e22facf)
+
+Mac 使用截图
+
+![c22463902d8d7ef699b00bd4bad4b7d](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/fba88e37-4aaa-491b-a2fa-85f6e1511b72)
 
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/341cf5c5-db4b-4a64-a1f7-ae0d0b771619)
