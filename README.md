@@ -31,7 +31,9 @@ Mac 使用截图
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
-> windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`; Mac 输入参考 `/usr/bin/java`
+> windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`
+
+>   Mac 输入参考 `/usr/bin/java`
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/15cb95e1-1902-40ff-a59a-b0b44f309333)
 
