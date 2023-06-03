@@ -26,9 +26,9 @@
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
-> 只需要配置java路径，cmd那个不用管
+> 注意，路径不要有引号，比如，路径不是`"C:/XXX/xxx/java.exe"`而是`C:/XXX/xxx/java.exe`，最后以`java.exe`结尾
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6ef7c2af-5733-48f4-82dc-73a582b65bb3)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ecef304f-8d88-4c6b-a930-53737ca632ca)
 
 ## 致谢
 - [pdffigures2](https://github.com/allenai/pdffigures2) 
