@@ -1,5 +1,5 @@
 # Zotero Figure
-> 一个基于 [PDFFigure2](http://pdffigures2.allenai.org/) 的PDF图表解析插件
+> 一个基于 [PDFFigures2](http://pdffigures2.allenai.org/) 的 PDF 图表解析插件
 
 <img src="addon/chrome/content/icons/favicon.png" width="36px" height="36px">
 
@@ -10,7 +10,7 @@
 ![Downloads latest release](https://img.shields.io/github/downloads/MuiseDestiny/zotero-figure/latest/total?color=yellow)
 
 ## 演示
-> 特别注意，本项目**不接受**图表解析错误的 issue，因为图表解析并非本插件的功能，本插件只是把 pdffigure2 和 Zotero 连接起来
+> 特别注意，本项目**不接受**图表解析错误的 issue，因为图表解析并非本插件的功能，本插件只是把 PDFFigures2 和 Zotero 连接起来
 
 
 Windows 使用截图
@@ -26,7 +26,7 @@ Mac 使用截图
 
 
 ## 主要功能
-> 默认输出图片dpi为300
+> 默认输出图片 dpi 为 300
 
 
 1. 单击图片，复制图片到剪贴板，配合 [Snipaste](https://www.snipaste.com/) 粘贴到屏幕
@@ -42,7 +42,7 @@ Mac 使用截图
 
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
-2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
+2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置 java 路径
 > windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`
 
 > Mac 输入参考 `/usr/bin/java`
