@@ -1,5 +1,5 @@
 # Zotero Figure
-> 一个基于PDFFigure2的PDF图表解析插件
+> 一个基于[PDFFigure2](http://pdffigures2.allenai.org/)的PDF图表解析插件
 
 <img src="addon/chrome/content/icons/favicon.png" width="36px" height="36px">
 
@@ -10,10 +10,9 @@
 ![Downloads latest release](https://img.shields.io/github/downloads/MuiseDestiny/zotero-figure/latest/total?color=yellow)
 
 ## 演示
-
-> 基于[pdffigure2](http://pdffigures2.allenai.org/)解析PDF图表并展示在侧边栏的小插件
-
 > 特别注意，本项目**不接受**图表解析错误的 issue，因为图表解析并非本插件的功能，本插件只是把 pdffigure2 和 Zotero 连接起来
+
+
 Windows 使用截图
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/e60c2fbe-e36d-41e3-a42d-74d51e22facf)
