@@ -1,12 +1,12 @@
 {
   "name": "zotero-figure",
-  "version": "0.0.0",
+  "version": "0.0.5",
   "description": "Zotero Figure",
   "config": {
     "addonName": "Zotero Figure",
     "addonID": "zoterofigure@polygon.org",
     "addonRef": "zoterofigure",
-    "addonInstance": "zoterofigure",
+    "addonInstance": "ZoteroFigure",
     "prefsPrefix": "extensions.zotero.zoterofigure",
     "releasepage": "https://github.com/MuiseDestiny/zotero-figure/releases/latest/download/zotero-figure.xpi",
     "updaterdf": "https://raw.githubusercontent.com/MuiseDestiny/zotero-figure/bootstrap/update.json"
@@ -40,6 +40,7 @@
   },
   "homepage": "https://github.com/MuiseDestiny/zotero-figure#readme",
   "dependencies": {
+    "jschardet": "^3.0.0",
     "zotero-plugin-toolkit": "^2.1.3"
   },
   "devDependencies": {

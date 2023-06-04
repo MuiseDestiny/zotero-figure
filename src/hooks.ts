@@ -14,9 +14,8 @@ async function onStartup() {
     "default",
     `chrome://${config.addonRef}/content/icons/favicon.png`
   );
-  await (new Views()).onInit()
-
-  
+  const views = new Views()
+  // await views.registerReaderTabPanel();
 }
 
 function onShutdown(): void {
@@ -63,45 +62,6 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
       return;
   }
 }
-
-function onShortcuts(type: string) {
-  switch (type) {
-    case "larger":
-      KeyExampleFactory.exampleShortcutLargerCallback();
-      break;
-    case "smaller":
-      KeyExampleFactory.exampleShortcutSmallerCallback();
-      break;
-    case "confliction":
-      KeyExampleFactory.exampleShortcutConflictingCallback();
-      break;
-    default:
-      break;
-  }
-}
-
-function onDialogEvents(type: string) {
-  switch (type) {
-    case "dialogExample":
-      HelperExampleFactory.dialogExample();
-      break;
-    case "clipboardExample":
-      HelperExampleFactory.clipboardExample();
-      break;
-    case "filePickerExample":
-      HelperExampleFactory.filePickerExample();
-      break;
-    case "progressWindowExample":
-      HelperExampleFactory.progressWindowExample();
-      break;
-    case "vtableExample":
-      HelperExampleFactory.vtableExample();
-      break;
-    default:
-      break;
-  }
-}
-
 // Add your hooks here. For element click, etc.
 // Keep in mind hooks only do dispatch. Don't add code that does real jobs in hooks.
 // Otherwise the code would be hard to read and maintian.
@@ -111,6 +71,4 @@ export default {
   onShutdown,
   onNotify,
   onPrefsEvent,
-  onShortcuts,
-  onDialogEvents,
 };
