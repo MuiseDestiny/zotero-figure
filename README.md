@@ -1,5 +1,5 @@
 # Zotero Figure
-> 一个基于[PDFFigure2](http://pdffigures2.allenai.org/)的PDF图表解析插件
+> 一个基于 [PDFFigure2](http://pdffigures2.allenai.org/) 的PDF图表解析插件
 
 <img src="addon/chrome/content/icons/favicon.png" width="36px" height="36px">
 
@@ -29,13 +29,13 @@ Mac 使用截图
 > 默认输出图片dpi为300
 
 
-1. 单击图片，复制图片到剪贴板，配合[Snipaste](https://www.snipaste.com/)粘贴到屏幕
-2. 双击图片，独立窗口预览，需要安装[Zotero Better Notes](https://github.com/windingwind/zotero-better-notes)插件
+1. 单击图片，复制图片到剪贴板，配合 [Snipaste](https://www.snipaste.com/) 粘贴到屏幕
+2. 双击图片，独立窗口预览，需要安装 [Zotero Better Notes](https://github.com/windingwind/zotero-better-notes) 插件
 3. 单击图注跳转到图片
 
 ## 配置步骤
 
-1. 下载[pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar)移动到Zotero储存目录下
+1. 下载 [pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar) 移动到 Zotero 储存目录下
 > 下图点击`打开数据文件夹`，**这个文件夹不要有中文**，如果有中文建议重命名后，在首选项重新选择它
 
 ![打开数据文件夹](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/6b85cb30-0946-416e-99ed-9ea14f57f2df)
