@@ -21,14 +21,16 @@ Mac 使用截图
 
 ![c22463902d8d7ef699b00bd4bad4b7d](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/fba88e37-4aaa-491b-a2fa-85f6e1511b72)
 
-
+贴图 / 独立窗口打开图表
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/341cf5c5-db4b-4a64-a1f7-ae0d0b771619)
 
 
 ## 主要功能
+> 默认输出图片dpi为300
 
-1. 单击图片，复制图片到剪贴板，配合snipaste粘贴到屏幕
-2. 双击图片，独立窗口预览，需要安装Zotero Better Notes插件
+
+1. 单击图片，复制图片到剪贴板，配合[Snipaste](https://www.snipaste.com/)粘贴到屏幕
+2. 双击图片，独立窗口预览，需要安装[Zotero Better Notes](https://github.com/windingwind/zotero-better-notes)插件
 3. 单击图注跳转到图片
 
 ## 配置步骤
@@ -43,7 +45,7 @@ Mac 使用截图
 2. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置java路径
 > windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`
 
->   Mac 输入参考 `/usr/bin/java`
+> Mac 输入参考 `/usr/bin/java`
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ffb3c82a-7a34-46dd-9b14-64797ad2944b)
 
