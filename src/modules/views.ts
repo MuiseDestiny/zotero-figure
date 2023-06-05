@@ -153,6 +153,15 @@ export default class Views {
     return filepath
   }
 
+  private async readAsJson(filepath: string) {
+    // 先用utf-8
+    let rawString = await Zotero.File.getContentsAsync(filepath, "utf-8") as string
+    if (rawString.indexOf("�") >= 0) {
+      rawString = await Zotero.File.getContentsAsync(filepath, "gbk") as string
+    }
+    return JSON.parse(rawString)
+  }
+
   private async getFigures(reader: _ZoteroTypes.ReaderInstance, popupWin: any) {
     // 运行
     const pdfItem = Zotero.Items.get(reader._itemID)
@@ -220,8 +229,7 @@ export default class Views {
     }
     if (targetFile) {
       popupWin.createLine({ text: "Reading json...", type: "success" })
-      const charset = Zotero.Prefs.get(`${config.addonRef}.charset`) as string
-      const figures = JSON.parse(await Zotero.File.getContentsAsync(targetFile, charset) as string) as Figure[]
+      const figures = await this.readAsJson(targetFile)
       if (figures.length == 0) {
         popupWin.createLine({ text: "No figures were parsed", type: "default" })
         popupWin.createLine({ text: "Finished", type: "default" })
