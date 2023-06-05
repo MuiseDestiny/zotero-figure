@@ -35,9 +35,12 @@ Mac 使用截图
 
 ## 使用步骤
 
-1. 安装[Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases)插件，下载xpi后缀文件。
+1. 安装 [Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases) 插件，下载xpi后缀文件
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/5f3cc96b-6cdc-4085-830d-001575d52f8e)
+
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/a0117f49-cb31-455a-aea4-647305492d03)
+
 
 2. 下载 [pdffigures2.jar](https://github.com/MuiseDestiny/zotero-figure/blob/bootstrap/pdffigures2.jar) 移动到 Zotero 储存目录下
 > 下图点击`打开数据文件夹`，**这个文件夹不要有中文**，如果有中文建议重命名后，在首选项重新选择它
