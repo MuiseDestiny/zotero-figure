@@ -3,6 +3,13 @@ import { getString, initLocale } from "../utils/locale";
 var jschardet = require('jschardet');
 export default class Views {
   private id = config.addonRef
+  private dataDir: string;
+  private figureDir: string;
+  private zoteroDir: string;
+  private addonDir: string;
+  private buttonID = "figureView";
+  private containerID = "viewFigure"
+  private cache: { [key: string]: string } = { } ;
   constructor() {
     this.addStyle()
     // 初次打开Zotero就是一篇PDF
@@ -24,11 +31,18 @@ export default class Views {
           extraData[ids?.[0]]?.type == "reader"
         ) {
           await this.registerReaderSideBar()
+          
         }
       }
     }, [
       "tab",
     ]);
+    // @ts-ignore
+    const OS = window.OS
+    this.zoteroDir = Zotero.DataDirectory._dir
+    this.addonDir = OS.Path.join(this.zoteroDir, config.addonRef)
+    this.dataDir = OS.Path.join(this.addonDir, "data")
+    this.figureDir = OS.Path.join(this.addonDir, "figure")
   }
 
   private addStyle(parentNode?: HTMLElement, id: string = this.id) {
@@ -77,60 +91,60 @@ export default class Views {
   /**
    * 注册阅读侧边栏
    */
-  public async registerReaderTabPanel() {
-    ztoolkit.ReaderTabPanel.register(
-      getString("tabpanel.reader.tab.label"),
-      (
-        panel: XUL.TabPanel | undefined,
-        deck: XUL.Deck,
-        win: Window,
-        reader: _ZoteroTypes.ReaderInstance
-      ) => {
-        if (!panel) {
-          ztoolkit.log(
-            "This reader do not have right-side bar. Adding reader tab skipped."
-          );
-          return;
-        }
+  // public async registerReaderTabPanel() {
+  //   ztoolkit.ReaderTabPanel.register(
+  //     getString("tabpanel.reader.tab.label"),
+  //     (
+  //       panel: XUL.TabPanel | undefined,
+  //       deck: XUL.Deck,
+  //       win: Window,
+  //       reader: _ZoteroTypes.ReaderInstance
+  //     ) => {
+  //       if (!panel) {
+  //         ztoolkit.log(
+  //           "This reader do not have right-side bar. Adding reader tab skipped."
+  //         );
+  //         return;
+  //       }
 
-        const container = ztoolkit.UI.appendElement({
-          tag: "relatedbox",
-          id: this.id,
-          namespace: "xul",
-          attributes: {
-            flex: "1",
-          },
-          styles: {
-            // padding: "10px"
-          },
-          children: [
-            {
-              tag: "div",
-              // namespace: "xul",
-              namespace: "html",
-              classList: ["container"],
-              styles: {
-                display: "inline",
-              },
-              children: []
-            }
-          ]
-        }, panel).querySelector("div.container") as XUL.Box
-        window.setTimeout(async () => {
-          const figures = await this.getFigures(reader, true)
-          if (figures.length) {
-            await this.renderToContainer(container, figures)
-          }
-        })
+  //       const container = ztoolkit.UI.appendElement({
+  //         tag: "relatedbox",
+  //         id: this.id,
+  //         namespace: "xul",
+  //         attributes: {
+  //           flex: "1",
+  //         },
+  //         styles: {
+  //           // padding: "10px"
+  //         },
+  //         children: [
+  //           {
+  //             tag: "div",
+  //             // namespace: "xul",
+  //             namespace: "html",
+  //             classList: ["container"],
+  //             styles: {
+  //               display: "inline",
+  //             },
+  //             children: []
+  //           }
+  //         ]
+  //       }, panel).querySelector("div.container") as XUL.Box
+  //       window.setTimeout(async () => {
+  //         const figures = await this.getFigures(reader, true)
+  //         if (figures.length) {
+  //           await this.renderToContainer(container, figures)
+  //         }
+  //       })
         
-      },
-      {
-        tabId: "zotero-figure",
-      }
-    )
-  }
+  //     },
+  //     {
+  //       tabId: "zotero-figure",
+  //     }
+  //   )
+  // }
 
-  private async getValidFilepath(pdfItem: Zotero.Item) {
+  private async getValidPDFFilepath(pdfItem: Zotero.Item) {
     let filepath = await pdfItem.getFilePathAsync() as string
     // 不合法文件处理
     // @ts-ignore
@@ -153,69 +167,66 @@ export default class Views {
     return filepath
   }
 
+  private getJsonFilepath(pdfItem: Zotero.Item) {
+    const files = Zotero.File.pathToFile(this.dataDir).directoryEntries
+    let filepath: string | undefined
+    while (files.hasMoreElements()) {
+      const file = files.getNext().QueryInterface(Components.interfaces.nsIFile);
+      if ((file.leafName as string).startsWith(pdfItem.key)) {
+        // @ts-ignore
+        filepath = window.OS.Path.join(this.dataDir, file.leafName)
+        break
+      }
+    }
+    return filepath
+  }
+
   private async readAsJson(filepath: string) {
     // 先用utf-8
     let rawString = await Zotero.File.getContentsAsync(filepath, "utf-8") as string
     if (rawString.indexOf("�") >= 0) {
       rawString = await Zotero.File.getContentsAsync(filepath, "gbk") as string
     }
-    return JSON.parse(rawString)
+    return JSON.parse(rawString) as Figure[]
   }
 
   private async getFigures(reader: _ZoteroTypes.ReaderInstance, popupWin: any) {
     // 运行
     const pdfItem = Zotero.Items.get(reader._itemID)
-    let filename = await this.getValidFilepath(pdfItem)
+    let filename = await this.getValidPDFFilepath(pdfItem)
     
     /**
      * java -jar E:/Zotero/pdffigures2.jar "E:\OneDrive\OneDrive - junblue\Zotero\JRST\Jin et al_2021_Improved Bi-Angle Aerosol Optical Depth Retrieval Algorithm from AHI Data Based.pdf" -d E:\Github\scipdf_parser\figures\data\ -m  E:\Github\scipdf_parser\figures\figures\ -i 300
      */
     // @ts-ignore
     const OS = window.OS
-    const zoteroDir = Zotero.DataDirectory._dir
-    const addonDir = OS.Path.join(zoteroDir, config.addonRef)
-    const dataDir = OS.Path.join(addonDir, "data")
-    const figureDir = OS.Path.join(addonDir, "figure")
 
     // const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`) as string
     const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`) as string
 
-    const key = pdfItem.key
     const args = [
       "-jar",
-      OS.Path.join(zoteroDir, "pdffigures2.jar"),
+      OS.Path.join(this.zoteroDir, "pdffigures2.jar"),
       filename,
       "-d",
-      OS.Path.join(dataDir, key),
+      OS.Path.join(this.dataDir, pdfItem.key),
       "-m",
-      figureDir + "/",
+      this.figureDir + "/",
       "-i",
       "300",
       "-t",
       "8"
     ]
-    if (!await OS.File.exists(addonDir)) {
-      await OS.File.makeDir(addonDir);
+    if (!await OS.File.exists(this.addonDir)) {
+      await OS.File.makeDir(this.addonDir);
     }
-    if (!await OS.File.exists(dataDir)) {
-      await OS.File.makeDir(dataDir);
+    if (!await OS.File.exists(this.dataDir)) {
+      await OS.File.makeDir(this.dataDir);
     }
-    if (!await OS.File.exists(figureDir)) {
-      await OS.File.makeDir(figureDir);
+    if (!await OS.File.exists(this.figureDir)) {
+      await OS.File.makeDir(this.figureDir);
     }
-    let getTargetFile = () => {
-      const files = Zotero.File.pathToFile(dataDir).directoryEntries
-      let targetFile: string | undefined
-      while (files.hasMoreElements()) {
-        const file = files.getNext().QueryInterface(Components.interfaces.nsIFile);
-        if ((file.leafName as string).startsWith(key)) {
-          targetFile = OS.Path.join(dataDir, file.leafName)
-          break
-        }
-      }
-      return targetFile
-    }
-    let targetFile: string | undefined = getTargetFile();
+    let targetFile: string | undefined = this.getJsonFilepath(pdfItem);
     if (!targetFile) {
       popupWin.createLine({ text: "Parsing figures...", type: "default" })
       await Zotero.Utilities.Internal.exec(javaPath, args);
@@ -223,7 +234,7 @@ export default class Views {
     popupWin.createLine({ text: "Searching json...", type: "default" })
     // 等待写入生成json
     let count = 0
-    while (!(targetFile = getTargetFile()) && count < 10) {
+    while (!(targetFile = this.getJsonFilepath(pdfItem)) && count < 10) {
       await Zotero.Promise.delay(1000)
       count += 1
     }
@@ -242,15 +253,25 @@ export default class Views {
     }
   }
 
+  private getShortString(s: string, maxLength: number = 30) {
+    return s.length > maxLength ? s.slice(0, maxLength) + "..." : s
+  }
+
   private async renderToContainer(container: HTMLDivElement, figures: Figure[], popupWin: any) {
     figures.sort((a: any, b: any) => Number(a.page) - Number(b.page))
     popupWin.createLine({ text: `[${0}/${figures.length}] Loading Figures`, progress: 0 })
     const idx = popupWin.lines.length - 1
     const tasks = figures.map(async (figure) => {
-      const base64data = await Zotero.File.generateDataURI(
-        figure.renderURL, 'image/png'
-      )
-      ztoolkit.UI.appendElement({
+      let base64data: string
+      if (figure.renderURL.startsWith("data:image/png")) {
+        base64data = figure.renderURL;
+      } else {
+        base64data = this.cache[figure.renderURL] ??= await Zotero.File.generateDataURI(
+          figure.renderURL, 'image/png'
+        )
+      }
+      let timer: undefined | number
+      const figureBox = ztoolkit.UI.appendElement({
         namespace: "html",
         tag: "div",
         classList: ["figure-box"],
@@ -289,7 +310,7 @@ export default class Views {
                       })
                     `);
                   new ztoolkit.ProgressWindow(`To ${figure.figType}`, { closeOtherProgressWindows: true, closeTime: 1000 })
-                    .createLine({ text: figure.caption.slice(0, 30) + "...", type: "success" })
+                    .createLine({ text: this.getShortString(figure.caption), type: "success" })
                     .show()
                 }
               }
@@ -313,7 +334,7 @@ export default class Views {
                     .addImage(base64data)
                     .copy()
                   new ztoolkit.ProgressWindow(`Copy ${figure.figType}`, { closeOtherProgressWindows: true, closeTime: 1000 })
-                    .createLine({ text: figure.caption.slice(0, 30) + "...", type: "success" })
+                    .createLine({ text: this.getShortString(figure.caption), type: "success" })
                     .show()
                 }
               },
@@ -322,6 +343,7 @@ export default class Views {
                 listener: () => {
                   if (Zotero.BetterNotes?.hooks?.onShowImageViewer) {
                     Zotero.BetterNotes?.hooks?.onShowImageViewer(
+                      // @ts-ignore
                       [...container.querySelectorAll(".figure-box .figure")].map(e => e.src),
                       figures.indexOf(figure),
                       "Figure"
@@ -332,6 +354,70 @@ export default class Views {
             ]
           },
 
+        ],
+        listeners: [
+          {
+            type: "mousedown",
+            listener: () => {
+              timer = window.setTimeout(async () => {
+                timer = undefined
+                const dialogData: { [key: string | number]: any } = {
+                  caption: figure.caption || ""
+                }
+                // 触发编辑
+                const dialog = new ztoolkit.Dialog(1, 1)
+                  .setDialogData(dialogData)
+                  .addCell(0, 0, {
+                    tag: "input",
+                    id: "caption",
+                    attributes: {
+                      "data-bind": "caption",
+                      "data-prop": "value",
+                      type: "text",
+                    },
+                    styles: {
+                      width: "10em",
+                      height: "2em"
+                    }
+                  })
+                  .addButton("Update", "update")
+                  .addButton("Remove", "remove")
+                  .open("Edit")
+                await dialogData.unloadLock?.promise;
+                ztoolkit.log(dialog, dialogData)
+                const reader = await ztoolkit.Reader.getReader() as _ZoteroTypes.ReaderInstance
+                const pdfItem = Zotero.Items.get(reader._itemID)
+                const filepath = await this.getJsonFilepath(pdfItem) as string
+                if (dialogData._lastButtonId == "update") {
+                  // 更新逻辑
+                  (figureBox.querySelector("span.caption")! as HTMLSpanElement).innerText = figure.caption = dialogData.caption
+                  // 保存
+                  await Zotero.File.putContentsAsync(filepath, JSON.stringify(figures))
+                  new ztoolkit.ProgressWindow(config.addonName)
+                    .createLine({ text: "Update", type: "success" })
+                    .show()
+                }
+                if (dialogData._lastButtonId == "remove") {
+                  // 删除逻辑
+                  figureBox.remove()
+                  figures = figures.filter(x => x !== figure)
+                  await Zotero.File.putContentsAsync(filepath, JSON.stringify(figures))
+                  new ztoolkit.ProgressWindow(config.addonName)
+                    .createLine({ text: "Remove", type: "success" })
+                    .show()
+                }
+              }, 1000)
+            }
+          },
+          {
+            type: "mouseup",
+            listener: () => {
+              if (timer !== undefined) {
+                window.clearTimeout(timer)
+                timer = undefined
+              }
+            }
+          }
         ]
 
       }, container)
@@ -364,17 +450,18 @@ export default class Views {
     this.addStyle(doc.documentElement as any, "sidebarContainer")
     const sideBarContainer = doc.querySelector("#sidebarContainer") as HTMLDivElement
     const buttonContainer = sideBarContainer.querySelector(".splitToolbarButton") as HTMLDivElement
-    const buttonID = "figureView"
-    if (buttonContainer.querySelector(`#${buttonID}`)) { return }
+    // const buttonID = "figureView"
+    // const containerID = "viewFigure"
+    if (buttonContainer.querySelector(`#${this.buttonID}`)) { return }
     const button = buttonContainer.querySelector("button")!.cloneNode(true) as HTMLButtonElement
     buttonContainer.append(button)
     button.setAttribute("title", "Display all figures and tables in the document")
-    button.setAttribute("id", buttonID)
+    button.setAttribute("id", this.buttonID)
 
     const sidebarContent = sideBarContainer.querySelector("#sidebarContent") as HTMLDivElement
     const container = ztoolkit.UI.appendElement({
       tag: "div",
-      id: "viewFigure",
+      id: this.containerID,
       classList: ["hide"],
     }, sidebarContent)  as HTMLDivElement
     
@@ -387,10 +474,13 @@ export default class Views {
     for (const btn of btns) {
       btn.addEventListener("click", async function () {
         window.setTimeout(async () => {
-          if (btn.id == buttonID) {
+          if (btn.id == that.buttonID) {
             if (!isRendered) {
               isRendered = true
-              window.setTimeout(async () => { await that.loading(reader, container) }, 100)
+              window.setTimeout(async () => {
+                await that.loading(reader, container)
+                that.addMoreListener()
+              }, 100)
             }
             win.PDFViewerApplication.pdfSidebar.active = 7;
             btns.forEach(e => e.classList.toggle('toggled', false));
@@ -404,6 +494,74 @@ export default class Views {
         })
       })
     }
+  }
+
+  private async addMoreListener() {
+    const reader = await ztoolkit.Reader.getReader()
+    if (!reader) { return }
+    const pdfItem = Zotero.Items.get(reader._itemID)
+    const that = this
+    ztoolkit.patch(
+      reader,
+      "_openAnnotationPopup",
+      "_openAnnotationPopup" + config.addonRef,
+      (original) => function (data: any) {
+        ztoolkit.log(data)
+        // @ts-ignore
+        original.call(this, data)
+        const annoKey = data.currentID
+        let anno = pdfItem.getAnnotations().find(i => i.key === annoKey) as any
+        if (anno?.annotationType == "image") {
+          const menupopup = reader._popupset.childNodes[0]
+          const menuseparator = menupopup.querySelector("menuseparator")
+          let menuitem = ztoolkit.UI.insertElementBefore({
+            namespace: "xul",
+            classList: ["menuitem-iconic"],
+            tag: "menuitem",
+            attributes: {
+              label: "转换为图表",
+              image: `chrome://${config.addonRef}/content/icons/favicon.png`
+            }
+          }, menuseparator) as XUL.MenuItem
+          menuitem.addEventListener('command', async () => {
+            const caption = anno?.annotationComment || "Untitled Figure/Table"
+            const pos = JSON.parse(anno?.annotationPosition)
+            let [ll, bb, rr, tt] = pos.rects[0]
+            // @ts-ignore
+            // anno = reader._iframeWindow.wrappedJSObject.viewerInstance._viewer._annotationsStore._annotations.find(x => data.ids.includes(x.id))! as any
+            // json
+            const filepath = that.getJsonFilepath(pdfItem) as string;
+            // 读取
+            const figures = await that.readAsJson(filepath) as Figure[]
+            // @ts-ignore
+            const height = reader._iframeWindow.wrappedJSObject.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3]
+            let figure: Figure = {
+              caption,
+              name: caption.match(/\d+/)?.[0] || "0",
+              page: pos.pageIndex,
+              renderURL: data.enableImageOptions.image,
+              regionBoundary: {
+                x1: ll,
+                y1: height - tt,
+                x2: rr,
+                y2: height - bb,
+              },
+              // \u56fe: 图
+              figType: /(fig|figure|\u56fe)/i.test(caption) ? "Figure" : "Table",
+            }
+            ztoolkit.log(figure)
+            figures.push(figure);
+            // 保存
+            await Zotero.File.putContentsAsync(filepath, JSON.stringify(figures))
+            // 刷新
+            const container = reader._iframeWindow?.document.querySelector(`#${that.containerID}`) as HTMLDivElement
+            container?.childNodes.forEach(e=>e.remove())
+            await that.loading(reader, container)
+          });
+        }
+      }
+    )
+    
   }
 }
 
@@ -420,6 +578,5 @@ interface Figure {
   page: number;
   renderURL: string;
   regionBoundary: Boundary;
-  captionBoundary: Boundary;
   figType: "Figure" | "Table"
 }

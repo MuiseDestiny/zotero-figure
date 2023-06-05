@@ -1,7 +1,7 @@
 {
   "name": "zotero-figure",
-  "version": "0.0.6",
-  "description": "Zotero Figure",
+  "version": "0.0.7",
+  "description": "一个基于 PDFFigure2 的 PDF 图表解析插件",
   "config": {
     "addonName": "Zotero Figure",
     "addonID": "zoterofigure@polygon.org",
