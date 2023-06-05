@@ -61,7 +61,11 @@ Mac 使用截图
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ffb3c82a-7a34-46dd-9b14-64797ad2944b)
 
-注意：如果发现解析的图注有乱码，可将上图的 `extensions.zotero.zoterofigure.charset` (默认`gbk`) 更改为 `utf-8`
+### 常见问题
+
+![9fc2743dbc061eb51c06c85267c59b4](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/18c7cf59-7cd2-4e01-8a02-d796ada3e733)
+
+如果发现解析的图注有乱码或出现上图卡住，可将上图的 `extensions.zotero.zoterofigure.charset` (默认`gbk`) 更改为 `utf-8`
 
 
 ## 致谢
