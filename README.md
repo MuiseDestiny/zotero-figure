@@ -33,7 +33,7 @@ Mac 使用截图
 2. 双击图片，独立窗口预览，需要安装 [Zotero Better Notes](https://github.com/windingwind/zotero-better-notes) 插件
 3. 单击图注跳转到图片
 
-## 配置步骤
+## 使用步骤
 
 1. 安装[Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases)插件，下载xpi后缀文件。
 
