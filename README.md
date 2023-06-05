@@ -55,7 +55,7 @@ Mac 使用截图
 
 |系统|输入示例|注意|
 |--|--|--|
-|Windows|`C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`|路径不要有引号，以 `java.exe` 结尾|
+|Windows|`C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`|路径两侧不要有引号，且以 `java.exe` 结尾|
 |Mac|`/usr/bin/java`||
 
 
