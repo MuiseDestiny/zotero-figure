@@ -31,9 +31,11 @@ Mac 使用截图
 
 1. 单击图片，复制图片到剪贴板，配合 [Snipaste](https://www.snipaste.com/) 粘贴到屏幕
 2. 双击图片，独立窗口预览，需要安装 [Zotero Better Notes](https://github.com/windingwind/zotero-better-notes) 插件
-3. 单击图注跳转到图片
+3. 单击图注跳转到 PDF 对应图位置
 
 ## 使用步骤
+
+👋
 
 1. 下载 [Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases) 插件（xpi后缀文件），安装
 
