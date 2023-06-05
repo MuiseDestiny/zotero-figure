@@ -35,7 +35,7 @@ Mac 使用截图
 
 ## 使用步骤
 
-1. 安装 [Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases) 插件，下载xpi后缀文件
+1. 下载 [Zotero Figure](https://github.com/MuiseDestiny/zotero-figure/releases) 插件（xpi后缀文件），安装
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/5f3cc96b-6cdc-4085-830d-001575d52f8e)
 
@@ -50,12 +50,16 @@ Mac 使用截图
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
 3. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置 java 路径
-> windows 输入参考 `C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`
 
-> Mac 输入参考 `/usr/bin/java`
+|系统|输入示例|注意|
+|--|--|--|
+|Windows|`C:\Program Files\Common Files\Oracle\Java\javapath\java.exe`|路径不要有引号，以 `java.exe` 结尾|
+|Mac|`/usr/bin/java`||
+
 
 ![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/ffb3c82a-7a34-46dd-9b14-64797ad2944b)
 
+注意：如果发现解析的图注有乱码，可将上图的 `extensions.zotero.zoterofigure.charset` (默认`gbk`) 更改为 `utf-8`
 
 
 ## 致谢
