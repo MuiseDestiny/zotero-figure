@@ -51,7 +51,7 @@ Mac 使用截图
 
 ![文件夹下的jar](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/8e8c3af3-7850-4346-bd7f-d7ab6600b75e)
 
-3. 安装[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置 java 路径
+3. **安装**[java](https://www.oracle.com/java/technologies/javase/jdk18-archive-downloads.html)，配置 java 路径
 
 |系统|输入示例|注意|
 |--|--|--|
