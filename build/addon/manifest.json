@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "PDF Figure",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "一个基于 PDFFigure2 的 PDF 图表解析插件",
   "homepage_url": "https://github.com/MuiseDestiny/zotero-figure#readme",
   "author": "Polygon",

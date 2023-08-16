@@ -4,12 +4,12 @@
 import { config } from "../../package.json";
   
 export default class Views {
-  private id = config.addonRef
   private dataDir: string;
   private figureDir: string;
   private zoteroDir: string;
   private addonDir: string;
-  private cache: { [key: string]: string } = {};
+  private isFigure = true;
+  private button!: HTMLButtonElement;
   constructor() {
     this.registerButtons()
     // @ts-ignore
@@ -18,6 +18,13 @@ export default class Views {
     this.addonDir = OS.Path.join(this.zoteroDir, config.addonRef)
     this.dataDir = OS.Path.join(this.addonDir, "data")
     this.figureDir = OS.Path.join(this.addonDir, "figure")
+
+    ztoolkit.UI.appendElement({
+      tag: 'div',
+      styles: {
+        backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
+      },
+    }, document.lastChild as HTMLElement);
   }
 
   /**
@@ -57,10 +64,11 @@ export default class Views {
     while (!(_window = reader?._iframeWindow?.wrappedJSObject)) {
       await Zotero.Promise.delay(10)
     }
+    
     const parent = _window.document.querySelector("#reader-ui .toolbar .start")!
     const ref = parent.querySelector("#pageNumber") as HTMLDivElement
     let timer: undefined | number, isFigure = false
-    const button = ztoolkit.UI.insertElementBefore({
+    this.button = ztoolkit.UI.insertElementBefore({
       ignoreIfExists: true,
       namespace: "html",
       tag: "button",
@@ -68,15 +76,16 @@ export default class Views {
       classList: ["toolbarButton"],
       styles: {
         // 解决图标
-        // backgroundImage: `chrome://${config.addonRef}/content/icons/favicon.png`,
-        backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
+        backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
+        // backgroundImage: `url(chrome://zoterogpt/content/icons/favicon.png)`,
+        // backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
         backgroundSize: "16px 16px",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         width: "32px"
       },
       attributes: {
-        title: "convert all Figures and Tables to image annotations",
+        title: "长按我：调用pdffigure2解析PDF图/表并保存为图注释；单击我：切换为图表视图/普通视图，可以多次单击切换视图哦。",
         tabindex: "-1",
       },
       // 长按是解析图表，点击是切换
@@ -94,21 +103,63 @@ export default class Views {
           type: "mouseup",
           listener: () => {
             if (timer) {
-              window.clearTimeout(timer)
               // 切换
-              const am = Zotero.Reader.getByTabID(Zotero_Tabs._tabs[Zotero_Tabs.selectedIndex].id)._internalReader._annotationManager
-              Zotero.Reader.getByTabID(Zotero_Tabs._tabs[Zotero_Tabs.selectedIndex].id)._internalReader._annotationManager._annotations.forEach(
-                (x: any) => {
-                  if (x.tags.find((tag: any) => tag.name.startsWith("Figure") || tag.name.startsWith("Table")) || x.color == "#ffffff") {
-                    x._hidden = true
-                  }
-                }
-              )
+              this.switchView(reader)
+              window.clearTimeout(timer)
             }
           }
         }
       ]
     }, ref) as HTMLButtonElement
+    this.switchView(reader, false)
+  }
+
+  private switchView(reader: _ZoteroTypes.ReaderInstance, toggle = true) {
+    let popupWin: any
+    if (toggle) {      
+      this.isFigure = !this.isFigure
+      popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 })
+        .createLine({ text: "Switch to " + (this.isFigure ? "Figure" : "Normal") + " view", type: "default"})
+        .show()
+    }
+    if (!this.isFigure) {
+      this.button.style.filter = "grayscale(100%)"
+    } else {
+      this.button.style.filter = "none"
+    }
+    const am = reader._internalReader._annotationManager
+    am._render = am._render || am.render;
+    am.render = () => {
+      const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0)
+      am._annotations.forEach((anno: any) => {
+        if (anno.tags.find((tag: any) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
+          // 不显示图表，隐藏图表注释
+          if (!this.isFigure) {
+            anno._hidden = true
+          } else {
+            if (!isFilter) {
+              anno._hidden = false
+            }
+          }
+        } else {
+          // 只显示图表，隐藏其它
+          if (this.isFigure) {
+            anno._hidden = true
+          } else {
+            if (!isFilter) {
+              anno._hidden = false
+            }
+          }
+        }
+      })
+      am._render()
+    }
+    am.render();
+
+    if (popupWin) {
+      popupWin.createLine({ text: "Done", type: "success" })
+      popupWin.startCloseTimer(1000)
+    }
   }
 
   private async getValidPDFFilepath(pdfItem: Zotero.Item) {
@@ -418,7 +469,7 @@ async function generateImageAnnotation(Zotero, Zotero_Tabs, pageIndex, rect, com
   const attachment = reader._item
   let annotation: any = {
     type: 'image',
-    color: "#ffffff",
+    color: "#fd7e7e",
     pageLabel: String(pageIndex + 1),
     position: {
       pageIndex: pageIndex,
@@ -435,7 +486,7 @@ async function generateImageAnnotation(Zotero, Zotero_Tabs, pageIndex, rect, com
   annotation.key = annotation.id = _generateObjectKey();
   annotation.dateCreated = (new Date()).toISOString();
   annotation.dateModified = annotation.dateCreated;
-  // annotation.authorName = tag;
+  annotation.authorName = "zoterofigure";
   // annotation.isAuthorNameAuthoritative = false;
 
   // Ensure numbers have 3 or less decimal places

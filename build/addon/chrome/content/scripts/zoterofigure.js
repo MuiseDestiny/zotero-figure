@@ -6175,14 +6175,19 @@ body {
   // src/modules/views.ts
   var Views = class {
     constructor() {
-      this.id = config.addonRef;
-      this.cache = {};
+      this.isFigure = true;
       this.registerButtons();
       const OS = window.OS;
       this.zoteroDir = Zotero.DataDirectory._dir;
       this.addonDir = OS.Path.join(this.zoteroDir, config.addonRef);
       this.dataDir = OS.Path.join(this.addonDir, "data");
       this.figureDir = OS.Path.join(this.addonDir, "figure");
+      ztoolkit.UI.appendElement({
+        tag: "div",
+        styles: {
+          backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`
+        }
+      }, document.lastChild);
     }
     /**
     * 注册所有按钮
@@ -6212,33 +6217,92 @@ body {
       }
       const parent = _window.document.querySelector("#reader-ui .toolbar .start");
       const ref = parent.querySelector("#pageNumber");
-      const button = ztoolkit.UI.insertElementBefore({
+      let timer, isFigure = false;
+      this.button = ztoolkit.UI.insertElementBefore({
         ignoreIfExists: true,
         namespace: "html",
         tag: "button",
         id: config.addonRef,
         classList: ["toolbarButton"],
         styles: {
-          // backgroundImage: `jar://chrome://${config.addonRef}/content/icons/favicon.png`,
-          backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
+          // 解决图标
+          backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
+          // backgroundImage: `url(chrome://zoterogpt/content/icons/favicon.png)`,
+          // backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
           backgroundSize: "16px 16px",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
           width: "32px"
         },
         attributes: {
-          title: "convert all Figures and Tables to image annotations",
+          title: "\u957F\u6309\u6211\uFF1A\u8C03\u7528pdffigure2\u89E3\u6790PDF\u56FE/\u8868\u5E76\u4FDD\u5B58\u4E3A\u56FE\u6CE8\u91CA\uFF1B\u5355\u51FB\u6211\uFF1A\u5207\u6362\u4E3A\u56FE\u8868\u89C6\u56FE/\u666E\u901A\u89C6\u56FE\uFF0C\u53EF\u4EE5\u591A\u6B21\u5355\u51FB\u5207\u6362\u89C6\u56FE\u54E6\u3002",
           tabindex: "-1"
         },
+        // 长按是解析图表，点击是切换
         listeners: [
           {
-            type: "click",
-            listener: async () => {
-              this.addAnnotation(reader);
+            type: "mousedown",
+            listener: async (event) => {
+              timer = window.setTimeout(async () => {
+                timer = void 0;
+                this.addAnnotation(reader);
+              }, 1e3);
+            }
+          },
+          {
+            type: "mouseup",
+            listener: () => {
+              if (timer) {
+                this.switchView(reader);
+                window.clearTimeout(timer);
+              }
             }
           }
         ]
       }, ref);
+      this.switchView(reader, false);
+    }
+    switchView(reader, toggle = true) {
+      let popupWin;
+      if (toggle) {
+        this.isFigure = !this.isFigure;
+        popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Switch to " + (this.isFigure ? "Figure" : "Normal") + " view", type: "default" }).show();
+      }
+      if (!this.isFigure) {
+        this.button.style.filter = "grayscale(100%)";
+      } else {
+        this.button.style.filter = "none";
+      }
+      const am = reader._internalReader._annotationManager;
+      am._render = am._render || am.render;
+      am.render = () => {
+        const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0);
+        am._annotations.forEach((anno) => {
+          if (anno.tags.find((tag) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
+            if (!this.isFigure) {
+              anno._hidden = true;
+            } else {
+              if (!isFilter) {
+                anno._hidden = false;
+              }
+            }
+          } else {
+            if (this.isFigure) {
+              anno._hidden = true;
+            } else {
+              if (!isFilter) {
+                anno._hidden = false;
+              }
+            }
+          }
+        });
+        am._render();
+      };
+      am.render();
+      if (popupWin) {
+        popupWin.createLine({ text: "Done", type: "success" });
+        popupWin.startCloseTimer(1e3);
+      }
     }
     async getValidPDFFilepath(pdfItem) {
       let filepath = await pdfItem.getFilePathAsync();
@@ -6488,7 +6552,7 @@ body {
     const attachment = reader._item;
     let annotation = {
       type: "image",
-      color: "#ffffff",
+      color: "#fd7e7e",
       pageLabel: String(pageIndex + 1),
       position: {
         pageIndex,
@@ -6503,6 +6567,7 @@ body {
     annotation.key = annotation.id = _generateObjectKey();
     annotation.dateCreated = (/* @__PURE__ */ new Date()).toISOString();
     annotation.dateModified = annotation.dateCreated;
+    annotation.authorName = "zoterofigure";
     if (annotation.position.rects) {
       annotation.position.rects = annotation.position.rects.map(
         (rect2) => rect2.map((value) => parseFloat(value.toFixed(3)))
@@ -6571,12 +6636,12 @@ body {
     return _ztoolkit;
   }
   function initZToolkit(_ztoolkit) {
-    const env = "development";
+    const env = "production";
     _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
     _ztoolkit.basicOptions.log.disableConsole = env === "production";
-    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = true;
-    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = true;
-    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = true;
+    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = false;
+    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = false;
+    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = false;
     _ztoolkit.ProgressWindow.setIconURI(
       "default",
       `chrome://${config.addonRef}/content/icons/favicon.png`
@@ -6588,7 +6653,7 @@ body {
     constructor() {
       this.data = {
         alive: true,
-        env: "development",
+        env: "production",
         ztoolkit: createZToolkit()
       };
       this.hooks = hooks_default;
