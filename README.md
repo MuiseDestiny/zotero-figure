@@ -15,7 +15,7 @@
 
 Windows 使用截图
 
-![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/e60c2fbe-e36d-41e3-a42d-74d51e22facf)
+![image](https://github.com/MuiseDestiny/zotero-figure/assets/51939531/c04ef2f9-8ad2-44a3-a114-65b907028453)
 
 Mac 使用截图
 
