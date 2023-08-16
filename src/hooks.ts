@@ -1,6 +1,5 @@
+/* eslint-disable no-empty */
 import { config } from "../package.json";
-import { getString, initLocale } from "./utils/locale";
-import { registerPrefsScripts } from "./modules/preferenceScript";
 import Views from "./modules/views";
 
 async function onStartup() {
@@ -9,17 +8,23 @@ async function onStartup() {
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-  initLocale();
-  ztoolkit.ProgressWindow.setIconURI(
-    "default",
-    `chrome://${config.addonRef}/content/icons/favicon.png`
-  );
-  const views = new Views()
-  // await views.registerReaderTabPanel();
+
+  await onMainWindowLoad(window)
 }
+
+async function onMainWindowLoad(win: Window): Promise < void>  {
+  const views = new Views()
+}
+
+async function onMainWindowUnload(win: Window): Promise<void> {
+  ztoolkit.unregisterAll();
+  addon.data.dialog?.window?.close();
+}
+
 
 function onShutdown(): void {
   ztoolkit.unregisterAll();
+  addon.data.dialog?.window?.close();
   // Remove addon object
   addon.data.alive = false;
   delete Zotero[config.addonInstance];
@@ -69,6 +74,8 @@ async function onPrefsEvent(type: string, data: { [key: string]: any }) {
 export default {
   onStartup,
   onShutdown,
+  onMainWindowLoad,
+  onMainWindowUnload,
   onNotify,
   onPrefsEvent,
 };

@@ -60,7 +60,7 @@ async function waitForZotero() {
               // Note that this is not called the first time the window is opened
               // (when Zotero is initialized), but only when the window is re-opened
               // after being closed
-              await Zotero.__addonInstance__?.hooks.onMainWindowLoad(domWindow);
+              await Zotero.ZoteroFigure?.hooks.onMainWindowLoad(domWindow);
             }
           },
           false,
@@ -73,7 +73,7 @@ async function waitForZotero() {
         if (
           domWindow.location.href === "chrome://zotero/content/zoteroPane.xhtml"
         ) {
-          Zotero.__addonInstance__?.hooks.onMainWindowUnload(domWindow);
+          Zotero.ZoteroFigure?.hooks.onMainWindowUnload(domWindow);
         }
       },
     };
@@ -97,7 +97,7 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
   ].getService(Components.interfaces.amIAddonManagerStartup);
   var manifestURI = Services.io.newURI(rootURI + "manifest.json");
   chromeHandle = aomStartup.registerChrome(manifestURI, [
-    ["content", "__addonRef__", rootURI + "chrome/content/"],
+    ["content", "zoterofigure", rootURI + "chrome/content/"],
   ]);
 
   /**
@@ -112,7 +112,7 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
   ctx._globalThis = ctx;
 
   Services.scriptloader.loadSubScript(
-    `${rootURI}/chrome/content/scripts/__addonRef__.js`,
+    `${rootURI}/chrome/content/scripts/zoterofigure.js`,
     ctx,
   );
 }
@@ -128,13 +128,13 @@ function shutdown({ id, version, resourceURI, rootURI }, reason) {
       Components.interfaces.nsISupports,
     ).wrappedJSObject;
   }
-  Zotero.__addonInstance__.hooks.onShutdown();
+  Zotero.ZoteroFigure.hooks.onShutdown();
 
   Cc["@mozilla.org/intl/stringbundle;1"]
     .getService(Components.interfaces.nsIStringBundleService)
     .flushBundles();
 
-  Cu.unload(`${rootURI}/chrome/content/scripts/__addonRef__.js`);
+  Cu.unload(`${rootURI}/chrome/content/scripts/zoterofigure.js`);
 
   if (chromeHandle) {
     chromeHandle.destruct();
