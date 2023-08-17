@@ -6175,8 +6175,7 @@ body {
   // src/modules/views.ts
   var Views = class {
     constructor() {
-      this.isFigure = true;
-      this.registerButtons();
+      this.registerButton();
       const OS = window.OS;
       this.zoteroDir = Zotero.DataDirectory._dir;
       this.addonDir = OS.Path.join(this.zoteroDir, config.addonRef);
@@ -6188,11 +6187,28 @@ body {
           backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`
         }
       }, document.lastChild);
+      window.addEventListener("click", (event) => {
+        if (!(event.target && event.target.baseURI == "resource://zotero/reader/reader.html" && event.target.tagName == "BUTTON" && event.target.className == "tag selected inactive" && event.target.innerText.match(/(Figure|Table)/))) {
+          return;
+        }
+        const reader = Zotero.Reader.getByTabID(Zotero_Tabs._tabs[Zotero_Tabs.selectedIndex].id);
+        const am = reader._internalReader._annotationManager;
+        this.clearFilter(reader);
+        if (Zotero.BetterNotes?.hooks?.onShowImageViewer) {
+          const annos = am._annotations.filter((a) => a.type == "image" && a.tags.find((t) => t.name.match(/^(Figure|Table)/)));
+          const srcs = annos.map((a) => a.image);
+          Zotero.BetterNotes?.hooks?.onShowImageViewer(
+            srcs,
+            annos.map((a) => a.tags[0].name).indexOf(event.target.innerText),
+            "Figure"
+          );
+        }
+      });
     }
     /**
     * 注册所有按钮
     */
-    registerButtons() {
+    registerButton() {
       const notifierID = Zotero.Notifier.registerObserver({
         notify: async (event, type, ids, extraData) => {
           if (type == "tab" && extraData[ids?.[0]]?.type == "reader") {
@@ -6227,51 +6243,136 @@ body {
         styles: {
           // 解决图标
           backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
-          // backgroundImage: `url(chrome://zoterogpt/content/icons/favicon.png)`,
-          // backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
           backgroundSize: "16px 16px",
-          backgroundPosition: "center",
+          backgroundPosition: "35% center",
           backgroundRepeat: "no-repeat",
-          width: "32px"
+          width: "45px",
+          filter: "grayscale(100%)",
+          padding: "4px 3px 4px 22px"
         },
         attributes: {
-          title: "\u957F\u6309\u6211\uFF1A\u8C03\u7528pdffigure2\u89E3\u6790PDF\u56FE/\u8868\u5E76\u4FDD\u5B58\u4E3A\u56FE\u6CE8\u91CA\uFF1B\u5355\u51FB\u6211\uFF1A\u5207\u6362\u4E3A\u56FE\u8868\u89C6\u56FE/\u666E\u901A\u89C6\u56FE\uFF0C\u53EF\u4EE5\u591A\u6B21\u5355\u51FB\u5207\u6362\u89C6\u56FE\u54E6\u3002",
+          title: config.addonName,
           tabindex: "-1"
         },
         // 长按是解析图表，点击是切换
         listeners: [
           {
-            type: "mousedown",
-            listener: async (event) => {
-              timer = window.setTimeout(async () => {
-                timer = void 0;
-                this.addAnnotation(reader);
-              }, 1e3);
-            }
-          },
-          {
-            type: "mouseup",
+            type: "click",
             listener: () => {
-              if (timer) {
-                this.switchView(reader);
-                window.clearTimeout(timer);
-              }
+              const menupopup = ztoolkit.UI.appendElement({
+                tag: "menupopup",
+                id: config.addonRef + "-menupopup",
+                namespace: "xul",
+                children: []
+              }, document.querySelector("#browser"));
+              const menuitem0 = ztoolkit.UI.appendElement({
+                tag: "menuitem",
+                attributes: {
+                  label: "PDF\u56FE\u8868\u89E3\u6790"
+                }
+              }, menupopup);
+              menuitem0.addEventListener("command", () => {
+                this.addAnnotation(reader);
+              });
+              const menuitem1 = ztoolkit.UI.appendElement({
+                tag: "menuitem",
+                attributes: {
+                  label: "\u663E\u793A\u56FE\u8868 & \u9690\u85CF\u6807\u6CE8"
+                }
+              }, menupopup);
+              menuitem1.addEventListener("command", () => {
+                this.clearFilter(reader);
+                this.switchView(reader, true);
+              });
+              const menuitem2 = ztoolkit.UI.appendElement({
+                tag: "menuitem",
+                attributes: {
+                  label: "\u663E\u793A\u6807\u6CE8 & \u9690\u85CF\u56FE\u8868"
+                }
+              }, menupopup);
+              menuitem2.addEventListener("command", () => {
+                this.clearFilter(reader);
+                this.switchView(reader, false);
+              });
+              const menuitem3 = ztoolkit.UI.appendElement({
+                tag: "menuitem",
+                attributes: {
+                  label: "\u56FE\u8868\u8F6C\u7B14\u8BB0"
+                }
+              }, menupopup);
+              menuitem3.addEventListener("command", async () => {
+                const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Add To Note", type: "default" }).show();
+                let annos = reader._item.getAnnotations();
+                annos = annos.filter((a) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/));
+                const note = await createNoteFromAnnotations(
+                  annos,
+                  // @ts-ignore
+                  { parentID: reader._item.parentID }
+                );
+                popupWin.changeLine({ type: "success" });
+                popupWin.startCloseTimer(1e3);
+              });
+              const menuitem4 = ztoolkit.UI.appendElement({
+                tag: "menuitem",
+                attributes: {
+                  label: "\u6E05\u7A7A\u56FE\u8868"
+                }
+              }, menupopup);
+              menuitem4.addEventListener("command", async () => {
+                const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Remove All Figures", type: "default" }).show();
+                this.switchView(reader, true);
+                let annos = reader._item.getAnnotations();
+                annos = annos.filter((a) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/));
+                await Promise.all(annos.map(async (anno) => await anno.eraseTx()));
+                popupWin.changeLine({ type: "success" });
+                popupWin.startCloseTimer(1e3);
+                this.button.style.filter = "grayscale(100%)";
+                this.switchView(reader, false);
+              });
+              menupopup.openPopup(this.button, "after_start", 0, 0, false, false);
+            }
+          }
+        ],
+        children: [
+          {
+            tag: "span",
+            classList: ["dropmarker"],
+            styles: {
+              background: "url(assets/icons/searchbar-dropmarker@2x.4ebeb64c.png) no-repeat 0 0/100%",
+              display: "inline-block",
+              height: "4px",
+              margin: "6px 0",
+              marginInlineStart: "2px",
+              position: "relative",
+              verticalAlign: "top",
+              width: "7px",
+              zIndex: "1"
             }
           }
         ]
       }, ref);
-      this.switchView(reader, false);
-    }
-    switchView(reader, toggle = true) {
-      let popupWin;
-      if (toggle) {
-        this.isFigure = !this.isFigure;
-        popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Switch to " + (this.isFigure ? "Figure" : "Normal") + " view", type: "default" }).show();
-      }
-      if (!this.isFigure) {
-        this.button.style.filter = "grayscale(100%)";
-      } else {
+      if (reader._item.getAnnotations().find((i) => i.getTags().find((t) => t.tag.match(/^(Figure|Table)/)))) {
         this.button.style.filter = "none";
+      }
+      this.switchView(reader, false, false);
+    }
+    clearFilter(reader) {
+      const am = reader._internalReader._annotationManager;
+      am._filter.authors.forEach((i) => am._filter.authors.pop());
+      am._filter.colors.forEach((i) => am._filter.colors.pop());
+      am._filter.tags.forEach((i) => am._filter.tags.pop());
+      am._filter.query = "";
+      am.render();
+    }
+    /**
+     * 切换显示图表/普通视图
+     * @param reader 
+     * @param isFigure 
+     */
+    switchView(reader, isFigure, isPopup = true) {
+      let popupWin;
+      if (isPopup) {
+        popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Switch to " + (isFigure ? "Figure" : "Normal") + " view", type: "default" }).show();
       }
       const am = reader._internalReader._annotationManager;
       am._render = am._render || am.render;
@@ -6279,19 +6380,19 @@ body {
         const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0);
         am._annotations.forEach((anno) => {
           if (anno.tags.find((tag) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
-            if (!this.isFigure) {
+            if (!isFigure) {
               anno._hidden = true;
             } else {
               if (!isFilter) {
-                anno._hidden = false;
+                delete anno._hidden;
               }
             }
           } else {
-            if (this.isFigure) {
+            if (isFigure) {
               anno._hidden = true;
             } else {
               if (!isFilter) {
-                anno._hidden = false;
+                delete anno._hidden;
               }
             }
           }
@@ -6300,7 +6401,7 @@ body {
       };
       am.render();
       if (popupWin) {
-        popupWin.createLine({ text: "Done", type: "success" });
+        popupWin.changeLine({ type: "success" });
         popupWin.startCloseTimer(1e3);
       }
     }
@@ -6396,11 +6497,12 @@ body {
       const figures = await this.getFigures(reader, popupWin);
       ztoolkit.log(figures);
       if (figures.length) {
+        this.button.style.filter = "none";
+        this.switchView(reader, true);
         const t = figures.length;
         const idx = popupWin.lines.length;
         popupWin.createLine({ text: `[0/${t}]Add to Annotation`, progress: 0, type: "default" });
-        const reader2 = await ztoolkit.Reader.getReader();
-        const pdfWin = reader2._iframeWindow.wrappedJSObject.document.querySelector("iframe").contentWindow;
+        const pdfWin = reader._iframeWindow.wrappedJSObject.document.querySelector("iframe").contentWindow;
         const height = pdfWin.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3];
         for (let figure of figures) {
           const y1 = height - figure.regionBoundary.y2;
@@ -6429,6 +6531,7 @@ body {
         });
         popupWin.changeLine({ text: "Done", type: "success", idx });
         popupWin.startCloseTimer(3e3);
+        this.switchView(reader, false);
       }
     }
   };
@@ -6552,7 +6655,7 @@ body {
     const attachment = reader._item;
     let annotation = {
       type: "image",
-      color: "#fd7e7e",
+      color: "#d2d8e2",
       pageLabel: String(pageIndex + 1),
       position: {
         pageIndex,
@@ -6576,6 +6679,104 @@ body {
     const savedAnnotation = await Zotero2.Annotations.saveFromJSON(attachment, annotation);
     savedAnnotation.addTag(tag);
     await savedAnnotation.saveTx();
+  }
+  async function createNoteFromAnnotations(annotations, { parentID, collectionID } = {}) {
+    if (!annotations.length) {
+      throw new Error("No annotations provided");
+    }
+    for (let annotation of annotations) {
+      if (annotation.annotationType === "image" && !await Zotero.Annotations.hasCacheImage(annotation)) {
+        try {
+          await Zotero.PDFRenderer.renderAttachmentAnnotations(annotation.parentID);
+        } catch (e) {
+          Zotero.debug(e);
+          throw e;
+        }
+        break;
+      }
+    }
+    let note = new Zotero.Item("note");
+    note.libraryID = annotations[0].libraryID;
+    if (parentID) {
+      note.parentID = parentID;
+    } else if (collectionID) {
+      note.addToCollection(collectionID);
+    }
+    await note.saveTx();
+    let editorInstance = new Zotero.EditorInstance();
+    editorInstance._item = note;
+    let jsonAnnotations = [];
+    for (let annotation of annotations) {
+      let attachmentItem = Zotero.Items.get(annotation.parentID);
+      let jsonAnnotation = await Zotero.Annotations.toJSON(annotation);
+      jsonAnnotation.attachmentItemID = attachmentItem.id;
+      jsonAnnotation.id = annotation.key;
+      jsonAnnotations.push(jsonAnnotation);
+    }
+    let vars = {
+      title: "\u56FE\u8868",
+      date: (/* @__PURE__ */ new Date()).toLocaleString()
+    };
+    let html = Zotero.Utilities.Internal.generateHTMLFromTemplate(Zotero.Prefs.get("annotations.noteTemplates.title"), vars);
+    html += "\n";
+    await editorInstance.importImages(jsonAnnotations);
+    let multipleParentParent = false;
+    let lastParentParentID;
+    let lastParentID;
+    let groups = [];
+    for (let i = 0; i < annotations.length; i++) {
+      let annotation = annotations[i];
+      let jsonAnnotation = jsonAnnotations[i];
+      let parentParentID = annotation.parentItem.parentID;
+      let parentID2 = annotation.parentID;
+      if (groups.length) {
+        if (parentParentID !== lastParentParentID) {
+          multipleParentParent = true;
+        }
+      }
+      if (!groups.length || parentID2 !== lastParentID) {
+        groups.push({
+          parentTitle: annotation.parentItem.getDisplayTitle(),
+          parentParentID,
+          parentParentTitle: annotation.parentItem.parentItem && annotation.parentItem.parentItem.getDisplayTitle(),
+          jsonAnnotations: [jsonAnnotation]
+        });
+      } else {
+        let group = groups[groups.length - 1];
+        group.jsonAnnotations.push(jsonAnnotation);
+      }
+      lastParentParentID = parentParentID;
+      lastParentID = parentID2;
+    }
+    let citationItems = [];
+    lastParentParentID = null;
+    for (let group of groups) {
+      if (multipleParentParent && group.parentParentTitle && lastParentParentID !== group.parentParentID) {
+        html += `<h2>${group.parentParentTitle}</h2>
+`;
+      }
+      lastParentParentID = group.parentParentID;
+      if (!group.parentParentID || groups.filter((x) => x.parentParentID === group.parentParentID).length > 1) {
+        html += `<h3>${group.parentTitle}</h3>
+`;
+      }
+      let { html: _html, citationItems: _citationItems } = Zotero.EditorInstanceUtilities.serializeAnnotations(group.jsonAnnotations, true);
+      html += _html + "\n";
+      for (let _citationItem of _citationItems) {
+        if (!citationItems.find((item) => item.uris.some((uri) => _citationItem.uris.includes(uri)))) {
+          citationItems.push(_citationItem);
+        }
+      }
+    }
+    citationItems = window.encodeURIComponent(JSON.stringify(citationItems));
+    let schemaVersion = 9;
+    if (schemaVersion === 9 && annotations.some((x) => x.annotationType === "underline")) {
+      schemaVersion = 10;
+    }
+    html = `<div data-citation-items="${citationItems}" data-schema-version="${schemaVersion}">${html}</div>`;
+    note.setNote(html);
+    await note.saveTx();
+    return note;
   }
 
   // src/hooks.ts
@@ -6636,12 +6837,12 @@ body {
     return _ztoolkit;
   }
   function initZToolkit(_ztoolkit) {
-    const env = "production";
+    const env = "development";
     _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
     _ztoolkit.basicOptions.log.disableConsole = env === "production";
-    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = false;
-    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = false;
-    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = false;
+    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = true;
+    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = true;
+    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = true;
     _ztoolkit.ProgressWindow.setIconURI(
       "default",
       `chrome://${config.addonRef}/content/icons/favicon.png`
@@ -6653,7 +6854,7 @@ body {
     constructor() {
       this.data = {
         alive: true,
-        env: "production",
+        env: "development",
         ztoolkit: createZToolkit()
       };
       this.hooks = hooks_default;

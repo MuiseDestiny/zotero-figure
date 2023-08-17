@@ -8,9 +8,10 @@ export default class Views {
   private figureDir: string;
   private zoteroDir: string;
   private addonDir: string;
+  private isFigure = true;
   private button!: HTMLButtonElement;
   constructor() {
-    this.registerButton()
+    this.registerButtons()
     // @ts-ignore
     const OS = window.OS
     this.zoteroDir = Zotero.DataDirectory._dir
@@ -24,37 +25,12 @@ export default class Views {
         backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
       },
     }, document.lastChild as HTMLElement);
-
-    window.addEventListener("click", (event: MouseEvent | any) => {
-      if (!(
-        event.target &&
-        event.target.baseURI == "resource://zotero/reader/reader.html" &&
-        event.target.tagName == "BUTTON" &&
-        event.target.className == "tag selected inactive" &&
-        event.target.innerText.match(/(Figure|Table)/)
-      )) { return }
-      // 当点击未被激活的图表标注的标签时候
-      const reader = Zotero.Reader.getByTabID(Zotero_Tabs._tabs[Zotero_Tabs.selectedIndex].id)
-      const am = reader._internalReader._annotationManager
-      this.clearFilter(reader)
-      if (Zotero.BetterNotes?.hooks?.onShowImageViewer) {
-        // @ts-ignore
-        const annos = am._annotations
-          .filter((a: any) => a.type == "image" && a.tags.find((t:any) => t.name.match(/^(Figure|Table)/)))
-        const srcs = annos.map((a: any)=>a.image)
-        Zotero.BetterNotes?.hooks?.onShowImageViewer(
-          srcs,
-          annos.map((a: any) => a.tags[0].name).indexOf(event.target.innerText),
-          "Figure"
-        )
-      }
-    })
   }
 
   /**
  * 注册所有按钮
  */
-  private registerButton() {
+  private registerButtons() {
     const notifierID = Zotero.Notifier.registerObserver({
       notify: async (
         event: string,
@@ -101,179 +77,83 @@ export default class Views {
       styles: {
         // 解决图标
         backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
+        // backgroundImage: `url(chrome://zoterogpt/content/icons/favicon.png)`,
+        // backgroundImage: "url(https://gitee.com/MuiseDestiny/BiliBili/raw/master/zoterofigure.png)",
         backgroundSize: "16px 16px",
-        backgroundPosition: "35% center",
+        backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
-        width: "45px",
-        filter: "grayscale(100%)",
-        padding: "4px 3px 4px 22px"
+        width: "32px"
       },
       attributes: {
-        title: config.addonName,
+        title: "长按我：调用pdffigure2解析PDF图/表并保存为图注释；单击我：切换为图表视图/普通视图，可以多次单击切换视图哦。",
         tabindex: "-1",
       },
       // 长按是解析图表，点击是切换
       listeners: [
         {
-          type: "click",
-          listener: () => {
-            const menupopup = ztoolkit.UI.appendElement({
-              tag: "menupopup",
-              id: config.addonRef + "-menupopup",
-              namespace: "xul",
-              children: [
-              ]
-            }, document.querySelector("#browser")!) as XUL.MenuPopup
-            // 1. 解析PDF图表为注释
-            const menuitem0 = ztoolkit.UI.appendElement({
-              tag: "menuitem",
-              attributes: {
-                label: "PDF图表解析",
-              }
-            }, menupopup)
-            menuitem0.addEventListener("command", () => {
+          type: "mousedown",
+          listener: async (event: any) => {
+            timer = window.setTimeout(async () => {
+              timer = undefined
               this.addAnnotation(reader)
-              
-            })
-            // 2. 图表注释视图
-            const menuitem1 = ztoolkit.UI.appendElement({
-              tag: "menuitem",
-              attributes: {
-                label: "显示图表 & 隐藏标注",
-              }
-            }, menupopup)
-            menuitem1.addEventListener("command", () => {
-              this.clearFilter(reader)
-              this.switchView(reader, true)
-            })
-            // 3. 普通注释视图
-            const menuitem2 = ztoolkit.UI.appendElement({
-              tag: "menuitem",
-              attributes: {
-                label: "显示标注 & 隐藏图表",
-              }
-            }, menupopup)
-            menuitem2.addEventListener("command", () => {
-              this.clearFilter(reader)
-              this.switchView(reader, false)
-            })
-            // 4. 图表转笔记
-            const menuitem3 = ztoolkit.UI.appendElement({
-              tag: "menuitem",
-              attributes: {
-                label: "图表转笔记",
-              }
-            }, menupopup)
-            menuitem3.addEventListener("command", async () => {
-              const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1})
-                .createLine({ text: "Add To Note", type: "default" })
-                .show()
-              let annos = reader._item.getAnnotations()
-              annos = annos
-                .filter((a: any) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/))
-
-              const note = await createNoteFromAnnotations(
-                annos,
-                // @ts-ignore
-                { parentID: reader._item.parentID as number }
-              );
-              
-              popupWin.changeLine({ type: "success" })
-              popupWin.startCloseTimer(1000)
-            })
-            // 3. 普通注释视图
-            const menuitem4 = ztoolkit.UI.appendElement({
-              tag: "menuitem",
-              attributes: {
-                label: "清空图表",
-              }
-            }, menupopup)
-            menuitem4.addEventListener("command", async () => {
-              const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 })
-                .createLine({ text: "Remove All Figures", type: "default" })
-                .show()
-              this.switchView(reader, true)
-              let annos = reader._item.getAnnotations()
-              annos = annos
-                .filter((a: any) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/))
-              await Promise.all(annos.map(async (anno) => await anno.eraseTx()))
-              popupWin.changeLine({ type: "success" })
-              popupWin.startCloseTimer(1000)
-              this.button.style.filter = "grayscale(100%)";
-              this.switchView(reader, false)
-            })
-            // @ts-ignore
-            menupopup.openPopup(this.button, 'after_start', 0, 0, false, false)
+            }, 1000)
           }
         },
+        {
+          type: "mouseup",
+          listener: () => {
+            if (timer) {
+              // 切换
+              this.switchView(reader)
+              window.clearTimeout(timer)
+            }
+          }
+        }
       ],
       children: [
         {
           tag: "span",
-          classList: ["dropmarker"],
-          styles: {
-            background: "url(assets/icons/searchbar-dropmarker@2x.4ebeb64c.png) no-repeat 0 0/100%",
-            display: "inline-block",
-            height: "4px",
-            margin: "6px 0",
-            marginInlineStart: "2px",
-            position: "relative",
-            verticalAlign: "top",
-            width: "7px",
-            zIndex: "1"
-          }
+          classList: ["dropmarker"]
         }
       ]
     }, ref) as HTMLButtonElement
-    // 判断是否已经导入
-    if (reader._item.getAnnotations().find(i => i.getTags().find(t => t.tag.match(/^(Figure|Table)/)))) {
-      this.button.style.filter = "none"
-    }
-    this.switchView(reader, false, false)
+    this.switchView(reader, false)
   }
 
-  private clearFilter(reader: _ZoteroTypes.ReaderInstance) {
-    const am = reader._internalReader._annotationManager
-    am._filter.authors.forEach((i: any) => am._filter.authors.pop());
-    am._filter.colors.forEach((i: any) => am._filter.colors.pop());
-    am._filter.tags.forEach((i: any) => am._filter.tags.pop());
-    am._filter.query = "";
-    am.render();
-  }
-  /**
-   * 切换显示图表/普通视图
-   * @param reader 
-   * @param isFigure 
-   */
-  private switchView(reader: _ZoteroTypes.ReaderInstance, isFigure: boolean, isPopup = true) {
+  private switchView(reader: _ZoteroTypes.ReaderInstance, toggle = true) {
     let popupWin: any
-    if (isPopup) {
+    if (toggle) {      
+      this.isFigure = !this.isFigure
       popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 })
-        .createLine({ text: "Switch to " + (isFigure ? "Figure" : "Normal") + " view", type: "default"})
+        .createLine({ text: "Switch to " + (this.isFigure ? "Figure" : "Normal") + " view", type: "default"})
         .show()
+    }
+    if (!this.isFigure) {
+      this.button.style.filter = "grayscale(100%)"
+    } else {
+      this.button.style.filter = "none"
     }
     const am = reader._internalReader._annotationManager
     am._render = am._render || am.render;
     am.render = () => {
       const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0)
-      // const isFilter = false
       am._annotations.forEach((anno: any) => {
         if (anno.tags.find((tag: any) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
           // 不显示图表，隐藏图表注释
-          if (!isFigure) {
+          if (!this.isFigure) {
             anno._hidden = true
           } else {
             if (!isFilter) {
-              delete anno._hidden
+              anno._hidden = false
             }
           }
         } else {
           // 只显示图表，隐藏其它
-          if (isFigure) {
+          if (this.isFigure) {
             anno._hidden = true
           } else {
             if (!isFilter) {
-              delete anno._hidden
+              anno._hidden = false
             }
           }
         }
@@ -281,8 +161,9 @@ export default class Views {
       am._render()
     }
     am.render();
+
     if (popupWin) {
-      popupWin.changeLine({ type: "success" })
+      popupWin.createLine({ text: "Done", type: "success" })
       popupWin.startCloseTimer(1000)
     }
   }
@@ -404,13 +285,11 @@ export default class Views {
     const figures = await this.getFigures(reader, popupWin)
     ztoolkit.log(figures)
     if (figures.length) {
-      this.button.style.filter = "none"
-      this.switchView(reader, true)
       const t = figures.length
-      // @ts-ignore
       const idx = popupWin.lines.length
       popupWin.createLine({ text: `[0/${t}]Add to Annotation`, progress: 0, type: "default" })
       // 写入注释
+      const reader = await ztoolkit.Reader.getReader()
       const pdfWin = (reader!._iframeWindow as any).wrappedJSObject.document.querySelector("iframe").contentWindow
       const height = pdfWin.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3]
       for (let figure of figures) {
@@ -441,7 +320,6 @@ export default class Views {
       });
       popupWin.changeLine({ text: "Done", type: "success", idx})
       popupWin.startCloseTimer(3000)
-      this.switchView(reader, false)
     }
   }
 
@@ -628,118 +506,4 @@ async function generateImageAnnotation(Zotero, Zotero_Tabs, pageIndex, rect, com
   await savedAnnotation.saveTx();
   // reader._internalReader._primaryView._pdfRenderer.start()
   // reader._internalReader._primaryView._render();
-}
-
-
-async function createNoteFromAnnotations(annotations, { parentID, collectionID } = {}) {
-  if (!annotations.length) {
-    throw new Error("No annotations provided");
-  }
-
-  for (let annotation of annotations) {
-    if (annotation.annotationType === 'image'
-      && !await Zotero.Annotations.hasCacheImage(annotation)) {
-      try {
-        await Zotero.PDFRenderer.renderAttachmentAnnotations(annotation.parentID);
-      }
-      catch (e) {
-        Zotero.debug(e);
-        throw e;
-      }
-      break;
-    }
-  }
-
-  let note = new Zotero.Item('note');
-  note.libraryID = annotations[0].libraryID;
-  if (parentID) {
-    note.parentID = parentID;
-  }
-  else if (collectionID) {
-    note.addToCollection(collectionID);
-  }
-  await note.saveTx();
-  let editorInstance = new Zotero.EditorInstance();
-  editorInstance._item = note;
-  let jsonAnnotations = [];
-  for (let annotation of annotations) {
-    let attachmentItem = Zotero.Items.get(annotation.parentID);
-    let jsonAnnotation = await Zotero.Annotations.toJSON(annotation);
-    jsonAnnotation.attachmentItemID = attachmentItem.id;
-    jsonAnnotation.id = annotation.key;
-    jsonAnnotations.push(jsonAnnotation);
-  }
-
-  let vars = {
-    title: "图表",
-    date: new Date().toLocaleString()
-  };
-  let html = Zotero.Utilities.Internal.generateHTMLFromTemplate(Zotero.Prefs.get('annotations.noteTemplates.title'), vars);
-  // New line is needed for note title parser
-  html += '\n';
-
-  await editorInstance.importImages(jsonAnnotations);
-
-  let multipleParentParent = false;
-  let lastParentParentID;
-  let lastParentID;
-  // Group annotations per attachment
-  let groups = [];
-  for (let i = 0; i < annotations.length; i++) {
-    let annotation = annotations[i];
-    let jsonAnnotation = jsonAnnotations[i];
-    let parentParentID = annotation.parentItem.parentID;
-    let parentID = annotation.parentID;
-    if (groups.length) {
-      if (parentParentID !== lastParentParentID) {
-        // Multiple top level regular items detected, allow including their titles
-        multipleParentParent = true;
-      }
-    }
-    if (!groups.length || parentID !== lastParentID) {
-      groups.push({
-        parentTitle: annotation.parentItem.getDisplayTitle(),
-        parentParentID,
-        parentParentTitle: annotation.parentItem.parentItem && annotation.parentItem.parentItem.getDisplayTitle(),
-        jsonAnnotations: [jsonAnnotation]
-      });
-    }
-    else {
-      let group = groups[groups.length - 1];
-      group.jsonAnnotations.push(jsonAnnotation);
-    }
-    lastParentParentID = parentParentID;
-    lastParentID = parentID;
-  }
-  let citationItems = [];
-  lastParentParentID = null;
-  for (let group of groups) {
-    if (multipleParentParent && group.parentParentTitle && lastParentParentID !== group.parentParentID) {
-      html += `<h2>${group.parentParentTitle}</h2>\n`;
-    }
-    lastParentParentID = group.parentParentID;
-    // If attachment doesn't have a parent or there are more attachments with the same parent, show attachment title
-    if (!group.parentParentID || groups.filter(x => x.parentParentID === group.parentParentID).length > 1) {
-      html += `<h3>${group.parentTitle}</h3>\n`;
-    }
-    let { html: _html, citationItems: _citationItems } = Zotero.EditorInstanceUtilities.serializeAnnotations(group.jsonAnnotations, true);
-    html += _html + '\n';
-    for (let _citationItem of _citationItems) {
-      if (!citationItems.find(item => item.uris.some(uri => _citationItem.uris.includes(uri)))) {
-        citationItems.push(_citationItem);
-      }
-    }
-  }
-  citationItems = window.encodeURIComponent(JSON.stringify(citationItems));
-  // Note: Update schema version only if using new features.
-  let schemaVersion = 9;
-  // If using underline annotations, increase schema version number
-  // TODO: Can be removed once most clients support schema version 10
-  if (schemaVersion === 9 && annotations.some(x => x.annotationType === 'underline')) {
-    schemaVersion = 10;
-  }
-  html = `<div data-citation-items="${citationItems}" data-schema-version="${schemaVersion}">${html}</div>`;
-  note.setNote(html);
-  await note.saveTx();
-  return note;
 }
