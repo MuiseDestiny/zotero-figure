@@ -6837,12 +6837,12 @@ body {
     return _ztoolkit;
   }
   function initZToolkit(_ztoolkit) {
-    const env = "development";
+    const env = "production";
     _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
     _ztoolkit.basicOptions.log.disableConsole = env === "production";
-    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = true;
-    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = true;
-    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = true;
+    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = false;
+    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = false;
+    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = false;
     _ztoolkit.ProgressWindow.setIconURI(
       "default",
       `chrome://${config.addonRef}/content/icons/favicon.png`
@@ -6854,7 +6854,7 @@ body {
     constructor() {
       this.data = {
         alive: true,
-        env: "development",
+        env: "production",
         ztoolkit: createZToolkit()
       };
       this.hooks = hooks_default;
