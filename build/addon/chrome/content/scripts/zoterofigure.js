@@ -6320,14 +6320,14 @@ body {
               }, menupopup);
               menuitem4.addEventListener("command", async () => {
                 const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Remove All Figures", type: "default" }).show();
-                this.switchView(reader, true);
+                this.switchView(reader, true, false);
                 let annos = reader._item.getAnnotations();
                 annos = annos.filter((a) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/));
                 await Promise.all(annos.map(async (anno) => await anno.eraseTx()));
                 popupWin.changeLine({ type: "success" });
                 popupWin.startCloseTimer(1e3);
                 this.button.style.filter = "grayscale(100%)";
-                this.switchView(reader, false);
+                this.switchView(reader, false, false);
               });
               menupopup.openPopup(this.button, "after_start", 0, 0, false, false);
             }
@@ -6447,6 +6447,10 @@ body {
       const filename = await this.getValidPDFFilepath(reader._item);
       const OS = window.OS;
       const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`);
+      if (!javaPath) {
+        window.alert("Java\u8DEF\u5F84\u5C1A\u672A\u914D\u7F6E");
+        return [];
+      }
       const args = [
         "-jar",
         OS.Path.join(this.zoteroDir, "pdffigures2.jar"),
@@ -6474,7 +6478,7 @@ body {
       await Zotero.Utilities.Internal.exec(javaPath, args);
       popupWin.createLine({ text: "Searching json...", type: "default" });
       let count = 0;
-      while (!(targetFile = this.getJsonFilepath(pdfItem)) && count < 10) {
+      while (!(targetFile = this.getJsonFilepath(pdfItem)) && count < 3) {
         await Zotero.Promise.delay(1e3);
         count += 1;
       }
@@ -6498,10 +6502,10 @@ body {
       ztoolkit.log(figures);
       if (figures.length) {
         this.button.style.filter = "none";
-        this.switchView(reader, true);
+        this.switchView(reader, true, false);
         const t = figures.length;
         const idx = popupWin.lines.length;
-        popupWin.createLine({ text: `[0/${t}]Add to Annotation`, progress: 0, type: "default" });
+        popupWin.createLine({ text: `[0/${t}] Add to Annotation`, progress: 0, type: "default" });
         const pdfWin = reader._iframeWindow.wrappedJSObject.document.querySelector("iframe").contentWindow;
         const height = pdfWin.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3];
         for (let figure of figures) {
@@ -6531,7 +6535,7 @@ body {
         });
         popupWin.changeLine({ text: "Done", type: "success", idx });
         popupWin.startCloseTimer(3e3);
-        this.switchView(reader, false);
+        this.switchView(reader, false, false);
       }
     }
   };
@@ -6837,12 +6841,12 @@ body {
     return _ztoolkit;
   }
   function initZToolkit(_ztoolkit) {
-    const env = "production";
+    const env = "development";
     _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
     _ztoolkit.basicOptions.log.disableConsole = env === "production";
-    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = false;
-    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = false;
-    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = false;
+    _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = true;
+    _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = true;
+    _ztoolkit.basicOptions.debug.disableDebugBridgePassword = true;
     _ztoolkit.ProgressWindow.setIconURI(
       "default",
       `chrome://${config.addonRef}/content/icons/favicon.png`
@@ -6854,7 +6858,7 @@ body {
     constructor() {
       this.data = {
         alive: true,
-        env: "production",
+        env: "development",
         ztoolkit: createZToolkit()
       };
       this.hooks = hooks_default;

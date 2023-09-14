@@ -133,7 +133,6 @@ export default class Views {
             }, menupopup)
             menuitem0.addEventListener("command", () => {
               this.addAnnotation(reader)
-              
             })
             // 2. 图表注释视图
             const menuitem1 = ztoolkit.UI.appendElement({
@@ -192,7 +191,7 @@ export default class Views {
               const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 })
                 .createLine({ text: "Remove All Figures", type: "default" })
                 .show()
-              this.switchView(reader, true)
+              this.switchView(reader, true, false)
               let annos = reader._item.getAnnotations()
               annos = annos
                 .filter((a: any) => a.annotationType == "image" && a.getTags()[0].tag.match(/^(Figure|Table)/))
@@ -200,7 +199,7 @@ export default class Views {
               popupWin.changeLine({ type: "success" })
               popupWin.startCloseTimer(1000)
               this.button.style.filter = "grayscale(100%)";
-              this.switchView(reader, false)
+              this.switchView(reader, false, false)
             })
             // @ts-ignore
             menupopup.openPopup(this.button, 'after_start', 0, 0, false, false)
@@ -347,7 +346,10 @@ export default class Views {
 
     // const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`) as string
     const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`) as string
-
+    if (!javaPath) {
+      window.alert("Java路径尚未配置")
+      return []
+    }
     const args = [
       "-jar",
       OS.Path.join(this.zoteroDir, "pdffigures2.jar"),
@@ -371,14 +373,12 @@ export default class Views {
       await OS.File.makeDir(this.figureDir);
     }
     let targetFile: string | undefined
-    // if (!targetFile) {
     popupWin.createLine({ text: "Parsing figures...", type: "default" })
     await Zotero.Utilities.Internal.exec(javaPath, args);
-    // }
     popupWin.createLine({ text: "Searching json...", type: "default" })
     // 等待写入生成json
     let count = 0
-    while (!(targetFile = this.getJsonFilepath(pdfItem)) && count < 10) {
+    while (!(targetFile = this.getJsonFilepath(pdfItem)) && count < 3) {
       await Zotero.Promise.delay(1000)
       count += 1
     }
@@ -405,11 +405,11 @@ export default class Views {
     ztoolkit.log(figures)
     if (figures.length) {
       this.button.style.filter = "none"
-      this.switchView(reader, true)
+      this.switchView(reader, true, false)
       const t = figures.length
       // @ts-ignore
       const idx = popupWin.lines.length
-      popupWin.createLine({ text: `[0/${t}]Add to Annotation`, progress: 0, type: "default" })
+      popupWin.createLine({ text: `[0/${t}] Add to Annotation`, progress: 0, type: "default" })
       // 写入注释
       const pdfWin = (reader!._iframeWindow as any).wrappedJSObject.document.querySelector("iframe").contentWindow
       const height = pdfWin.PDFViewerApplication.pdfViewer._pages[0].viewport.viewBox[3]
@@ -441,7 +441,7 @@ export default class Views {
       });
       popupWin.changeLine({ text: "Done", type: "success", idx})
       popupWin.startCloseTimer(3000)
-      this.switchView(reader, false)
+      this.switchView(reader, false, false)
     }
   }
 

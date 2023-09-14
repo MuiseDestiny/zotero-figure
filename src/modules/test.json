@@ -1,0 +1,2895 @@
+{
+  "figures": [
+    {
+      "name": "3",
+      "page": 5,
+      "figType": "Figure",
+      "regionBoundary": {
+        "x1": 311.99951171875,
+        "y1": 282.44195556640625,
+        "x2": 576.1022338867188,
+        "y2": 300.60870361328125
+      },
+      "caption": "Fig. 3. Optical depth spectra of aerosols and trace gases in the GEMS spectral range for typical GEO measurement geometry. Different colors represent species for vertical optical depths",
+      "imageText": [
+        "(line)",
+        "and",
+        "fitting",
+        "window/wavelengths",
+        "used",
+        "for",
+        "retrieval",
+        "(horizontal",
+        "bar)."
+      ],
+      "captionBoundary": {
+        "x1": 311.99951171875,
+        "y1": 244.94183349609375,
+        "x2": 576.026123046875,
+        "y2": 275.60858154296875
+      }
+    },
+    {
+      "name": "6",
+      "page": 11,
+      "figType": "Figure",
+      "regionBoundary": {
+        "x1": 36.0,
+        "y1": 57.0,
+        "x2": 576.0,
+        "y2": 652.0
+      },
+      "caption": "Fig. 6. Retrieved results for GEMS algorithms using OMI L1b data for year 2005 (a) tropospheric O3, (b) total O3, (c) NO2, (d) SO2, (e) HCHO, (f) AOD, (g) UV index, (h) surface reflectance, (i) effective cloud fraction (ECF), and (j) cloud centroid pressure (CCP). Each subset consists of (left) annual averages and (right) validation results by comparing the GEMS algorithm results in the ordinates, compared to ozonesondes, Brewer spectrophotometers, OMI operational products, and AERONET in abscissas.",
+      "imageText": [],
+      "captionBoundary": {
+        "x1": 36.0,
+        "y1": 665.3065185546875,
+        "x2": 576.0440673828125,
+        "y2": 720.9732666015625
+      }
+    },
+    {
+      "name": "1",
+      "page": 4,
+      "figType": "Table",
+      "regionBoundary": {
+        "x1": 76.0,
+        "y1": 590.0,
+        "x2": 587.0006103515625,
+        "y2": 777.0
+      },
+      "caption": "Table 1. Major specification of instruments on board the GEO-KOMPSAT (GK) series. FD: full disk; NH: Northern Hemisphere.",
+      "imageText": [
+        "Unauthenticated",
+        "|",
+        "Downloaded",
+        "03/18/23",
+        "08:15",
+        "AM",
+        "UTC",
+        "a",
+        "See",
+        "the",
+        "upper",
+        "panel",
+        "of",
+        "Fig.",
+        "2",
+        "for",
+        "the",
+        "spatial",
+        "coverage",
+        "of",
+        "GOCI",
+        "(24.75°–47.25°N,",
+        "113.4°–146.6°E).",
+        "b",
+        "See",
+        "Fig.",
+        "5",
+        "for",
+        "the",
+        "spatial",
+        "coverage",
+        "of",
+        "GEMS.",
+        "c",
+        "GOCI-2",
+        "and",
+        "GEMS",
+        "share",
+        "time",
+        "at",
+        "every",
+        "hour",
+        "to",
+        "avoid",
+        "disturbances",
+        "each",
+        "other,",
+        "30",
+        "min",
+        "for",
+        "imaging,",
+        "and",
+        "another",
+        "30",
+        "min",
+        "for",
+        "data",
+        "transmission",
+        "to",
+        "ground.",
+        "Payload",
+        "MI",
+        "GOCI",
+        "AMI",
+        "GOCI-2",
+        "GEMS",
+        "Channels",
+        "5",
+        "8",
+        "16",
+        "13",
+        "1,000",
+        "Spatial",
+        "resolution",
+        "(km)",
+        "1",
+        "(Vis)",
+        "0.5",
+        "at",
+        "Seoul",
+        "0.5/1",
+        "(Vis),",
+        "2",
+        "(IR)",
+        "0.25",
+        "at",
+        "equator",
+        "7",
+        "×",
+        "8",
+        "(gas),",
+        "3.5",
+        "×",
+        "8",
+        "(aerosol)4",
+        "(IR)",
+        "1",
+        "(FD)",
+        "Spatial",
+        "coverage",
+        "FD/NH",
+        "East",
+        "Asiaa",
+        "FD",
+        "East",
+        "Asia/FD",
+        "Asiab",
+        "Temporal",
+        "resolution",
+        "15",
+        "min",
+        "1",
+        "h",
+        "10",
+        "min",
+        "1",
+        "hc",
+        "(FD",
+        "1",
+        "day−1)",
+        "1",
+        "hc",
+        "Wavelength",
+        "range",
+        "0.6–13",
+        "µm",
+        "412–860",
+        "nm",
+        "0.4–13",
+        "µm",
+        "375–860",
+        "nm",
+        "300–500",
+        "nm",
+        "FWHM",
+        "10–20",
+        "nm",
+        "10–20",
+        "nm",
+        "10–20",
+        "nm",
+        "10–20",
+        "nm",
+        "0.6",
+        "nm",
+        "Launch",
+        "June",
+        "2010",
+        "December",
+        "2018",
+        "February",
+        "2020",
+        "Lifetime",
+        "7",
+        "years",
+        "10",
+        "years",
+        "Location",
+        "128.1°E",
+        "128.2°E",
+        "GK-1",
+        "(COMS)",
+        "GK-2A",
+        "GK-2B",
+        "A",
+        "M",
+        "E",
+        "R",
+        "I",
+        "C",
+        "A",
+        "N",
+        "M",
+        "E",
+        "T",
+        "E",
+        "O",
+        "R",
+        "O",
+        "L",
+        "O",
+        "G",
+        "I",
+        "C",
+        "A",
+        "L",
+        "S",
+        "O",
+        "C",
+        "I",
+        "E",
+        "T",
+        "Y",
+        "J",
+        "A",
+        "N",
+        "UA",
+        "RY",
+        "2",
+        "0",
+        "2",
+        "0",
+        "E5"
+      ],
+      "captionBoundary": {
+        "x1": 76.125,
+        "y1": 581.52001953125,
+        "x2": 529.553955078125,
+        "y2": 586.875
+      }
+    }
+  ],
+  "abstractText": {
+    "text": "ABSTRACT: The Geostationary Environment Monitoring Spectrometer (GEMS) is scheduled for launch in February 2020 to monitor air quality (AQ) at an unprecedented spatial and temporal resolution from a geostationary Earth orbit (GEO) for the first time. With the development of UV–visible spectrometers at sub-nm spectral resolution and sophisticated retrieval algorithms, estimates of the column amounts of atmospheric pollutants (O3, NO2, SO2, HCHO, CHOCHO, and aerosols) can be obtained. To date, all the UV–visible satellite missions monitoring air quality have been in low Earth orbit (LEO), allowing one to two observations per day. With UV–visible instruments on GEO platforms, the diurnal variations of these pollutants can now be determined. Details of the GEMS mission are presented, including instrumentation, scientific algorithms, predicted performance, and applications for air quality forecasts through data assimilation. GEMS will be on board the Geostationary Korea Multi-Purpose Satellite 2 (GEO-KOMPSAT-2) satellite series, which also hosts the Advanced Meteorological Imager (AMI) and Geostationary Ocean Color Imager 2 (GOCI-2). These three instruments will provide synergistic science products to better understand air quality, meteorology, the long-range transport of air pollutants, emission source distributions, and chemical processes. Faster sampling rates at higher spatial resolution will increase the probability of finding cloud-free pixels, leading to more observations of aerosols and trace gases than is possible from LEO. GEMS will be joined by NASA’s Tropospheric Emissions: Monitoring of Pollution (TEMPO) and ESA’s Sentinel-4 to form a GEO AQ satellite constellation in early 2020s, coordinated by the Committee on Earth Observation Satellites (CEOS).",
+    "page": 0,
+    "region": {
+      "x1": 144.0,
+      "y1": 353.3031921386719,
+      "x2": 576.4669189453125,
+      "y2": 612.4432373046875
+    }
+  },
+  "sections": [
+    {
+      "paragraphs": [
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E1",
+          "page": 0,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.2783203125,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "https://doi.org/10.1175/BAMS-D-18-0013.1 Corresponding author: Jhoon Kim, jkim2@yonsei.ac.kr Supplemental material: https://doi.org/10.1175/BAMS-D-18-0013.2",
+          "page": 0,
+          "region": {
+            "x1": 36.0,
+            "y1": 685.4824829101562,
+            "x2": 342.209228515625,
+            "y2": 716.0
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "In final form 7 August 2019 ©2020 American Meteorological Society For information regarding reuse of this content and general copyright information, consult the AMS Copyright Policy.",
+        "page": 0,
+        "region": {
+          "x1": 36.0,
+          "y1": 726.8524780273438,
+          "x2": 420.6669006347656,
+          "y2": 749.0
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 0,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E2",
+          "page": 1,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.4227905273438,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "AFFILIATIONS: J. Kim, Si-W. Kim, Go, H. Chong, Hana Lee, S. Lee, M. Choi, Koo—Department of Atmospheric",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 30.381500244140625,
+            "x2": 528.9969482421875,
+            "y2": 35.75
+          }
+        },
+        {
+          "text": "Sciences, Yonsei University, Seoul, South Korea; U. Jeong—Department of Atmospheric Sciences, Yonsei",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 44.381500244140625,
+            "x2": 528.9738159179688,
+            "y2": 49.75
+          }
+        },
+        {
+          "text": "University, Seoul, South Korea, and NASA Goddard Space Flight Center, Greenbelt, and Earth System Science",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 58.41749954223633,
+            "x2": 528.897705078125,
+            "y2": 63.75
+          }
+        },
+        {
+          "text": "Interdisciplinary Center, University of Maryland, College Park, College Park, Maryland; Ahn, Y.-S. Choi, Yoo,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 72.38150024414062,
+            "x2": 528.9967651367188,
+            "y2": 77.75
+          }
+        },
+        {
+          "text": "S. K. Park, Kang, Eo, E. Lee—Ewha Womans University, Seoul, South Korea; J. H. Kim, Baek—Pusan National",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 86.38150024414062,
+            "x2": 529.0001831054688,
+            "y2": 91.75
+          }
+        },
+        {
+          "text": "University, Busan, South Korea; R. J. Park, Sa.-W. Kim, Kwon—School of Earth and Environmental Sciences,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 100.38150024414062,
+            "x2": 528.982666015625,
+            "y2": 105.75
+          }
+        },
+        {
+          "text": "Seoul National University, Seoul, South Korea; Hanlim Lee, Yang, J. Park—Pukyong National University,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 114.38150024414062,
+            "x2": 528.9285888671875,
+            "y2": 119.75
+          }
+        },
+        {
+          "text": "Busan, South Korea; C. H. Song, Y. J. Kim, Han, J. Chong—Gwangju Institute of Science and Technology,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 128.38150024414062,
+            "x2": 528.9733276367188,
+            "y2": 133.75
+          }
+        },
+        {
+          "text": "Gwangju, South Korea; K.-H. Lee, M.-J. Jeong, Shin—Gangneung Wonju National University, Gangneung,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 142.38150024414062,
+            "x2": 529.0010375976562,
+            "y2": 147.75
+          }
+        },
+        {
+          "text": "South Korea; K.-M. Lee, H. Choi—Kyungpook National University, Daegu, South Korea; C.-K. Song, Cha—Ul-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 156.38150024414062,
+            "x2": 529.0001220703125,
+            "y2": 161.75
+          }
+        },
+        {
+          "text": "san National Institute of Science and Technology, Ulsan, South Korea; M. Kim—Department of Atmospheric",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 170.38150024414062,
+            "x2": 528.9971923828125,
+            "y2": 175.75
+          }
+        },
+        {
+          "text": "Sciences, Yonsei University, Seoul, South Korea, and Universities Space Research Association, Columbia, and",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 184.41749572753906,
+            "x2": 529.0220947265625,
+            "y2": 189.75
+          }
+        },
+        {
+          "text": "NASA Goddard Space Flight Center, Greenbelt, Maryland; X. Liu, Chance, Chan Miller, González Abad—Har-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 198.38150024414062,
+            "x2": 529.0001220703125,
+            "y2": 203.75
+          }
+        },
+        {
+          "text": "vard–Smithsonian Center for Astrophysics, Cambridge, Massachusetts; Al-Saadi, Crawford—NASA Langley",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 212.38150024414062,
+            "x2": 529.0015869140625,
+            "y2": 217.75
+          }
+        },
+        {
+          "text": "Research Center, Hampton, Virginia; Veihelmann, Ahlers—ESTEC, ESA, Noordwijk, Netherlands; Bhartia,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 226.38150024414062,
+            "x2": 529.012939453125,
+            "y2": 231.75
+          }
+        },
+        {
+          "text": "Torres, Swap, Jaross—NASA Goddard Space Flight Center, Greenbelt, Maryland; Haffner—Science Systems",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 240.38150024414062,
+            "x2": 528.9970092773438,
+            "y2": 245.75
+          }
+        },
+        {
+          "text": "and Applications Inc., Lanham, Maryland; Ko, S. H. Lee—Korea Aerospace Research Institute, Daejeon, South",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 254.38150024414062,
+            "x2": 528.9302978515625,
+            "y2": 259.75
+          }
+        },
+        {
+          "text": "Korea; Woo—Konkuk University, Seoul, South Korea; S. S. Park—Department of Atmospheric Sciences, Yonsei",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 268.3815002441406,
+            "x2": 529.0778198242188,
+            "y2": 273.75
+          }
+        },
+        {
+          "text": "University, Seoul, and Ulsan National Institute of Science and Technology, Ulsan, South Korea; Nicks—Ball",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 282.3815002441406,
+            "x2": 529.0001831054688,
+            "y2": 287.75
+          }
+        },
+        {
+          "text": "Aerospace and Technology Corp., Boulder, Colorado; W. J. Choi, Moon, Cho, Yoon, S.-k. Kim—National In-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 296.3815002441406,
+            "x2": 529.0001220703125,
+            "y2": 301.75
+          }
+        },
+        {
+          "text": "stitute of Environmental Research, Incheon, South Korea; Hong—Pukyong National University, Busan, and",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 310.3815002441406,
+            "x2": 528.9916381835938,
+            "y2": 315.75
+          }
+        },
+        {
+          "text": "National Institute of Environmental Research, Incheon, South Korea; K. Lee—Gwangju Institute of Science",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 324.3815002441406,
+            "x2": 528.99462890625,
+            "y2": 329.75
+          }
+        },
+        {
+          "text": "and Technology, Gwangju, and National Institute of Environmental Research, Incheon, South Korea; Veef-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 338.3815002441406,
+            "x2": 529.0001220703125,
+            "y2": 343.75
+          }
+        },
+        {
+          "text": "kind, Levelt—Royal Netherlands Meteorological Institute (KNMI), De Bilt, and Delft University of Technology,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 352.3815002441406,
+            "x2": 529.1910400390625,
+            "y2": 357.75
+          }
+        },
+        {
+          "text": "Delft, Netherlands; Edwards—National Center for Atmospheric Research, Boulder, Colorado; Bak—Pusan",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 366.3815002441406,
+            "x2": 529.0037231445312,
+            "y2": 371.75
+          }
+        },
+        {
+          "text": "National University, Busan, South Korea, and Harvard–Smithsonian Center for Astrophysics, Cambridge, Mas-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 380.4175109863281,
+            "x2": 529.0001220703125,
+            "y2": 385.75
+          }
+        },
+        {
+          "text": "sachusetts; B.-R. Kim—Ewha Womans University, Seoul, and Korea Aerospace Research Institute, Daejeon,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 394.3815002441406,
+            "x2": 529.0030517578125,
+            "y2": 399.75
+          }
+        },
+        {
+          "text": "South Korea; Irie—Chiba University, Chiba, Japan; Hayashida—Nara Women’s University, Nara, and Research",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 408.3815002441406,
+            "x2": 529.0213012695312,
+            "y2": 413.75
+          }
+        },
+        {
+          "text": "Institute for Humanity and Nature, Kyoto, Japan; Kasai—National Institute of Information and Communica-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 422.3815002441406,
+            "x2": 529.0001220703125,
+            "y2": 427.75
+          }
+        },
+        {
+          "text": "tion Technology, Tokyo, Japan; Kanaya—Japan Agency for Marine-Earth Science and Technology, Yokohama,",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 436.3815002441406,
+            "x2": 529.1675415039062,
+            "y2": 441.75
+          }
+        },
+        {
+          "text": "Japan; C. Liu—University of Science and Technology of China, Hefei, China; Lin—Laboratory for Climate and",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 450.3815002441406,
+            "x2": 529.0031127929688,
+            "y2": 455.75
+          }
+        },
+        {
+          "text": "Ocean-Atmosphere Studies, Department of Atmospheric and Oceanic Sciences, School of Physics, Peking Uni-",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 464.4175109863281,
+            "x2": 529.0001220703125,
+            "y2": 469.75
+          }
+        },
+        {
+          "text": "versity, Beijing, China; Carmichael—University of Iowa, Iowa City, Iowa; Newchurch—University of Alabama",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 478.3815002441406,
+            "x2": 528.9960327148438,
+            "y2": 483.75
+          }
+        },
+        {
+          "text": "in Huntsville, Huntsville, Alabama; Lefer—NASA Headquarters, Washington, D.C.; Herman—Joint Center for",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 492.3815002441406,
+            "x2": 529.0125122070312,
+            "y2": 497.75
+          }
+        },
+        {
+          "text": "Earth Systems Technology, University of Maryland Baltimore County, Baltimore, Maryland; Lau—Hong Kong",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 506.3815002441406,
+            "x2": 528.9982299804688,
+            "y2": 511.75
+          }
+        },
+        {
+          "text": "University of Science and Technology, Kowloon, Hong Kong; Kurosu—Jet Propulsion Laboratory, California",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 520.3814697265625,
+            "x2": 528.9989013671875,
+            "y2": 525.75
+          }
+        },
+        {
+          "text": "Institute of Technology, Pasadena, California; Dobber—EUMETSAT, Darmstadt, Germany; McElroy—York",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 534.3814697265625,
+            "x2": 528.9894409179688,
+            "y2": 539.75
+          }
+        },
+        {
+          "text": "University, Toronto, Ontario, Canada; Y. Choi—University of Houston, Houston, Texas",
+          "page": 1,
+          "region": {
+            "x1": 83.0,
+            "y1": 548.3814697265625,
+            "x2": 438.7416687011719,
+            "y2": 553.75
+          }
+        },
+        {
+          "text": "A ir pollution is increasingly understood to be a global issue, requiring an understanding of pollution sources, transport, and transformation from local to regional to global scales (IPCC 2013). Polluting gases such as ozone (O3; see appendix for acronyms), and aerosols, particularly fine particulate matter (PM2.5), are known to be major risk factors for public health (Cohen et al. 2017; Brauer et al. 2016). Half of the global population lives in Asia, and is exposed to high levels of air pollution. This fact has led to increased interest in regional air quality (AQ). Thus, systematic observations of ozone, aerosols, and their precursors [nitrogen dioxide (NO2), sulfur dioxide (SO2), formaldehyde (HCHO), etc.] over wide areas, together with meteorological observations, are critical to public health and environmental policy in this region.",
+          "page": 1,
+          "region": {
+            "x1": 90.0,
+            "y1": 581.0859985351562,
+            "x2": 522.114501953125,
+            "y2": 719.0
+          }
+        },
+        {
+          "text": "Monitoring AQ from satellites has played a key role in understanding the status of air pollution loadings and trends on the regional to global scale, by providing information on",
+          "page": 1,
+          "region": {
+            "x1": 90.0,
+            "y1": 726.0859985351562,
+            "x2": 522.0447387695312,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 1,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E3",
+          "page": 2,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.44873046875,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "pollutant amounts, emission, and transport in a quantitative manner (e.g., Levelt et al. 2018). Figure 1 summarizes the capabilities of satellite instruments measuring atmospheric composition using remote sensing with respect to temporal and spatial resolution. In the late 1970s, total O3 was measured successfully by the Solar Backscatter Ultraviolet radiometer (SBUV) and the Total Ozone Mapping Spectrometer (TOMS) (Heath et al. 1975). Technology has since advanced to measure important tropospheric trace gas concentrations [O3, NO2, SO2, HCHO, carbon monoxide (CO)] by a number of satellite sensors including the Global Ozone Monitoring Experiment (GOME) 1 and 2 (Burrows et al.",
+          "page": 2,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 234.1132354736328,
+            "y2": 356.5
+          }
+        },
+        {
+          "text": "1993; Munro et al. 2016), the Ozone Monitoring Instrument (OMI) (Levelt et al. 2018), the Scanning Imaging Absorption Spectrometer for Atmospheric Cartography (SCIAMACHY) (Bovensmann et al. 1999), the Ozone Mapping Profiler Suite (OMPS) (Flynn et al. 2014), and the Tropospheric Monitoring Instrument (TROPOMI) (Veefkind et al. 2012), among others (see supplement for further details).",
+          "page": 2,
+          "region": {
+            "x1": 90.0,
+            "y1": 363.58599853515625,
+            "x2": 522.1130981445312,
+            "y2": 429.0
+          }
+        },
+        {
+          "text": "In addition to a growing number of target species, from just O3 (TOMS) to the multiple trace gas species (GOME, SCIAMACHY, and OMI), spatial resolution has improved from the 100 km scale (GOME) to resolutions of just a few km (TROPOMI), and temporal resolution has improved from days to twice daily (measured by IR). The OMI dataset has been analyzed extensively to understand AQ around the globe, and to derive emission sources (e.g., Levelt et al. 2018; Duncan et al. 2016; McLinden et al. 2016). Using SCIAMACHY and OMI for morning and afternoon orbit measurements, respectively, Boersma et al. (2008) demonstrated the importance of multiple satellite measurements in a single day for improving model accuracy.",
+          "page": 2,
+          "region": {
+            "x1": 90.0,
+            "y1": 436.08599853515625,
+            "x2": 522.0567626953125,
+            "y2": 545.0
+          }
+        },
+        {
+          "text": "Aerosol properties have been observed extensively by a number of LEO satellite instruments, including Moderate Resolution Imaging Spectroradiometer (MODIS; Levy et al. 2013) and Visible Infrared Imaging Radiometer Suite (VIIRS; Jackson et al. 2013). High-temporal- and high-spatial-resolution observations of aerosol properties have been available from geostationary Earth orbit (GEO) instruments: the Meteorological Imager (MI) and the Geostationary Ocean Color Imager (GOCI) on board the Geostationary Korea Multi-Purpose Satellite (GK)-1, also known as Communication, Oceanography and Meteorology Satellite (COMS), and, more recently, from the AHI over Asia (Kim et al. 2008; Kim et al. 2016; Choi et al. 2016; Choi and Ho 2015; Lim et al. 2018). Long-term validation of the GOCI aerosol optical depth (AOD) indicates good agreement with ground-based Aerosol Robotic Network (AERONET) measurements, with correlation coefficients of ~0.9 (M. Choi et al. 2018). A long-term decreasing trend in AOD over East Asia beginning in 2011 has been identified (e.g., Kim et al. 2017). Diurnal variations of aerosol properties are captured well by GOCI (Lennartson et al. 2018). Diurnal variations of AODs usually occur with human activity cycles, outbreak of wildfires, and long-range",
+          "page": 2,
+          "region": {
+            "x1": 90.0,
+            "y1": 552.0859985351562,
+            "x2": 522.2901000976562,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Fig. 1. Development of satellite remote sensing instruments for atmospheric composition measurements with respect to temporal and spatial resolution. Numbers in parentheses for LEO instruments represent revisit time per location in days. Symbols in squares and circles represent aerosols, and AQ-related trace gases, respectively. Symbol colors represent wavelength ranges, as in the legend. For planned missions, mission names are in italics and symbol outlines are in dashed lines.",
+          "page": 2,
+          "region": {
+            "x1": 251.99949645996094,
+            "y1": 257.39776611328125,
+            "x2": 576.0101928710938,
+            "y2": 338.06451416015625
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 2,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E4",
+          "page": 3,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.4358520507812,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "transport. Monthly average AODs show clear diurnal variation (Fig. 2, top panel). Morning peaks in AOD are shown over China and Korea that correspond to one of the dual peaks as reported by Lennartson et al. (2018).",
+          "page": 3,
+          "region": {
+            "x1": 90.0,
+            "y1": 479.58599853515625,
+            "x2": 522.0115966796875,
+            "y2": 516.0
+          }
+        },
+        {
+          "text": "To date, no observations of trace gases at high temporal resolution from GEO have been made to complement the high-temporal-resolution aerosol measurements. Fishman et al. (2008) and Bovensmann et al. (2004) discussed the importance of a GEO mission to capture the diurnal variations of air pollutant concentrations due to photochemistry, time-dependent emissions, and daily meteorological variability. This is illustrated in Fig. 2 bottom panel, which shows the diurnal variations of gas concentrations simulated by CMAQ, together with AOD measured on 25 May 2016. This represents a long-range transport case resulting in high concentration during the joint Korea–United States KORUS-AQ field campaign (Lee et al. 2019; Choi et al. 2019). KORUS-AQ integrated models and measurements from ground-based, airborne, shipborne, and satellite platforms to diagnose AQ problems in Korea [National Institute of Environmental Research (NIER); NIER and NASA 2017]. Such scientific findings along with societal demands have led to projects aimed at providing hourly observations of trace gas column abundance from space. To convert column density to surface concentration, vertical profile information is very important, as discussed later. The Geostationary Environment Monitoring Spectrometer (GEMS) is planned to be launched no later than March 2020, to monitor AQ at high spatial and temporal resolution from GEO over Asia. GEMS is a part of",
+          "page": 3,
+          "region": {
+            "x1": 90.0,
+            "y1": 523.0859985351562,
+            "x2": 522.2140502929688,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Fig. 2. (top) Diurnal variation of aerosol optical depth (AOD) at 0900, 1100, 1300, and 1500 KST for May, averaged over 2011–16 from the Geostationary Ocean Color Imager (GOCI). Yonsei Aerosol Retrieval (YAER) algorithm, version 2, was used (M. Choi et al. 2018). (bottom) An example of diurnal variation of trace gas concentrations in addition to AOD for a representative long-range transport event in South Korea on 25 May 2016 during the KORUS-AQ campaign. Values are averaged over the domain of South Korea. Red and blue circles represent satellite measurements of AOD from GOCI (GEO) and MODIS (LEO)—Aqua and Terra. Triangles represent the gas concentration calculated from CMAQ model, with colors for different gases. Background shadows in light blue indicate overpass time of LEO satellites (MODIS Aqua and Terra), and those in light red indicate additional measurement time from GEO satellite.",
+          "page": 3,
+          "region": {
+            "x1": 35.999900817871094,
+            "y1": 371.145751953125,
+            "x2": 576.0593872070312,
+            "y2": 464.3125
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 3,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "the future GEO AQ constellation, together with the Tropospheric Emissions: Monitoring of Pollution (TEMPO) instrument covering North America (Zoogman et al. 2017), and the Sentinel-4 instrument covering Europe (Ingmann et al. 2012).",
+          "page": 4,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.3174438476562,
+            "y2": 66.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "GEMS MISSION",
+        "page": 4,
+        "region": {
+          "x1": 90.0,
+          "y1": 88.85050201416016,
+          "x2": 167.26617431640625,
+          "y2": 95.5
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "Following the increasing interest in AQ in Asia, the GEMS project was initiated by the NIER of Korea in 2008 to establish space-based measurements of AQ at high temporal and spatial resolution (W. J. Choi et al. 2018). Since then, feasibility studies for user requirements, conceptual designs, and science algorithm sensitivity studies have been collaboratively conducted by the Korea Aerospace Research Institute (KARI), NIER, and GEMS science team.",
+          "page": 4,
+          "region": {
+            "x1": 90.0,
+            "y1": 102.58599853515625,
+            "x2": 522.0118408203125,
+            "y2": 168.0
+          }
+        },
+        {
+          "text": "The primary objective of GEMS is to provide columnar measurements of key AQ components—that is, tropospheric O3, aerosols, and their precursors [NO2, SO2, HCHO, and glyoxal (CHOCHO)]—at high temporal and spatial resolution. NO2 is a precursor of tropospheric O3 and nitrate aerosols, as is SO2 for sulfate aerosols. HCHO and CHOCHO provide information on volatile organic compounds (VOCs), which are precursors of tropospheric O3 and organic aerosols (Marais et al. 2012; Zhu et al. 2014). Measurements of HCHO and CHOCHO reflect emissions of biogenic and anthropogenic VOCs including isoprene, monoterpene, and aromatics (DiGangi et al. 2012; Vrekoussis et al. 2010).",
+          "page": 4,
+          "region": {
+            "x1": 90.0,
+            "y1": 175.08599853515625,
+            "x2": 522.2208862304688,
+            "y2": 284.0
+          }
+        },
+        {
+          "text": "The GEMS instrument was jointly developed by KARI and Ball Aerospace and Technology Corp., Boulder, Colorado. GEMS and GOCI-2 instruments on board the GK-2B satellite will make up half of the GK-2 satellite series. The other satellite in the series is the GK-2A, a dedicated spacecraft for the Advanced Meteorological Imager (AMI) at the same longitude 128.25°E (Choi and Ho 2015). The GK-2A was launched successfully in December 2018, and the GK-2B will be launched in February 2020. Table 1 lists the general specifications of instruments on board the GK-1 and GK-2 satellite series. Synchronous measurements of air pollutants by GEMS, together with the meteorological variables, aerosol properties, and ocean properties from AMI and GOCI-2 will provide important synergistic information for the Asia–Pacific region. These three instruments will contribute to a better scientific understanding of the spatiotemporal distribution of pollutants, emission sources, transboundary pollution, and interactions between meteorology and atmospheric chemistry. The frequent observations of GEMS will also increase the number of trace gas observations and improve the accuracy of AQ forecasts, top-down emission rates, and AQ reanalysis datasets. The key science questions of GEMS are summarized as follows:",
+          "page": 4,
+          "region": {
+            "x1": 90.0,
+            "y1": 291.08599853515625,
+            "x2": 522.2272338867188,
+            "y2": 501.5
+          }
+        },
+        {
+          "text": "1) What are the temporal and spatial variations of concentrations and emissions of trace gases and aerosols that are important for AQ? 2) How does regional and intercontinental transport affect local and regional AQ?",
+          "page": 4,
+          "region": {
+            "x1": 90.0,
+            "y1": 523.0859985351562,
+            "x2": 522.0441284179688,
+            "y2": 559.5
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E6",
+          "page": 5,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.438720703125,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "3) How does air pollution drive climate forcing and how does climate change affect AQ? 4) How does meteorology affect AQ? 5) How can we improve the accuracy of AQ",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 294.0130310058594,
+            "y2": 95.5
+          }
+        },
+        {
+          "text": "forecasts using satellite measurements? 6) How can we quantify the outflow of pollut-",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 102.58599853515625,
+            "x2": 293.9996032714844,
+            "y2": 124.5
+          }
+        },
+        {
+          "text": "ants from Asia across the Pacific Ocean?",
+          "page": 5,
+          "region": {
+            "x1": 105.0,
+            "y1": 131.58599853515625,
+            "x2": 286.18096923828125,
+            "y2": 139.0
+          }
+        },
+        {
+          "text": "User requirements, instrument design, and operation. To achieve the GEMS mission objectives, a set of user requirements were developed after extensive sensitivity studies and data analysis of previous satellite measurements. Nominal spatial resolution is 7 km × 8 km for gases and 3.5 km × 8 km for aerosols over Seoul, South Korea. To detect the trace gases of interest, the spectral coverage of GEMS was chosen to be 300–500 nm at 0.6 nm full-width at half-maximum",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 161.40550231933594,
+            "x2": 294.0378723144531,
+            "y2": 313.0
+          }
+        },
+        {
+          "text": "(FWHM) with 3 samples/band. Typical vertical optical depths (ODs) for relevant trace gases and aerosols in the GEMS spectral range are shown in Fig. 3. Low- and high-frequency signals can be separated to provide ODs for aerosols and trace gases, respectively. Additional details of user requirement analysis can be found in the supplement.",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 320.08599853515625,
+            "x2": 522.0445556640625,
+            "y2": 371.0
+          }
+        },
+        {
+          "text": "GEMS, as shown in Fig. 4, is a step-and-stare UV–visible imaging spectrometer, with a Schmidt telescope and Öffner spectrometer. A UV-enhanced charge coupled device (CCD) with 2,000 × 1,000 pixels combines signals from 2,000 north (N)–south (S) spatial pixels at a given east (E)–west (W) scan position, and 1,000 spectral channels in the spectral range 300–500 nm.",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 378.08599853515625,
+            "x2": 522.0591430664062,
+            "y2": 429.0
+          }
+        },
+        {
+          "text": "The field of regard (FOR) of GEMS was chosen to cover most of Asia (5°S–45°N in latitude and 75°–145°E in longitude, as shown in Fig. 5. GEMS scans its E–W coverage in 701 steps over 30 min, and transmits data to ground during the next 30-min imaging time of GOCI-2. While the maximum E–W scan angle is fixed (~45° in longitude at equator), the scan pattern is flexible within the FOR, with nominal daily, central, and west scan patterns as shown in Fig. 5. For example, with the west scan pattern, AQ over India can be observed in late afternoon after sunset in Seoul. To increase the signal-to-noise ratio (SNR), a reduction of the scan region by half will double the available integration time in the same amount of observing time. In the case of an important event, more frequent scanning over a narrow region, with as short as 15-min resolution, is also possible. GEMS will produce approximately 11 million spectra per day on average.",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 436.08599853515625,
+            "x2": 522.1250610351562,
+            "y2": 588.5
+          }
+        },
+        {
+          "text": "Daily solar calibrations are performed during Asian nighttime when the sun is at a constant angle behind Earth. Dark calibration is performed before and after daytime measurements. Two diffusers are on board: one for on-orbit daily solar calibration and the other for degradation monitoring every 6 months.",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 595.5859985351562,
+            "x2": 522.0491333007812,
+            "y2": 646.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "DATA PROCESSORS AND SCIENTIFIC DATA PRODUCTS",
+        "page": 5,
+        "region": {
+          "x1": 90.0,
+          "y1": 668.8505249023438,
+          "x2": 354.3717956542969,
+          "y2": 675.5
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "For successful geophysical product retrievals, known as level-2 (L2) data, high-quality spectral radiance measurements, L1b data are critical. Necessary L1 processing steps include corrections for smear, dark current, stray light, and polarization (Fig. ES6 in the supplemental material). Prior to the final assembly of the instrument on the spacecraft, GEMS went through characterization and calibration tests to confirm compliance with the user requirements",
+          "page": 5,
+          "region": {
+            "x1": 90.0,
+            "y1": 682.5859985351562,
+            "x2": 522.1903686523438,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 5,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E7",
+          "page": 6,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.394287109375,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "Fig. 5. The E–W scan scenarios of GEMS, nominal daily scan (yellow), full central scan (green), and full west scan (magenta), within the field of regard (FOR; orange). Background colors represent average NO2 column densities measured by OMI over 2005–14. GEMS line-of-sight (LOS) center, major cities, and N–S spatial resolutions are shown together.",
+          "page": 6,
+          "region": {
+            "x1": 36.0,
+            "y1": 567.284423828125,
+            "x2": 162.07449340820312,
+            "y2": 722.951171875
+          }
+        },
+        {
+          "text": "Fig. 4. (top) GEMS flight model drawing, and pictures of the calibration assembly with (bottom left) aperture, and (bottom right) radiator side view of the instrument. Total mass is 159 kg. Volume is 1,004 mm × 1,088 mm × 865 mm.",
+          "page": 6,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 124.42724609375,
+            "x2": 197.25820922851562,
+            "y2": 205.093994140625
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 6,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E8",
+          "page": 7,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.44873046875,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "and to gather sensor data that are critical for on-ground corrections (see the supplement for details). Regular in-orbit spectral calibration and bandpass function characterization will be performed with daily solar irradiance measurements for calibration and trending.",
+          "page": 7,
+          "region": {
+            "x1": 90.0,
+            "y1": 465.08599853515625,
+            "x2": 521.9921264648438,
+            "y2": 501.5
+          }
+        },
+        {
+          "text": "Table 2 lists baseline products and their characteristics for the GEMS. L2 algorithms are based on various methods as listed in the last column of Table 2 with references. To meet the SNR requirements, different spatial and spectral binnings are needed for each product. Unlike existing L2 processors for LEO missions, GEO L2 processors must include the ability to handle diurnal variations in radiative transfer model (RTM) calculations with wider solar zenith angle (SZA) ranges, airmass factors (AMFs), a priori datasets, climatology, stratosphere–troposphere separation, and ancillary datasets including meteorological fields and snow/ice cover. Ongoing improvements consider recent GEMS preflight characterization data. Effective cloud fraction (ECF), cloud radiance fraction (CRF), cloud centroid pressure (CCP), and aerosol effective height (AEH), AOD, aerosol index (AI), and Lambertian equivalent and angle-dependent surface reflectance are commonly used products in all other retrievals (Vasilkov et al. 2017). These algorithms have been tested with L1b data from OMI (Levelt et al. 2018), TROPOMI (Veefkind et al. 2012), airborne GeoTASO during the KORUS-AQ campaign in 2016 (Judd et al. 2018), and simulated radiance spectra using the vector linearized discrete ordinate radiative transfer code (VLIDORT; Spurr 2006) and the Goddard Earth Observing System Chemistry (GEOS-Chem; Bey et al. 2001). All retrievals include vertical column amounts and fitting uncertainty.",
+          "page": 7,
+          "region": {
+            "x1": 90.0,
+            "y1": 508.58599853515625,
+            "x2": 522.2493286132812,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Table 2. Baseline products of GEMS. Nominal spatial resolution is 7 km × 8 km. For products that require spatial binning to meet SNR requirements, spatial resolutions are given in “× n pixel (px).” For example, “× 4 px” means spatial resolution of 14 km × 16 km, “× 2 px” means 14 km × 8 km. For SO2, additional temporal averaging over 3 h are required to compensate weak signals.",
+          "page": 7,
+          "region": {
+            "x1": 18.125,
+            "y1": 30.458250045776367,
+            "x2": 593.9178466796875,
+            "y2": 64.28851318359375
+          }
+        },
+        {
+          "text": "Product Importance Min Max Nominal Accuracy Window (nm)",
+          "page": 7,
+          "region": {
+            "x1": 39.45669937133789,
+            "y1": 79.50650024414062,
+            "x2": 435.6250915527344,
+            "y2": 95.875
+          }
+        },
+        {
+          "text": "Spatial resolution (km × km)",
+          "page": 7,
+          "region": {
+            "x1": 445.1697998046875,
+            "y1": 68.50650024414062,
+            "x2": 507.08087158203125,
+            "y2": 84.875
+          }
+        },
+        {
+          "text": "at Seoul SZA (°) Algorithm",
+          "page": 7,
+          "region": {
+            "x1": 458.86761474609375,
+            "y1": 79.50650024414062,
+            "x2": 585.6263427734375,
+            "y2": 95.875
+          }
+        },
+        {
+          "text": "NO2 TROP O3/aerosol precursor 1 × 1013 molecules cm–2 4 × 1017 molecules cm–2 1 × 1014 molecules cm–2 1 × 1015 molecules cm–2 432–450 7 × 8 × 2 px <70 DOASa STRAT",
+          "page": 7,
+          "region": {
+            "x1": 28.416400909423828,
+            "y1": 101.19757843017578,
+            "x2": 576.3095092773438,
+            "y2": 117.375
+          }
+        },
+        {
+          "text": "SO2",
+          "page": 7,
+          "region": {
+            "x1": 48.41529846191406,
+            "y1": 132.41749572753906,
+            "x2": 62.834632873535156,
+            "y2": 140.74700927734375
+          }
+        },
+        {
+          "text": "Aerosol precursor",
+          "page": 7,
+          "region": {
+            "x1": 105.56929779052734,
+            "y1": 122.63500213623047,
+            "x2": 140.68130493164062,
+            "y2": 137.375
+          }
+        },
+        {
+          "text": "8 × 1015 molecules cm–2 4 × 1017 molecules cm–2 1 × 1016 molecules cm–2 1 × 1016 molecules cm–2 310–326 7 × 8 × 4 px × 3 h <50",
+          "page": 7,
+          "region": {
+            "x1": 155.7707061767578,
+            "y1": 121.94757843017578,
+            "x2": 528.9729614257812,
+            "y2": 137.375
+          }
+        },
+        {
+          "text": "DOASa-PCAb hybridc",
+          "page": 7,
+          "region": {
+            "x1": 541.6278076171875,
+            "y1": 126.94757843017578,
+            "x2": 586.6222534179688,
+            "y2": 142.375
+          }
+        },
+        {
+          "text": "Volcano 0 DU 100 DU — — 310–340 7 × 8",
+          "page": 7,
+          "region": {
+            "x1": 108.20919799804688,
+            "y1": 142.63499450683594,
+            "x2": 485.1969909667969,
+            "y2": 147.375
+          }
+        },
+        {
+          "text": "HCHO VOC proxy",
+          "page": 7,
+          "region": {
+            "x1": 42.87670135498047,
+            "y1": 157.41749572753906,
+            "x2": 142.9051971435547,
+            "y2": 172.375
+          }
+        },
+        {
+          "text": "8 × 104 molecules cm–2 6.2 × 1016 molecules cm–2 5 × 1015 molecules cm–2 1 × 1016 molecules cm–2 328.5–356.5 7 × 8 × 4 px <50 DFd",
+          "page": 7,
+          "region": {
+            "x1": 155.7707061767578,
+            "y1": 151.9475860595703,
+            "x2": 570.4378051757812,
+            "y2": 167.375
+          }
+        },
+        {
+          "text": "CHOCHO 1 × 1014 molecules cm–2 1 × 1015 molecules cm–2 5 × 1014 molecules cm–2 1 × 1015 molecules cm–2 435–461 7 × 8 × 4 px <50 DFd",
+          "page": 7,
+          "region": {
+            "x1": 36.62620162963867,
+            "y1": 171.9475860595703,
+            "x2": 570.4378051757812,
+            "y2": 187.375
+          }
+        },
+        {
+          "text": "O3",
+          "page": 7,
+          "region": {
+            "x1": 31.665300369262695,
+            "y1": 218.43067932128906,
+            "x2": 41.584632873535156,
+            "y2": 226.76031494140625
+          }
+        },
+        {
+          "text": "TROP Oxidant, pollutant",
+          "page": 7,
+          "region": {
+            "x1": 62.87049865722656,
+            "y1": 193.27317810058594,
+            "x2": 140.46119689941406,
+            "y2": 208.01318359375
+          }
+        },
+        {
+          "text": "20 DU 50 DU 30 DU 20% 300–340",
+          "page": 7,
+          "region": {
+            "x1": 171.78909301757812,
+            "y1": 198.27317810058594,
+            "x2": 432.968994140625,
+            "y2": 203.01318359375
+          }
+        },
+        {
+          "text": "7 × 8 <70",
+          "page": 7,
+          "region": {
+            "x1": 467.0530090332031,
+            "y1": 218.64817810058594,
+            "x2": 528.9729614257812,
+            "y2": 223.38818359375
+          }
+        },
+        {
+          "text": "OEe",
+          "page": 7,
+          "region": {
+            "x1": 557.4923706054688,
+            "y1": 197.5857696533203,
+            "x2": 570.7576293945312,
+            "y2": 203.01318359375
+          }
+        },
+        {
+          "text": "STRAT",
+          "page": 7,
+          "region": {
+            "x1": 61.20560073852539,
+            "y1": 214.06898498535156,
+            "x2": 87.04459381103516,
+            "y2": 219.4014892578125
+          }
+        },
+        {
+          "text": "Ozone layer",
+          "page": 7,
+          "region": {
+            "x1": 100.67310333251953,
+            "y1": 229.28648376464844,
+            "x2": 145.5771026611328,
+            "y2": 234.0264892578125
+          }
+        },
+        {
+          "text": "180 DU 450 DU 270 DU 5% 300–340 OEe",
+          "page": 7,
+          "region": {
+            "x1": 169.56509399414062,
+            "y1": 213.5990753173828,
+            "x2": 570.7576293945312,
+            "y2": 219.0264892578125
+          }
+        },
+        {
+          "text": "Total 200 DU 500 DU 300 DU 3% 317.5, 331.2 331.2, 340,",
+          "page": 7,
+          "region": {
+            "x1": 63.702999114990234,
+            "y1": 224.66148376464844,
+            "x2": 439.864990234375,
+            "y2": 239.7764892578125
+          }
+        },
+        {
+          "text": "380 TOMSf",
+          "page": 7,
+          "region": {
+            "x1": 410.9530029296875,
+            "y1": 233.9740753173828,
+            "x2": 576.14404296875,
+            "y2": 249.4014892578125
+          }
+        },
+        {
+          "text": "Aerosol",
+          "page": 7,
+          "region": {
+            "x1": 20.623199462890625,
+            "y1": 275.5690002441406,
+            "x2": 52.627197265625,
+            "y2": 280.9014892578125
+          }
+        },
+        {
+          "text": "AOD Air quality,",
+          "page": 7,
+          "region": {
+            "x1": 64.1260986328125,
+            "y1": 259.4440002441406,
+            "x2": 143.7971954345703,
+            "y2": 275.5264892578125
+          }
+        },
+        {
+          "text": "climate",
+          "page": 7,
+          "region": {
+            "x1": 109.56510162353516,
+            "y1": 280.7864990234375,
+            "x2": 136.6851043701172,
+            "y2": 285.5264892578125
+          }
+        },
+        {
+          "text": "0 3.6 0.54 20% or 0.1 at",
+          "page": 7,
+          "region": {
+            "x1": 180.9010009765625,
+            "y1": 254.66148376464844,
+            "x2": 388.24908447265625,
+            "y2": 264.4014892578125
+          }
+        },
+        {
+          "text": "400 nm 354, 388,",
+          "page": 7,
+          "region": {
+            "x1": 349.3410949707031,
+            "y1": 258.4114990234375,
+            "x2": 434.30499267578125,
+            "y2": 269.4014892578125
+          }
+        },
+        {
+          "text": "412, 443, 477, 490",
+          "page": 7,
+          "region": {
+            "x1": 400.94500732421875,
+            "y1": 270.4114990234375,
+            "x2": 434.30499267578125,
+            "y2": 287.1514892578125
+          }
+        },
+        {
+          "text": "3.5 × 8 <70",
+          "page": 7,
+          "region": {
+            "x1": 463.7170104980469,
+            "y1": 270.4114990234375,
+            "x2": 528.9729614257812,
+            "y2": 280.5264892578125
+          }
+        },
+        {
+          "text": "LUT, OEg",
+          "page": 7,
+          "region": {
+            "x1": 548.3961791992188,
+            "y1": 258.97406005859375,
+            "x2": 579.8539428710938,
+            "y2": 264.4014892578125
+          }
+        },
+        {
+          "text": "UVAI −7 7 0.35 — LUTg",
+          "page": 7,
+          "region": {
+            "x1": 63.541099548339844,
+            "y1": 274.34906005859375,
+            "x2": 572.6618041992188,
+            "y2": 280.1514892578125
+          }
+        },
+        {
+          "text": "SSA 0.82 0.99 0.90 — LUT, OEg AEH 0 km 6 km 1.19 km — 477 7 × 8 O2–O2h",
+          "page": 7,
+          "region": {
+            "x1": 65.1250991821289,
+            "y1": 285.09906005859375,
+            "x2": 579.8539428710938,
+            "y2": 303.94049072265625
+          }
+        },
+        {
+          "text": "Cloud ECF",
+          "page": 7,
+          "region": {
+            "x1": 24.376100540161133,
+            "y1": 307.0690002441406,
+            "x2": 81.62649536132812,
+            "y2": 323.1514892578125
+          }
+        },
+        {
+          "text": "Retrieval, climate",
+          "page": 7,
+          "region": {
+            "x1": 105.56109619140625,
+            "y1": 313.0364990234375,
+            "x2": 140.6890869140625,
+            "y2": 327.7764892578125
+          }
+        },
+        {
+          "text": "0 1 — 5% 300–500 7 × 8 <70 O2–O2",
+          "page": 7,
+          "region": {
+            "x1": 180.9010009765625,
+            "y1": 307.2864990234375,
+            "x2": 572.2208251953125,
+            "y2": 325.44049072265625
+          }
+        },
+        {
+          "text": "h,iCCP 100 hPa 1,013 hPa — 5% 477 CRF 0 1 — —",
+          "page": 7,
+          "region": {
+            "x1": 66.12409973144531,
+            "y1": 317.34906005859375,
+            "x2": 577.6636962890625,
+            "y2": 333.9014892578125
+          }
+        },
+        {
+          "text": "Surface reflectivity",
+          "page": 7,
+          "region": {
+            "x1": 33.36819839477539,
+            "y1": 339.3190002441406,
+            "x2": 77.88219451904297,
+            "y2": 355.6514892578125
+          }
+        },
+        {
+          "text": "Retrieval, environment",
+          "page": 7,
+          "region": {
+            "x1": 99.12120056152344,
+            "y1": 340.0364990234375,
+            "x2": 147.1291961669922,
+            "y2": 354.7764892578125
+          }
+        },
+        {
+          "text": "0 1 — — 300–500 3.5 × 8 <70 Multi-λ, Min reflectivityj",
+          "page": 7,
+          "region": {
+            "x1": 180.9010009765625,
+            "y1": 340.0364990234375,
+            "x2": 586.3209228515625,
+            "y2": 354.7764892578125
+          }
+        },
+        {
+          "text": "UVI",
+          "page": 7,
+          "region": {
+            "x1": 29.123600006103516,
+            "y1": 377.1940002441406,
+            "x2": 44.1265983581543,
+            "y2": 382.5264892578125
+          }
+        },
+        {
+          "text": "UVI",
+          "page": 7,
+          "region": {
+            "x1": 66.4531021118164,
+            "y1": 361.0690002441406,
+            "x2": 81.798095703125,
+            "y2": 366.4014892578125
+          }
+        },
+        {
+          "text": "Public health 0 15 — — 354 7 × 8 <70 LUTk VitaD DNA Plant",
+          "page": 7,
+          "region": {
+            "x1": 62.1172981262207,
+            "y1": 371.8190002441406,
+            "x2": 572.5336303710938,
+            "y2": 398.6514892578125
+          }
+        },
+        {
+          "text": "a Platt (1994); b Li et al. (2013); c Yang (2019); d Chance et al. (2000), Gonzalez Abad et al. (2016), Kwon et al. (2017, 2019); e Rodgers (2000), Liu et al. (2010), Bak et al. (2013); f Haffner et al. (2015), McPeters et al. (2015); g Torres et al. (2013), Kim et al. (2018), Jeong et al. (2016), Kim et al. (2007), Kaufman et al. (1997); h Park et al. (2016); i Acarreta et al. (2004), Stammes et al. (2008), Veefkind et al. (2016); j Vasilkov et al. (2017), Lee et al. (2018); k Lindfors et al. (2018)",
+          "page": 7,
+          "region": {
+            "x1": 18.0,
+            "y1": 405.712646484375,
+            "x2": 593.9981689453125,
+            "y2": 435.7764892578125
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 7,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E9",
+          "page": 8,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 523.4313354492188,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "Commonalities for L2 algorithm. GEMS L2 products are to be delivered in two ways: one in near–real time (NRT) for quick operation in reduced quality, and the other for research in better quality through reprocessing with all retrieved products iterated.",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.0123901367188,
+            "y2": 66.5
+          }
+        },
+        {
+          "text": "Meteorological parameters including temperature profiles, and surface and tropopause pressures can be obtained from the operational Met Office (UKMO) model of the Korea Meteorological Administration (KMA) (Park et al. 2017). The Modern-Era Retrospective Analysis for Research and Applications (MERRA; Rienecker et al. 2011) data were also used for a priori and climatologies.",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 73.58599853515625,
+            "x2": 522.0128173828125,
+            "y2": 139.0
+          }
+        },
+        {
+          "text": "AMFs are a key parameter to convert slant column density (SCD) to vertical column density (VCD). To meet time constraints for NRT data delivery, AMFs for NO2, SO2, HCHO, and CHOCHO are based on a lookup table (LUT) approach. LUTs are constructed as a function of time, location, observation geometry, surface albedo, etc. Depending on species, spatial and temporal resolutions, cloud and aerosol properties, and vertical profiles are considered differently in the AMF LUTs. Scattering weights are calculated using VLIDORT, and vertical shape factors are constructed as a function of location and time. Details can be found in the subsections below. Ancillary data including snow and ice cover are available from AMI retrievals and the National Snow and Ice Data Center (NSIDC; http://nsidc.org). Averaging kernels and quality flags will be provided as well.",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 146.08599853515625,
+            "x2": 522.1240844726562,
+            "y2": 284.0
+          }
+        },
+        {
+          "text": "Tropospheric and total O3. To retrieve total ozone amount (TO3), the TOMS, version 9, algorithm is adopted (Haffner et al. 2015). This algorithm includes improvements to TOMS, version 8.5, previously applied to OMI. For the O3 retrieval, GEMS uses reflectivity at 317.5 nm, derived by linear extrapolation of reflectivity at 340 and 380 nm. The optimal estimation (OE) method is then used at two wavelengths, 312.35 and 331.06 nm, to correct for the ozone profile error. The use of OE is the main difference from the TOMS, version 8.5, which retrieves TO3 using a wavelength pair at 317.5 and 331.2 nm and reflectivity obtained at 331 nm (McPeters et al. 2015). Ozone profile information is determined from ozone spectral line fitting in the window 300–340 nm (Rodgers 2000; Liu et al. 2010; Bak et al. 2013). The absorption cross sections are from the Brion–Daumont–Malicet (BDM; Daumont et al. 1992; Brion et al. 1993; Malicet et al. 1995).",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 305.58599853515625,
+            "x2": 522.0637817382812,
+            "y2": 443.5
+          }
+        },
+        {
+          "text": "Nitrogen dioxide (NO2 ). The NO2 algorithm is based on the differential optical absorption spectroscopy (DOAS) technique fitting spectral optical depths of NO2 in the 432–450 nm window to obtain SCDs (Hong et al. 2017a). Troposphere–stratosphere separation for NO2 is performed every hour following the work of Bucsela et al. (2013) and Geddes et al. (2018). SCDs are converted to VCDs using hourly AMFs (Palmer et al. 2001). For AMF calculations, hourly NO2 profile shape factors are obtained from a chemical transport model (CTM), Weather Research and Forecasting Chemistry Model (WRF-Chem; Grell et al. 2011) with the 28 km × 28 km horizontal resolution for the GEMS domain. For pollution hot spots such as Seoul and Beijing, the NO2 concentrations measured at the ground networks will be utilized to enhance the accuracy and spatial resolution of the a priori profile. Earlier work has shown that an explicit aerosol representation in the retrieval algorithm greatly improves the quality of retrieved NO2 data (Lin et al. 2014, 2015; Liu et al. 2019). Hong et al. (2017b) investigated the impact of aerosols on the NO2 AMF and found that aerosol-layer height is particularly important, with some contribution from aerosol single scattering albedo (SSA) and AOD. Additionally, a new attempt has been made to obtain NO2 profiles for high concentration regions using multiple fitting windows across the UV–visible spectrum (Hong 2018). This allows retrieval of NO2 profiles over polluted regions.",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 465.08599853515625,
+            "x2": 522.0457763671875,
+            "y2": 704.5
+          }
+        },
+        {
+          "text": "Sulfur dioxide (SO2 ). The SO2 algorithm fits the spectrum over the 310–326 nm (310–340 nm in volcanic regions) window for planetary boundary layer (PBL) SO2 SCD retrievals using a",
+          "page": 8,
+          "region": {
+            "x1": 90.0,
+            "y1": 726.0859985351562,
+            "x2": 522.0059814453125,
+            "y2": 751.6630249023438
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 8,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E10",
+          "page": 9,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.7457885742188,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "hybrid algorithm based on DOAS and PCA (Li et al. 2013). The PCA algorithm can reduce noise and bias by using a set of PCs extracted directly from satellite radiance data for “clean sectors” that are free of SO2 emissions. However, in cases where a clean sector is contaminated with high AOD, O3, or SO2, large uncertainties occur in the SO2 SCD retrieval (Yang et al. 2018). The hybrid algorithm can reduce these uncertainties by using the DOAS method to filter the SO2-contaminated pixels and determine clean sectors, particularly when high concentrations of these interfering pollutants are unintentionally included in a clean sector or there are not enough clean sector pixels in the GEMS domain. The hybrid algorithm first uses the DOAS technique to determine clean sector for extracting principle components (PCs). Then these PCs are fitted to measured radiances with the cross sections to retrieve SO2 SCDs using the PCA method. For AMF calculations, box profile shape with top altitude at 1 km is assumed for PBL SO2, while similar box profiles with top at up to 15 km are for volcanic SO2 based on NASA climatology.",
+          "page": 9,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.2828369140625,
+            "y2": 211.5
+          }
+        },
+        {
+          "text": "HCHO and CHOCHO. The HCHO and CHOCHO retrieval algorithms are based on a nonlinear fitting method, referred to as direct fitting (DF), in the fitting windows of 328.5–356.5 nm and 435–461 nm, respectively (Chance et al. 2000; González Abad et al. 2016, 2015; Chan Miller et al. 2014; Kwon et al. 2017, 2019). For AMF calculations, vertical profile shapes are from the GEOS-Chem driven by MERRA. Kwon et al. (2017) showed that the effect of aerosols on AMF was nonnegligible in retrievals of HCHO columns. This is particularly true for East Asia, where aerosol and other trace gas concentrations vary considerably in time and space. Hourly AMF calculations are planned to use a fast LUT approach with the GEMS aerosol products. Finally, a systematic bias correction is performed for each pixel, but it can be avoided by using measured radiances over a clean background region as a reference spectrum for radiance fitting.",
+          "page": 9,
+          "region": {
+            "x1": 90.0,
+            "y1": 233.08599853515625,
+            "x2": 522.1771240234375,
+            "y2": 385.5
+          }
+        },
+        {
+          "text": "Aerosols. The aerosol algorithm is based on OE and the OMI aerosol algorithm to retrieve AOD, SSA, and AEH (Torres et al. 2013; Park et al. 2016; Jeong et al. 2016; Kim et al. 2018). Following aerosol type classification using UV and visible AIs, AOD and SSA are retrieved using measurements at 354 and 388 nm (Herman et al. 1997). Using the retrieved AOD and SSA as a priori, AEH is retrieved by OE using six selected wavelengths, including the O2–O2 absorption band at 477 nm. To detect absorbing aerosols, the UV AI, the absorbing AOD (AAOD) and the absorption Ångström exponent (AAE) will be provided.",
+          "page": 9,
+          "region": {
+            "x1": 90.0,
+            "y1": 407.08599853515625,
+            "x2": 522.03466796875,
+            "y2": 501.5
+          }
+        },
+        {
+          "text": "Merging data from GEMS with those from AMI and/or GOCI-2 can significantly improve the accuracy of aerosol products by adopting the cloud mask from the IR channels of AMI, combining L2 aerosol products from GOCI-2 and AMI, and combining L1b data from all three instruments. AMI and GOCI-2 provide aerosol properties at higher resolution mostly over darker surfaces only. However, GEMS can provide aerosol properties such as AOD and radiative absorptivity even over bright land surfaces. As the time difference between AMI and GEMS measurements is <10 min, synergy between the two instruments is readily achieved considering the typical lifetime of aerosols and clouds in the atmosphere.",
+          "page": 9,
+          "region": {
+            "x1": 90.0,
+            "y1": 508.58599853515625,
+            "x2": 522.0238647460938,
+            "y2": 617.5
+          }
+        },
+        {
+          "text": "Clouds. Cloud information is critical to most of the GEMS products as the accuracy and retrievability of trace gas products is subject to cloud effects (Ahmad et al. 2004; Antón and Loyola 2011; Bucsela et al. 2013; van Diedenhoven et al. 2008). GEMS cloud products (ECF and CCP) are based on the Lambertian cloud model (Stammes et al. 2008). The DOAS algorithm for the O2–O2 absorption line at 477 nm is used to retrieve the ECF and CCP from the O2–O2 column amounts above clouds (Acarreta et al. 2004; Stammes et al. 2008; Veefkind et al. 2016). ECF can also be converted to spectral CRF, the ratio of cloud radiance to total observed radiance, for use in the different spectral fitting windows of the trace gases.",
+          "page": 9,
+          "region": {
+            "x1": 90.0,
+            "y1": 639.0859985351562,
+            "x2": 522.0348510742188,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 9,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E11",
+          "page": 10,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.5582885742188,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "Surface reflectivity. Although surface reflectance is an important factor in retrievals of the atmospheric composition, many previous studies have assumed isotropic surface reflectance (e.g., Kim et al. 2007; Bak et al. 2013; Kwon et al. 2017). One advantage of GEMS over LEO instruments lies in its ability to derive directional reflectance using high-frequency observations over short periods (e.g., a day). Two kinds of surface reflectance products are retrieved from GEMS: the geometry-dependent Lambertian equivalent reflectivity (GLER) and the daily bidirectional reflectance distribution function (BRDF; Lee and Yoo 2018). The GLER algorithm will compile clear-sky composite reflectance from GEMS, and the BRDF model will compile GEMS measurements for various illumination-viewing geometries at each pixel. The assumption of Lambertian reflection can lead to biases in GLER retrievals using OMI L1b data (Vasilkov et al. 2017). Retrieved GLER results using OMI L1b data lead to relative errors of 0.024 and a RMSE of 0.029, compared to MODIS L2 products. The uncertainty approaches 20% for SZA and viewing zenith angle (VZA) > 60° and for turbid conditions. The parameters of the kernel-driven BRDF model are derived by statistical fitting (Lucht et al. 2000; Roujean et al. 1992).",
+          "page": 10,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.1065063476562,
+            "y2": 226.0
+          }
+        },
+        {
+          "text": "UVI. The UV index (UVI) algorithm is based on radiative transfer modeling using inputs of the retrieved TO3, cloud optical depth (COD) estimated from the reflectance at 354 nm, and climatological surface albedo data. The UVI and three different indexes are obtained by applying different action spectra to the UV radiance spectrum obtained: erythemal (McKinlay and Diffey 1987), DNA damage (Setlow 1974), vitamin D production in human skin (CIE 2006), and a plant response (Caldwell 1971). Aerosol correction is also applied following the OMI and TROPOMI correction method (Arola et al. 2009; Lindfors et al. 2018). For the surface, OMI LER climatology (Kleipool et al. 2008) is used until GEMS LER becomes available.",
+          "page": 10,
+          "region": {
+            "x1": 90.0,
+            "y1": 247.58599853515625,
+            "x2": 522.0579223632812,
+            "y2": 371.0
+          }
+        },
+        {
+          "text": "Algorithm tests. The performance of the GEMS L2 algorithm was tested using one year of OMI L1b data for 2005 as a proxy dataset prior to the launch of GEMS, as shown in Fig. 6 and Table 3. Most of the GEMS retrievals are well correlated with the ground-based and/or operational products of OMI and MODIS, with most of the data points falling near the 1:1 line. Figure 6a shows retrieved tropospheric O3 compared with ozonesonde observations at Pohang, Hong Kong, Sepang, and Isfahan (Fig. 6a). Tropospheric O3 shows high concentration in East Asia and northeast India in particular, and low near the equator and Tibetan Plateau. Total ozone shows excellent agreement as shown in Fig. 6b. Total NO2 VCD in Fig. 6c are higher over mega cities, where systematic overestimation is due to the use of different spectroscopy, slit function characterizations and a reference radiance spectrum for fitting procedures. The SO2 comparisons in Fig. 6d shows large values over eastern China and reflect Anatahan volcano in April 2005. Agreements are reasonable despite of weak signals and different algorithms. Further validations are needed with surface SO2 measurements. HCHO in Fig. 6e shows polluted region in Asia, especially in Indochina and Indonesia. HCHO comparison shows good agreements despite different algorithms, where negative values are shown on purpose to indicate uncertainties for both GEMS and OMI. AOD was compared with AERONET within the FOR and shows reasonable results considering the coarse spatial resolution of OMI, as shown in Fig. 6e. The scattered data points for UVI in Fig. 6g are primarily caused by the effect of LUT-based cloud corrections. The surface reflectance comparison in Fig. 6h is for LER and is expected to improve with results of ongoing work on angle dependencies. ECF and CCP are in good agreement with OMI operational products, as shown in Figs. 6i and 6j.",
+          "page": 10,
+          "region": {
+            "x1": 90.0,
+            "y1": 392.58599853515625,
+            "x2": 522.2249145507812,
+            "y2": 675.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "Validation plan",
+        "page": 10,
+        "region": {
+          "x1": 90.0,
+          "y1": 697.8505249023438,
+          "x2": 168.38490295410156,
+          "y2": 704.5
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "For GEMS mission success in maintaining accurate and consistent L2 products, a well-defined validation strategy has been developed based on comparison of retrieved products with in situ ground measurements. A summary of network sites within GEMS domain are shown in Fig. 7.",
+          "page": 10,
+          "region": {
+            "x1": 90.0,
+            "y1": 711.5859985351562,
+            "x2": 522.0571899414062,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 10,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E12",
+        "page": 11,
+        "region": {
+          "x1": 84.0,
+          "y1": 768.083984375,
+          "x2": 525.6182861328125,
+          "y2": 774.25
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 11,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E13",
+          "page": 12,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.6683349609375,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "GEMS L2 products can be validated with column measurements from Pandora instruments (Herman et al. 2009), AERONET (Holben et al. 1998), and the Sun–Sky Radiometer Observation Network (SONET) (Li et al. 2018). Vertical profiles can be obtained from the Korean Aerosol Lidar Observation Network (KALION; Yeo et al. 2016), the Asian Dust and aerosol lidar observation Network (AD-Net) (Shimizu et al. 2016), and the Multi-Axis Differential Optical Absorption Spectroscopy (MAX-DOAS) networks (Kanaya et al. 2014). Collocated in situ surface concentration measurements are essential to investigate relationship between column measurements and surface concentrations. Surface concentrations of trace gases and aerosols are available from the more than 400 ground stations of AirKorea including six supersites (www.airkorea.or.kr), acid deposition Network in East Asia (EANET; Sugimoto and Uno 2009), and the WMO Ozone and UV Data Center (WOUDC; https://woudc.org/). Details of each measurement network can be found in Table ES4. Excellent opportunities to validate the GEMS products will also be afforded by intensive aircraft field campaigns such as the future KORUS-AQ 2 and Megacity Air Pollution Studies (MAPS)-Seoul 2 that are being planned for 2021–23.",
+          "page": 12,
+          "region": {
+            "x1": 90.0,
+            "y1": 305.58599853515625,
+            "x2": 522.1018676757812,
+            "y2": 646.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "DATA APPLICATION AND SERVICES",
+        "page": 12,
+        "region": {
+          "x1": 90.0,
+          "y1": 668.8505249023438,
+          "x2": 213.26600646972656,
+          "y2": 690.0
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "With the high-spatial- and high-temporal-resolution measurements of GEMS, significant improvements are expected in",
+          "page": 12,
+          "region": {
+            "x1": 90.0,
+            "y1": 697.0859985351562,
+            "x2": 234.01199340820312,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Table 3. Intercomparison results of GEMS algorithm using OMI L1b data V003.",
+          "page": 12,
+          "region": {
+            "x1": 67.375,
+            "y1": 30.395000457763672,
+            "x2": 360.5643005371094,
+            "y2": 35.75
+          }
+        },
+        {
+          "text": "Goal correlation",
+          "page": 12,
+          "region": {
+            "x1": 152.64280700683594,
+            "y1": 45.14500045776367,
+            "x2": 192.10784912109375,
+            "y2": 60.5
+          }
+        },
+        {
+          "text": "coefficient (R)",
+          "page": 12,
+          "region": {
+            "x1": 147.375,
+            "y1": 65.1449966430664,
+            "x2": 197.37510681152344,
+            "y2": 70.5
+          }
+        },
+        {
+          "text": "Achieved correlation",
+          "page": 12,
+          "region": {
+            "x1": 210.64280700683594,
+            "y1": 45.14500045776367,
+            "x2": 250.10784912109375,
+            "y2": 60.5
+          }
+        },
+        {
+          "text": "coefficient (R) a, slope b, intercept RMSE Reference",
+          "page": 12,
+          "region": {
+            "x1": 205.375,
+            "y1": 65.1449966430664,
+            "x2": 509.1671142578125,
+            "y2": 70.5
+          }
+        },
+        {
+          "text": "O3 (TROP) 0.5–0.8 0.93 1.07 –3.14 DU 5.14 DU Ozonesonde O3 (Total) 0.82–0.97 0.97 1.00 2 DU 2.53 DU Brewer spectrophotometer NO2 0.8 0.87 1.34 –2.29 × 1015 molecules cm–2 2.66 × 1015 molecules cm–2 OMI products",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 79.94450378417969,
+            "x2": 535.8576049804688,
+            "y2": 124.75
+          }
+        },
+        {
+          "text": "SO2 0.7 0.75 0.72 0.15 DU 0.43 DU OMI products HCHO 0.81 0.92 1.01 3.3 × 10 14",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 134.1945037841797,
+            "x2": 513.5459594726562,
+            "y2": 159.25
+          }
+        },
+        {
+          "text": "molecules cm–2 3.14 × 1015 molecules cm–2 OMI products",
+          "page": 12,
+          "region": {
+            "x1": 313.2286071777344,
+            "y1": 148.15988159179688,
+            "x2": 513.5459594726562,
+            "y2": 164.25
+          }
+        },
+        {
+          "text": "AOD 0.7 0.85 0.83 0.16 0.27 AERONET",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 173.6945037841797,
+            "x2": 506.9666442871094,
+            "y2": 179.0
+          }
+        },
+        {
+          "text": "UVI 0.86–0.96 0.99 1.02 –0.07 0.54 OMI products",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 188.4445037841797,
+            "x2": 513.5459594726562,
+            "y2": 193.75
+          }
+        },
+        {
+          "text": "Surface reflectance (BRDF) 0.70–0.91 0.76 0.67 0.026 0.033 MODIS BRDF",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 203.1945037841797,
+            "x2": 512.55126953125,
+            "y2": 218.5
+          }
+        },
+        {
+          "text": "ECF 0.90 0.96 0.96 0.007 0.026 OMI products",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 227.9445037841797,
+            "x2": 513.5459594726562,
+            "y2": 233.25
+          }
+        },
+        {
+          "text": "CCP",
+          "page": 12,
+          "region": {
+            "x1": 71.375,
+            "y1": 257.4444885253906,
+            "x2": 85.37000274658203,
+            "y2": 262.75
+          }
+        },
+        {
+          "text": "All — 0.74 0.74 121.29 hPa 139.62 hPa",
+          "page": 12,
+          "region": {
+            "x1": 116.79419708251953,
+            "y1": 242.6945037841797,
+            "x2": 425.6732482910156,
+            "y2": 248.0
+          }
+        },
+        {
+          "text": "OMI productsECF > 0.2 0.80 0.94 0.99 –28.45 hPa 68.11 hPa",
+          "page": 12,
+          "region": {
+            "x1": 104.69830322265625,
+            "y1": 257.4444885253906,
+            "x2": 513.5459594726562,
+            "y2": 262.75
+          }
+        },
+        {
+          "text": "ECF ≤ 0.2 — 0.52 0.48 293.39 hPa 203.19 hPa",
+          "page": 12,
+          "region": {
+            "x1": 104.72979736328125,
+            "y1": 272.1944885253906,
+            "x2": 425.6732482910156,
+            "y2": 277.5
+          }
+        },
+        {
+          "text": "Fig. 7. Validation network for aerosols and trace gases within GEMS domain.",
+          "page": 12,
+          "region": {
+            "x1": 251.99949645996094,
+            "y1": 730.833251953125,
+            "x2": 575.9598388671875,
+            "y2": 749.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 12,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E14",
+          "page": 13,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.6828002929688,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "top-down emission rate (TDE) estimates and data assimilation (DA). The TDEs and DA with satellite data can be dramatically improved moving from daily resolution (LEO) to those with hourly resolution (GEO). High-spatial-resolution data can also help resolve sub-grid-scale features of CTM simulations. GEMS data will be served to the public in terms of surface concentrations, AQ forecasts, and warnings.",
+          "page": 13,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.009521484375,
+            "y2": 95.5
+          }
+        },
+        {
+          "text": "Top-down emission estimates. Bottom-up emission rates (BUEs) are critical for accurate AQ forecasts by CTMs. BUE inventories including the Clean Air Policy Support System (CAPSS), the Regional Emission inventory in Asia (REAS), and the Comprehensive Regional Emissions inventory for Atmospheric Transport Experiment (CREATE), the Multi-Resolution Emission Inventory for China (MEIC) have improved significantly to date (Lee et al. 2011; Kurokawa et al. 2013; Ohara et al. 2007; Woo et al. 2013; Li et al. 2017). Recent BUEs have more comprehensive list of fuels, sectors, pollutants with better estimation parameters, such as newer energy statistics, local emission factors, finer spatial surrogates, and so on. However, the uncertainties of BUE data are still relatively high because they are typically estimated based on the statistical summaries of human activities, a limited number of emission factors, and the application of control measures (Li et al. 2017). In addition, the long lead time of annual BUE compilation delays timely updates with year-to-year trends and daily human activities.",
+          "page": 13,
+          "region": {
+            "x1": 90.0,
+            "y1": 117.08599853515625,
+            "x2": 522.1558837890625,
+            "y2": 298.5
+          }
+        },
+        {
+          "text": "TDEs will clearly benefit from the more frequent observations of GEMS. With TDE estimates, an evaluation of AQ using inverse modeling can be performed to improve existing emission information in a timely manner with better accuracy (Mijling et al. 2013). Long-term satellite measurements can also contribute to emission rates by detecting missing emission sources and hot spots (Fioletov et al. 2011; McLinden et al. 2016). Increasingly stringent AQ improvement policies in China, Japan, and Korea have led to rapidly changing BUE estimates of source magnitude and spatial distributions in these regions. The long-term, high spatiotemporal resolution of GEMS observations will enable monitoring of AQ changes over northeast Asia due to the adoption of national emission control policies (Duncan et al. 2016; Souri et al. 2017).",
+          "page": 13,
+          "region": {
+            "x1": 90.0,
+            "y1": 305.58599853515625,
+            "x2": 522.1680297851562,
+            "y2": 443.5
+          }
+        },
+        {
+          "text": "Chemical weather forecasts and data assimilation. The GEMS-retrieved products will be utilized by the Korean Air Quality Forecast System (KAQFS) being developed under the framework of the Korean National Strategic PM Project launched in 2017. To enhance the accuracy of short-term (24–48 h) AQ forecasts over South Korea, accurate initial conditions (ICs) are of critical importance. The KAQFS currently uses the GOCI AODs with ground-based PM measurements for aerosols, which has demonstrated good prediction performance for PM10 and PM2.5 over South Korea (Lee 2018). Ongoing work seeks to further enhance forecasting performances for gases including O3 and precursors, by improving accuracy of ICs and better constraining emissions using hourly data. To accomplish the preparation of the ICs and improve their accuracy, GEMS hourly data will be used together with the surface concentration measurements from ground-based observation networks in Asia.",
+          "page": 13,
+          "region": {
+            "x1": 90.0,
+            "y1": 465.08599853515625,
+            "x2": 522.1525268554688,
+            "y2": 617.5
+          }
+        },
+        {
+          "text": "The importance of multisatellite data assimilation was demonstrated by the successful optimization of initial concentration and emission fields using the KORUS-AQ campaign dataset (Miyazaki et al. 2019). The value of a GEO satellite dataset for DA has been demonstrated for NO2 and O3 (Liu et al. 2017; Zoogman et al. 2011) with observing system simulation experiments (OSSEs), and for aerosols with GOCI (Park et al. 2014; Saide et al. 2014). Key technical components of these systems are the development of the DA techniques and adequate observation operators. Currently, DA techniques based on optimal interpolation with Kalman filters, the three-dimensional variational data assimilation (3D VAR) methods, and ensemble Kalman filters (EnKFs) have been developed and applied to the KAQFS.",
+          "page": 13,
+          "region": {
+            "x1": 90.0,
+            "y1": 624.5859985351562,
+            "x2": 522.2808227539062,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 13,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E15",
+          "page": 14,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.6913452148438,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "An ensemble-based meteorology–chemistry coupled DA system has been developed by interfacing WRF-Chem with the maximum likelihood ensemble filter (MLEF; Županski 2005). Park et al. (2015) showed that, in the coupled DA system, the cross-variable components of forecast error covariance made physically meaningful adjustments to all the control variables. They also showed that the coupled error covariance allowed cross-component impacts (e.g., Lim et al. 2015; Lee et al. 2017). These studies have demonstrated the benefits of using an ensemble-based coupled meteorology–chemistry DA to improve the analysis fields of both meteorological and chemical variables. It is expected that the aerosol and trace gas observations from GEMS will further improve the performance of coupled meteorology–chemistry models in forecasting both weather and AQ by providing tighter observational constraints on the DA through the high density of GEMS measurements. The GEMS observations are anticipated to be utilized in many applications including AQ forecasts, AQ reanalysis systems, radiative forcing estimation, and so on (e.g., Marécal et al. 2015; Lee et al. 2016; Benedetti et al. 2009; Inness et al. 2013; IPCC 2013; Lee et al. 2014).",
+          "page": 14,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.0856323242188,
+            "y2": 226.0
+          }
+        },
+        {
+          "text": "Public service. GEMS will provide a revolutionary public service by improving AQ forecasts, enabling early warning systems, and providing AQ data to all regions, both urban and rural. Hourly GEMS L2 datasets will be distributed to the public through multiple platforms including smartphones. For public use, AOD data from satellite measurements can be converted to surface PM2.5 and PM10 using CTM results, statistical analysis, and machine learning (e.g., Xu et al. 2015; Seo et al. 2015; Park et al. 2019). A similar algorithm under development at NIER will be applied to trace gas measurements. GEMS can also provide AQ data for countries such as North Korea where measurements have not been available to date, or developing countries where measurements are sparse. In combination with existing datasets, GEMS data can be utilized to fill the data gap in space, and assess the impact of PM on public health, traffic on urban pollution, power plants on regional pollution, ship emissions on marine pollution, and O3 on crop yields. It is anticipated that GEMS data will also lead to a better environmentally informed society and contribute to environmental policy and international treaties.",
+          "page": 14,
+          "region": {
+            "x1": 90.0,
+            "y1": 247.58599853515625,
+            "x2": 522.0020751953125,
+            "y2": 574.0
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "Geostationary AQ constellation",
+        "page": 14,
+        "region": {
+          "x1": 90.0,
+          "y1": 596.3505249023438,
+          "x2": 182.0458221435547,
+          "y2": 617.5
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "Sometime in the early 2020s, there will be a series of GEO AQ satellites, the so-called GEO AQ constellation, with GEMS over Asia beginning in 2020, followed by NASA TEMPO over North America, and ESA Sentinel-4 over Europe. These missions offer",
+          "page": 14,
+          "region": {
+            "x1": 90.0,
+            "y1": 624.5859985351562,
+            "x2": 234.05377197265625,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Fig. 8. The Geostationary Air Quality Constellation, covering most polluted regions in the Northern Hemisphere. The background image is 10-yr average NO2 column densities observed by OMI from 2005 to 2014, showing spatial coverage of GEMS over Asia, TEMPO over North America, and Sentinel-4 over Europe.",
+          "page": 14,
+          "region": {
+            "x1": 251.99949645996094,
+            "y1": 693.333251953125,
+            "x2": 576.0942993164062,
+            "y2": 749.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 14,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E16",
+          "page": 15,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.7313232421875,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "similar observational capabilities, similar level-2 product portfolios, and are committed to serving the data needs of AQ applications. These missions cover the major industrialized regions of the Northern Hemisphere (Fig. 8). The GEO AQ missions will be complemented by several LEO missions listed above and potentially future missions. LEO missions fill data gap over regions not covered by the GEO AQ missions and serve as traveling standards for assessing and improving mutual consistency between the products of the geostationary missions.",
+          "page": 15,
+          "region": {
+            "x1": 90.0,
+            "y1": 30.08599853515625,
+            "x2": 522.1043701171875,
+            "y2": 110.0
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "Summary",
+        "page": 15,
+        "region": {
+          "x1": 90.0,
+          "y1": 132.35049438476562,
+          "x2": 139.07537841796875,
+          "y2": 139.0
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "GEMS is scheduled for launch in February 2020, to monitor AQ at unprecedented spatial and temporal resolution from GEO over Asia. L2 science algorithms for the various products are based on up-to-date techniques, and tested with existing satellite L1b data. The predicted performance of GEMS suggests that most of the user requirements will be met. Continued efforts to upgrade both the L1 and L2 processors using updated information will ensure the success of the mission. Well-coordinated ground-based networks are essential components in the validation of the GEO AQ missions.",
+          "page": 15,
+          "region": {
+            "x1": 90.0,
+            "y1": 146.08599853515625,
+            "x2": 522.0635986328125,
+            "y2": 240.5
+          }
+        },
+        {
+          "text": "Chemical weather forecasting is about to experience a revolution that meteorologists have had ever since the launch of the first geostationary weather satellites. GEMS data at high temporal and spatial resolution can be used widely in improving AQ forecasts and emission rates, and providing AQ information services to public. The three GEO AQ missions together with synergistic meteorological measurements, will improve our understanding of transport, and chemical and physical processes by integrating multiplatform, cross-scale observational assets. The GEO AQ constellation will be the first of its kind to monitor global AQ in a coordinated manner with LEO satellites and to implement scientific policy using high-resolution space-based measurements.",
+          "page": 15,
+          "region": {
+            "x1": 90.0,
+            "y1": 247.58599853515625,
+            "x2": 522.0615844726562,
+            "y2": 356.5
+          }
+        },
+        {
+          "text": "Acknowledgments: The GEMS program is supported by the National Institute of Environmental Research (NIER), the Ministry of Environment, South Korea. This project is supported by the Korea Ministry of Environment (MOE) as Public Technology Program based on Environmental Policy (2017000160001). Research at the Smithsonian Astrophysical Observatory was supported by a NASA USPI Grant “SAO Participation in the Korean Geostationary Environment Monitoring Spectrometer (GEMS): Instrument Design and Algorithm Development.” Part of the research was carried out at the Jet Propulsion Laboratory, California Institute of Technology, under a contract with the National Aeronautics and Space Administration. Work done by HI was supported by the Environment Research and Technology Development Fund (2-1901) of the Environmental Restoration and Conservation Agency of Japan, JSPS KAKENHI (JP19H04235 and JP17K00529), the JAXA 2nd research announcement on the Earth Observations (19RT000351), and JST CREST (JPMJCR15K4).",
+          "page": 15,
+          "region": {
+            "x1": 90.0,
+            "y1": 378.760009765625,
+            "x2": 522.3408203125,
+            "y2": 530.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "Appendix: List of acronyms",
+        "page": 15,
+        "region": {
+          "x1": 35.9995002746582,
+          "y1": 567.3505249023438,
+          "x2": 173.23440551757812,
+          "y2": 574.0
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "3DVAR Three-dimensional variational data as-",
+          "page": 15,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 581.760009765625,
+            "x2": 293.9996032714844,
+            "y2": 588.5
+          }
+        },
+        {
+          "text": "similation 3MI Multi-Viewing Multi-Channel Multi-Polar-",
+          "page": 15,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 596.260009765625,
+            "x2": 293.9996032714844,
+            "y2": 617.5
+          }
+        },
+        {
+          "text": "ization Imager AAE Absorption Ångström exponent AAI Absorbing aerosol index AAOD Absorbing aerosol optical depth ABI Advanced Baseline Imager AC-VC Atmospheric Composition Virtual Constel-",
+          "page": 15,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 625.260009765625,
+            "x2": 293.9996032714844,
+            "y2": 704.5
+          }
+        },
+        {
+          "text": "lation AD-NET Asian Dust and aerosol lidar observation",
+          "page": 15,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 712.260009765625,
+            "x2": 294.0955505371094,
+            "y2": 733.5
+          }
+        },
+        {
+          "text": "Network",
+          "page": 15,
+          "region": {
+            "x1": 114.99949645996094,
+            "y1": 741.260009765625,
+            "x2": 151.42950439453125,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "AEH Aerosol effective height AERONET Aerosol Robotic Network AGRI Advanced Geostationary Radiation Imager AHI Advanced Himawari Imager AI Aerosol index AIRS Atmospheric Infrared Sounder AK Averaging kernel AMF Airmass factor AMI Advanced Meteorological Imager AOD Aerosol optical depth AQ Air quality BDM Brion–Daumont–Malicet",
+          "page": 15,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 581.760009765625,
+            "x2": 576.0225219726562,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 15,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E17",
+          "page": 16,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.6047973632812,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "BRDF Bidirectional reflectance distribution function",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 30.760000228881836,
+            "x2": 294.01739501953125,
+            "y2": 52.0
+          }
+        },
+        {
+          "text": "BrO Bromine monoxide BTDF Bidirectional transmittance distribution",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 59.7599983215332,
+            "x2": 294.04547119140625,
+            "y2": 81.0
+          }
+        },
+        {
+          "text": "function BUE Bottom-up emission rate CHOCHO Glyoxal CAPSS Clean Air Policy Support System CCD Charge coupled device CCP Cloud centroid pressure CEOS Committee on Earth Observation Satellites CH4 Methane CHOCHO Glyoxal CIE Commission Internationale de l’Eclairage CMAQ Community Multiscale Air Quality CO Carbon monoxide COD Cloud optical depth",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 88.76000213623047,
+            "x2": 293.9075012207031,
+            "y2": 269.5
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "COMS Communication, Oceanography and Meteorology Satellite",
+        "page": 16,
+        "region": {
+          "x1": 35.9995002746582,
+          "y1": 277.2550048828125,
+          "x2": 293.9996032714844,
+          "y2": 298.5
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "CREATE Comprehensive Regional Emissions inven-",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 306.260009765625,
+            "x2": 293.9996032714844,
+            "y2": 313.0
+          }
+        },
+        {
+          "text": "tory for Atmospheric Transport Experiment CRF Cloud radiance fraction CrIS Cross-track Infrared Sounder CTM Chemical transport model DA Data assimilation DF Direct fitting DNA Deoxyribonucleic acid DOAS Differential optical absorption spectroscopy DU Dobson unit EANET Acid deposition monitoring Network in East",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 320.760009765625,
+            "x2": 294.1184387207031,
+            "y2": 458.0
+          }
+        },
+        {
+          "text": "Asia ECF Effective cloud fraction EMI Environment Monitoring Instrument EnKF Ensemble Kalman filter EOL End of life EPIC Earth Polychromatic Imaging Camera ESA European Space Agency ESC Environmental Satellite Center EUMETSAT European Organisation for the Exploitation",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 465.760009765625,
+            "x2": 293.94451904296875,
+            "y2": 588.5
+          }
+        },
+        {
+          "text": "of Meteorological Satellites FCI Flexible Combined Imager FD Full disk FOR Field of regard FPE Focal plane electronic FWHM Full-width at half-maximum FY-4 Fengyun-4 GAW Global Atmosphere Watch GAW WDCA Global Atmosphere Watch World Data",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 596.260009765625,
+            "x2": 294.0564880371094,
+            "y2": 719.0
+          }
+        },
+        {
+          "text": "Centre for Aerosols GCOM Global Change Observation Mission",
+          "page": 16,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 726.760009765625,
+            "x2": 268.0784912109375,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "GEMS Geostationary Environment Monitoring Spectrometer",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 30.760000228881836,
+            "x2": 575.9994506835938,
+            "y2": 52.0
+          }
+        },
+        {
+          "text": "GEO Geostationary Earth orbit GEO-KOMPSAT Geostationary Korea Multi-Purpose Satellite GEOS-5 Goddard Earth Observing System Model,",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 59.7599983215332,
+            "x2": 575.9826049804688,
+            "y2": 95.5
+          }
+        },
+        {
+          "text": "version 5 GEOS-Chem Goddard Earth Observing System Chemistry GeoTASO Geostationary Trace gas and Aerosol Sensor",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 103.26000213623047,
+            "x2": 576.0154418945312,
+            "y2": 139.0
+          }
+        },
+        {
+          "text": "Optimization GF-5 GaoFen-5 GK GEO-KOMPSAT GK-2 GEO-KOMPSAT-2 GK-2A GEO-KOMPSAT-2A GK-2B GEO-KOMPSAT-2B GLER Geometry-dependent Lambertian equiva-",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 146.75999450683594,
+            "x2": 575.9996337890625,
+            "y2": 240.5
+          }
+        },
+        {
+          "text": "lent reflectivity GOCI Geostationary Ocean Color Imager GOCI-2 Geostationary Ocean Color Imager 2 GOES-8 Geostationary Operational Environmental",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 248.25999450683594,
+            "x2": 575.9185791015625,
+            "y2": 298.5
+          }
+        },
+        {
+          "text": "Satellite 8 GOES-R Geostationary Operational Environmental",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 306.2550048828125,
+            "x2": 575.860595703125,
+            "y2": 327.5
+          }
+        },
+        {
+          "text": "Satellites R series GOES-S Geostationary Operational Environmental",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 335.260009765625,
+            "x2": 575.860595703125,
+            "y2": 356.5
+          }
+        },
+        {
+          "text": "Satellites S series GOME Global Ozone Monitoring Experiment GURME Global Atmosphere Watch Urban Research",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 364.260009765625,
+            "x2": 575.9984741210938,
+            "y2": 400.0
+          }
+        },
+        {
+          "text": "Meteorology and Environment H2CO Formaldehyde H2O Water vapor HCHO Formaldehyde HONO Nitrous acid IASI Infrared Atmospheric Sounding Interfer-",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 407.760009765625,
+            "x2": 575.9996337890625,
+            "y2": 487.0
+          }
+        },
+        {
+          "text": "ometer IC Initial condition INSAT-3D Indian National Satellite 3D INR Image navigation and registration IO Iodine monoxide IPCC Intergovernmental Panel on Climate",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 494.760009765625,
+            "x2": 575.9834594726562,
+            "y2": 574.0
+          }
+        },
+        {
+          "text": "Change IR Infrared KALION Korea Aerosol Lidar Observation Network KAQFS Korean Air Quality Forecasting System KARI Korea Aerospace Research Institute KMA Korea Meteorological Administration KORUS-AQ Korea–United States Air Quality study KST Korea standard time L0 Level 0 L1 Level 1 L1b Level 1b L2 Level 2",
+          "page": 16,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 581.760009765625,
+            "x2": 574.8275756835938,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 16,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E18",
+          "page": 17,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.727294921875,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "L3 Level 3 LEO Low Earth orbit LER Lambertian equivalent reflectivity LTP Long-range transboundary air pollutants LUT Lookup table M Million MAIA Multi-Angle Imager for Aerosols MAPS-Seoul Megacity Air Pollution Studies—Seoul MAX-DOAS Multi-Axis Differential Optical Absorption",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 30.760000228881836,
+            "x2": 294.0094909667969,
+            "y2": 153.5
+          }
+        },
+        {
+          "text": "Spectroscopy MEIC Multi-Resolution Emission Inventory for",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 161.25999450683594,
+            "x2": 293.9855651855469,
+            "y2": 182.5
+          }
+        },
+        {
+          "text": "China MI Meteorological Imager MISR Multi-Angle Imaging Spectroradiometer MLEF Maximum likelihood ensemble filter MODIS Moderate Resolution Imaging Spectroradi-",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 190.25999450683594,
+            "x2": 293.9996032714844,
+            "y2": 255.0
+          }
+        },
+        {
+          "text": "ometer MOPITT Measurements of Pollution in the Tropo-",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 262.760009765625,
+            "x2": 293.9996032714844,
+            "y2": 284.0
+          }
+        },
+        {
+          "text": "sphere MPLNET Micro-Pulse lidar Network MTF Modulation Transfer Function MTG-I Meteosat Third Generation—Imaging MTG-S Meteosat Third Generation—Sounding MTSAT Multifunctional Transport Satellite NASA National Aeronautics and Space Adminis-",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 291.760009765625,
+            "x2": 293.9996032714844,
+            "y2": 385.5
+          }
+        },
+        {
+          "text": "tration NIER National Institute of Environmental Re-",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 393.260009765625,
+            "x2": 293.9996032714844,
+            "y2": 414.5
+          }
+        },
+        {
+          "text": "search NIES National Institute for Environmental Studies NIR Near-infrared NH Northern Hemisphere NO2 Nitrogen dioxide NOx Nitric oxide + nitrogen dioxide O2–O2 Collision-induced oxygen complex O3 Ozone OD Optical depth OE Optimal estimation OMI Ozone Monitoring Instrument OMPS Ozone Mapping Profiler Suite OSE Observing System Experiment OSSE Observing System Simulation Experiment PBL Planetary boundary layer PC Principal component PCA Principal component analysis PM Particulate matter PM10 Particulate matter (diameter < 10 µm) PM2.5 Particulate matter (diameter < 2.5 µm) PRNU Pixel response nonuniformity QF Quality flag RAA Relative azimuth angle",
+          "page": 17,
+          "region": {
+            "x1": 35.9995002746582,
+            "y1": 422.260009765625,
+            "x2": 294.00946044921875,
+            "y2": 748.0
+          }
+        },
+        {
+          "text": "REAS Regional Emission inventory in Asia RMSE Root-mean-square error RTM Radiative transfer model S4 Sentinel-4 S5 Sentinel-5 S5P Sentinel-5 Precursor SBUV Solar Backscatter Ultraviolet radiometer SCD Slant column density SCIAMACHY Scanning Imaging Absorption Spectrom-",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 30.760000228881836,
+            "x2": 575.9996337890625,
+            "y2": 153.5
+          }
+        },
+        {
+          "text": "eter for Atmospheric Cartography SeaWiFS Sea-Viewing Wide Field-of-View Sensor SEVIRI Spinning Enhanced Visible and Infrared",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 161.25999450683594,
+            "x2": 576.0045776367188,
+            "y2": 197.0
+          }
+        },
+        {
+          "text": "Imager SGLI Second-Generation Global Imager SKYNET Skyradiometer Network SNR Signal-to-noise ratio SO2 Sulfur dioxide SONET Sun–Sky Radiometer Observation Network SSA Single scattering albedo Std dev Standard deviation STRAT Stratosphere SZA Solar zenith angle TDE Top-down emission rate TEMPO Tropospheric Emissions: Monitoring of",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 204.75999450683594,
+            "x2": 576.1094970703125,
+            "y2": 371.0
+          }
+        },
+        {
+          "text": "Pollution TES Tropospheric Emission Spectrometer TO3 Total ozone amount TOMS Total Ozone Mapping Spectrometer TROP Troposphere TROPOMI Tropospheric Monitoring Instrument UKMO Met Office UTC Coordinated universal time UV Ultraviolet UVAI Ultraviolet aerosol index UVI Ultraviolet index UVN Ultraviolet, visible, and near-infrared VCD Vertical column density VIIRS Visible Infrared Imaging Radiometer Suite Vis Visible VLIDORT Vector linearized discrete ordinate radiative",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 378.760009765625,
+            "x2": 576.0554809570312,
+            "y2": 603.0
+          }
+        },
+        {
+          "text": "transfer VOC Volatile organic compound VZA Viewing zenith angle WHO World Health Organization WMO World Meteorological Organization WOUDC WMO Ozone and UV Data Center WRF-Chem Weather Research and Forecasting Chem-",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 610.760009765625,
+            "x2": 575.9996337890625,
+            "y2": 704.5
+          }
+        },
+        {
+          "text": "istry Model YAER Yonsei Aerosol Retrieval",
+          "page": 17,
+          "region": {
+            "x1": 317.99951171875,
+            "y1": 712.260009765625,
+            "x2": 501.0084228515625,
+            "y2": 733.5
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 17,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E19",
+          "page": 18,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.705322265625,
+            "y2": 774.25
+          }
+        }
+      ]
+    },
+    {
+      "title": {
+        "text": "REFERENCES",
+        "page": 18,
+        "region": {
+          "x1": 36.0,
+          "y1": 31.014999389648438,
+          "x2": 104.62699890136719,
+          "y2": 38.75
+        }
+      },
+      "paragraphs": [
+        {
+          "text": "Acarreta, J. R., J. F. De Haan, and P. Stammes, 2004: Cloud pressure retrieval using the O2-O2 absorption band at 477 nm. J. Geophys. Res., 109, D05204, https:// doi.org/10.1029/2003JD003915. Ahmad, Z., P. K. Bhartia, and N. Krotkov, 2004: Spectral properties of backscattered UV radiation in cloudy atmospheres. J. Geophys. Res., 109, D01201, https://doi.org/10.1029/2003JD003395. Antón, M., and D. Loyola, 2011: Influence of cloud properties on satellite total ozone observations. J. Geophys. Res., 116, D03208, https://doi.org /10.1029/2010JD014780. Arola, A., and Coauthors, 2009: A new approach to correct for absorbing aerosols in OMI UV. Geophys. Res. Lett., 36, L22805, https://doi.org /10.1029/2009GL041137. Bak, J., X. Liu, J. C. Wei, L. L. Pan, K. Chance, and J. H. Kim, 2013: Improvement of OMI ozone profile retrievals in the upper troposphere and lower stratosphere by the use of a tropopause-based ozone profile climatology. Atmos. Meas. Tech., 6, 2239–2254, https://doi.org/10.5194/amt-6-2239-2013. Benedetti, A., and Coauthors, 2009: Aerosol analysis and forecast in the European Centre for Medium-Range Weather Forecasts Integrated Forecast System: 2. Data assimilation. J. Geophys. Res., 114, D13205, https://doi.org /10.1029/2008JD011115. Bey, I., and Coauthors, 2001: Global modeling of tropospheric chemistry with assimilated meteorology: Model description and evaluation. J. Geophys. Res., 106, 23 073–23 095, https://doi.org/10.1029/2001JD000807. Boersma, K. F., D. J. Jacob, H. J. Eskes, R. W. Pinder, J. Wang, and R. J. van der A, 2008: Intercomparison of SCIAMACHY and OMI tropospheric NO2 columns: Observing the diurnal evolution of chemistry and emissions from space. J. Geophys. Res., 113, D16S26, https://doi.org/10.1029/2007JD008816. Bovensmann, H., J. P. Burrows, M. Buchwitz, J. Frerick, S. Noël, V. V. Rozanov, K. V. Chance, and A. P. H. Goede, 1999: SCIAMACHY: Mission objectives and measurement modes. J. Atmos. Sci., 56, 127–150, https://doi.org/10.1175/1520 -0469(1999)056<0127:SMOAMM>2.0.CO;2. —, and Coauthors, 2004: The Geostationary Scanning Imaging Absorption Spectrometer (GeoSCIA) as part of the Geostationary Tropospheric Pollution Explorer (GeoTROPE) mission: Requirements, concepts and capabilities. Adv. Space Res., 34, 694–699, https://doi.org/10.1016/j.asr.2003.08.068. Brauer, M., and Coauthors, 2016: Ambient air pollution exposure estimation for the Global Burden of Disease 2013. Environ. Sci. Technol., 50, 79–88, https:// doi.org/10.1021/acs.est.5b03709. Brion, J., A. Chakir, D. Daumont, J. Malicet, and C. Parisse, 1993: High-resolution laboratory absorption cross section of O3. Temperature effect. Chem. Phys. Lett., 213, 610–612, https://doi.org/10.1016/0009-2614(93)89169-I. Bucsela, E. J., and Coauthors, 2013: A new stratospheric and tropospheric NO2 retrieval algorithm for nadir-viewing satellite instruments: Applications to OMI. Atmos. Meas. Tech., 6, 2607–2626, https://doi.org/10.5194/amt-6-2607 -2013. Burrows, J. P., and Coauthors, 1993: Global Ozone Monitoring Experiment (GOME): Interim science report. ESA Rep. SP-1151, 60 pp. Caldwell, M. M., 1971: Solar UV irradiation and the growth and development of higher plants. Photophysiology, 6, 131–177, https://doi.org/10.1016/B978-0 -12-282606-1.50010-6. Chan Miller, C., G. Gonzalez Abad, H. Wang, X. Liu, T. Kurosu, D. J. Jacob, and K. Chance, 2014: Glyoxal retrieval from the ozone monitoring instrument. Atmos. Meas. Tech., 7, 3891–3907, https://doi.org/10.5194/amt-7-3891-2014. Chance, K., P. I. Palmer, R. J. D. Spurr, R. V. Martin, T. P. Kurosu, and D. J. Jacob, 2000: Satellite observations of formaldehyde over North America from GOME. Geophys. Res. Lett., 27, 3461–3464, https://doi.org/10.1029/2000GL011857. Choi, M., and Coauthors, 2016: GOCI Yonsei Aerosol Retrieval (YAER) algorithm and validation during the DRAGON-NE Asia 2012 campaign. Atmos. Meas. Tech., 9, 1377–1398, https://doi.org/10.5194/amt-9-1377-2016. —, and Coauthors, 2018: GOCI Yonsei aerosol retrieval version 2 products: An improved algorithm and error analysis with uncertainty estimation from 5-year",
+          "page": 18,
+          "region": {
+            "x1": 36.0,
+            "y1": 53.23925018310547,
+            "x2": 294.3253479003906,
+            "y2": 748.25
+          }
+        },
+        {
+          "text": "validation over East Asia. Atmos. Meas. Tech., 11, 385–408, https://doi.org /10.5194/amt-11-385-2018. —, and Coauthors, 2019: Validation, comparison, and integration of GOCI, AHI, MODIS, MISR, and VIIRS aerosol optical depth over East Asia during 2016 KORUS-AQ campaign. Atmos. Meas. Tech., 12, 4619–4641, https://doi.org /10.5194/amt-12-4619-2019. Choi, W. J., and Coauthors, 2018: Introducing the Geostationary Environment Monitoring Spectrometer. J. Appl. Remote Sens., 13, 044005, https://doi.org /10.1117/1.JRS.12.044005. Choi, Y. S., and C. H. Ho, 2015: Earth and environmental remote sensing community in South Korea: A review. Remote Sens. Appl. Soc. Environ., 2, 66–76, https://doi.org/10.1016/J.RSASE.2015.11.003. CIE, 2006: Action spectrum for the production of previtamin D3 in human skin. Commission Internationale de l’Eclairage (International Commission on Illumination) Tech. Rep. 174. Cohen, A., and Coauthors, 2017: Estimates and 25-year trends of the global burden of disease attributable to ambient air pollution: An analysis of data from the Global Burden of Diseases Study 2015. Lancet, 389, 1907–1918, https:// doi.org/10.1016/S0140-6736(17)30505-6. Daumont, D., J. Brion, J. Charbonnier, and J. Malicet, 1992: Ozone UV spectroscopy. I. Absorption cross-sections at room temperature. J. Atmos. Chem., 15, 145–155, https://doi.org/10.1007/BF00053756. DiGangi, J. P., and Coauthors, 2012: Observations of glyoxal and formaldehyde as metrics for the anthropogenic impact on rural photochemistry. Atmos. Chem. Phys., 12, 9529–9543, https://doi.org/10.5194/acp-12-9529-2012. Duncan, B. N., L. N. Lamsal, A. M. Thompson, Y. Yoshida, Z. Lu, D. G. Streets, M. M. Hurwitz, and K. E. Pickering, 2016: A space-based, high-resolution view of notable changes in urban NOx pollution around the world (2005– 2014). J. Geophys. Res. Atmos., 121, 976–996, https://doi.org/10.1002 /2015JD024121. Fioletov, V. E., C. A. McLinden, N. Krotkov, M. D. Moran, and K. Yang, 2011: Estimation of SO2 emissions using OMI retrievals. Geophys. Res. Lett., 38, L21811, https://doi.org/10.1029/2011GL049402. Fishman, J., and Coauthors, 2008: Remote sensing of tropospheric pollution from space. Bull. Amer. Meteor. Soc., 89, 805–821, https://doi.org /10.1175/2008BAMS2526.1. Flynn, L., and Coauthors, 2014: Performance of the Ozone Mapping and Profiler Suite (OMPS) products. J. Geophys. Res. Atmos., 119, 6181–6195, https://doi.org /10.1002/2013JD020467. Geddes, J. A., R. V. Martin, E. J. Bucsela, C. A. McLinden, and D. J. M. Cunningham, 2018: Stratosphere–troposphere separation of nitrogen dioxide columns from the TEMPO geostationary satellite instrument. Atmos. Meas. Tech., 11, 6271–6287, https://doi.org/10.5194/amt-11-6271-2018. González Abad, G., X. Liu, K. Chance, H. Wang, T. P. Kurosu, and R. Suleiman, 2015: Updated Smithsonian Astrophysical Observatory Ozone Monitoring Instrument (SAO OMI) formaldehyde retrieval. Atmos. Meas. Tech., 8, 19–32, https://doi.org/10.5194/amt-8-19-2015. —, G., A. Vasilkov, C. Seftor, X. Liu, and K. Chance, 2016: Smithsonian Astrophysical Observatory Ozone Mapping and Profiler Suite (SAO OMPS) formaldehyde retrieval. Atmos. Meas. Tech., 9, 2797–2812, https://doi.org/10.5194 /amt-9-2797-2016. Grell, G., S. R. Freitas, M. Stuefer, and J. Fast, 2011: Inclusion of biomass burning in WRF-Chem: Impact of wildfires on weather forecasts. Atmos. Chem. Phys., 11, 5289–5303, https://doi.org/10.5194/acp-11-5289-2011. Haffner, D. P., R. D. McPeters, P. K. Bhartia, and G. J. Labow, 2015: The TOMS v9 algorithm for OMPS nadir mapper total ozone: An enhanced design that ensures data continuity. 2015 Fall Meeting, San Francisco, CA, Amer. Geophys. Union, Abstract A21C-0149. Heath, D. F., A. J. Krueger, H. A. Roeder, and B. D. Henderson, 1975: The Solar Backscatter Ultraviolet and Total Ozone Mapping Spectrometer (SBUV/TOMS) for NIMBUS G. Opt. Eng., 14, 323–331, https://doi.org/10.1117/12.7971839.",
+          "page": 18,
+          "region": {
+            "x1": 318.0000915527344,
+            "y1": 53.067501068115234,
+            "x2": 576.3462524414062,
+            "y2": 748.125
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 18,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E20",
+          "page": 19,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 526.0303344726562,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "Herman, J., P. K. Bhartia, O. Torres, C. Hsu, C. Seftor, and E. Celarier, 1997: Global distribution of UV-absorbing aerosols from Nimbus 7/TOMS data. J. Geophys. Res., 102, 16 911–16 922, https://doi.org/10.1029/96JD03680. —, N. Abuhassan, A. Cede, G. Mount, E. Spinei, and M. Tzortziou, 2009: NO2 column amounts from ground-based Pandora and MFDOAS spectrometers using the direct-sun DOAS technique: Intercomparisons and application to OMI validation. J. Geophys. Res., 114, D13307, https://doi.org /10.1029/2009JD011848. Holben, B. N., and Coauthors, 1998: AERONET—A federated instrument network and data archive for aerosol characterization. Remote Sens. Environ., 66, 1–16, https://doi.org/10.1016/S0034-4257(98)00031-5. Hong, H., 2018: Development of NO2 retrieval algorithm for the hyper-spectral UV-vis space-born sensor: A new novel algorithm for NO2 vertical profile retrieval. Ph.D. thesis, Pukyong National University, 156 pp. —, J. Kim, U. Jeong, K. S. Han, and H. Lee, 2017a: The effects of aerosol on the retrieval accuracy of NO2 slant column density. Remote Sens., 9, 867, https:// doi.org/10.3390/RS9080867. —, H. Lee, J. Kim, U. Jeong, J. Ryu, and D. S. Lee, 2017b: Investigation of simultaneous effects of aerosol properties and aerosol peak height on the air mass factors for space-borne NO2 retrievals. Remote Sens., 9, 1–17, https:// doi.org/10.3390/RS9030208. Ingmann, P., B. Veihelmann, J. Langen, D. Lamarre, H. Stark, and G. B. CourrègesLacoste, 2012: Requirements for the GMES atmosphere service and ESA’s implementation concept: Sentinels-4/-5 and -5p. Remote Sens. Environ., 120, 58–69, https://doi.org/10.1016/j.rse.2012.01.023. Inness, A., and Coauthors, 2013: The MACC reanalysis: An 8 yr data set of atmospheric composition. Atmos. Chem. Phys., 13, 4073–4109, https://doi. org/10.5194/acp-13-4073-2013. IPCC, 2013: Climate Change 2013: The Physical Science Basis. Cambridge University Press, 1535 pp., https://doi.org/10.1017/CBO9781107415324. Jackson, J. M., H. Liu, I. Laszlo, S. Kondragunta, L. A. Remer, J. Huang, and H. C. Huang, 2013: Suomi-NPP VIIRS aerosol algorithms and data products. J. Geophys. Res. Atmos., 118, 12 673–12 689, https://doi.org/10.1002/2013JD020449. Jeong, U., and Coauthors, 2016: An optimal-estimation-based aerosol retrieval algorithm using OMI near-UV observations. Atmos. Chem. Phys., 16, 177–193, https://doi.org/10.5194/acp-16-177-2016. Judd, L. M., and Coauthors, 2018: The dawn of geostationary air quality monitoring: Case studies from Seoul and Los Angeles. Front. Environ. Sci., 6, 85, https://doi.org/10.3389/fenvs.2018.00085. Kanaya, Y., and Coauthors, 2014: Long-term MAX-DOAS network observations of NO2 in Russia and Asia (MADRAS) during the period 2007-2012: Instrumentation, elucidation of climatology, and comparisons with OMI satellite observations and global model simulations. Atmos. Chem. Phys., 14, 7909–7927, https://doi.org/10.5194/acp-14-7909-2014. Kaufman, Y. J., D. Tanré, L. A. Remer, E. F. Vermote, A. Chu, and B. N. Holben, 1997: Operational remote sensing of tropospheric aerosol over land from EOS moderate resolution imaging spectroradiometer. J. Geophys. Res., 102, 17 051– 17 067, https://doi.org/10.1029/96JD03988. Kim, J., J. Lee, H. C. Lee, A. Higurashi, T. Takemura, and C. H. Song, 2007: Consistency of the aerosol type classification from satellite remote sensing during the Atmospheric Brown Cloud–East Asia Regional Experiment campaign. J. Geophys. Res., 112, D22S33, https://doi.org/10.1029/2006JD008201. —, J.-M. Yoon, M. H. Ahn, B. J. Sohn, and H. S. Lim, 2008: Retrieving aerosol optical depth using visible and mid-IR channels from geostationary satellite, MTSAT-1R. Int. J. Remote Sens., 29, 6181–6192, https://doi.org /10.1080/01431160802175553. —, M. Kim, and M. Choi, 2017: Monitoring aerosol properties in East Asia from geostationary orbit: GOCI, MI and GEMS. Air Pollution in Eastern Asia: An Integrated Perspective, I. Bouarar, X. Wang, and G. Brasseur, Eds., Springer, 323–333, https://doi.org/10.1007/978-3-319-59489-7. Kim, M., and Coauthors, 2016: Aerosol optical properties derived from the DRAGON-NE Asia campaign, and implications for a single-channel algorithm to retrieve aerosol optical depth in spring from Meteorological Imager (MI)",
+          "page": 19,
+          "region": {
+            "x1": 36.0,
+            "y1": 30.36425018310547,
+            "x2": 294.33447265625,
+            "y2": 748.375
+          }
+        },
+        {
+          "text": "on-board the Communication, Ocean, and Meteorological Satellite (COMS). Atmos. Chem. Phys., 16, 1789–1808, https://doi.org/10.5194/acp-16-1789 -2016. —, and Coauthors, 2018: Optimal estimation-based algorithm to retrieve aerosol optical properties for GEMS measurements over Asia. Remote Sens., 10, 162, https://doi.org/10.3390/RS10020162. Kleipool, Q. L., M. R. Dobber, J. F. de Haan, and P. F. Levelt, 2008: Earth surface reflectance climatology from 3 years of OMI data. J. Geophys. Res. Atmos., 113, D18308, https://doi.org/10.1029/2008JD010290. Kurokawa, J., and Coauthors, 2013: Emissions of air pollutants and greenhouse gases over Asian regions during 2000-2008: Regional Emission inventory in Asia (REAS) version 2. Atmos. Chem. Phys., 13, 11 019–11 058, https://doi.org /10.5194/acp-13-11019-2013. Kwon, H. A., R. J. Park, J. I. Jeong, S. Lee, G. González Abad, T. P. Kurosu, P. I. Palmer, and K. Chance, 2017: Sensitivity of formaldehyde (HCHO) column measurements from a geostationary satellite to temporal variation of the air mass factor in East Asia. Atmos. Chem. Phys., 17, 4673–4686, https://doi.org/10.5194 /acp-17-4673-2017. —, and Coauthors, 2019: Description of a formaldehyde retrieval algorithm for the Geostationary Environment Monitoring Spectrometer (GEMS), Atmos. Meas. Tech., 12, 3551–3571, https://doi.org/10.5194/amt-12-3551-2019. Lee, D.-G., and Coauthors, 2011: Korean National Emissions Inventory System and 2007 air pollutant emissions. Asian J. Atmos. Environ., 5, 278–291, https://doi .org/10.5572/AJAE.2011.5.4.278. Lee, E., M. Županski, D. Županski, and S. K. Park, 2017: Impact of the OMI aerosol optical depth on analysis increments through coupled meteorology–aerosol data assimilation for an Asian dust storm. Remote Sens. Environ., 193, 38–53, https://doi.org/10.1016/j.rse.2017.02.013. Lee, J., J. Kim, and Y. G. Lee, 2014: Simultaneous retrieval of aerosol properties and clear-sky direct radiative effect over the global ocean from MODIS. Atmos. Environ., 92, 309–317, https://doi.org/10.1016/j.atmosenv.2014.04.021. Lee, K., 2018: Applications of data assimilation techniques to air quality studies. Ph.D. thesis, Gwangju Institute of Science and Technology, 114 pp. —, and J.-M. Yoo, 2018: Determination of directional surface reflectance from geostationary satellite observations. Asia-Pacific Remote Sensing, Honolulu, Hawaii, SPIE, 10777-52. Lee, S., and Coauthors, 2016: GIST-PM-Asia v1: Development of a numerical system to improve particulate matter forecasts in South Korea using geostationary satellite-retrieved aerosol optical data over northeast Asia. Geosci. Model Dev., 9, 17–39, https://doi.org/10.5194/gmd-9-17-2016. —, and Coauthors, 2019: Analysis of long-range transboundary transport (LRTT) effect on Korean aerosol pollution during the KORUS-AQ campaign. Atmos. Environ., 204, 53–67, https://doi.org/10.1016/j.atmosenv.2019.02.020. Lennartson, E. M., and Coauthors, 2018: Diurnal variation of aerosol optical depth and PM2.5 in South Korea: A synthesis from AERONET, satellite (GOCI), KORUS-AQ observation, and the WRF-Chem Model. Atmos. Chem. Phys., 18, 15 125–15 144, https://doi.org/10.5194/acp-18-15125-2018. Levelt, P. F., and Coauthors, 2018: The Ozone Monitoring Instrument: Overview of 14 years in space. Atmos. Chem. Phys., 18, 5699–5745, https://doi.org /10.5194/acp-18-5699-2018. Levy, R. C., S. Mattoo, L. A. Munchak, L. A. Remer, A. M. Sayer, F. Patadia, and N. C. Hsu, 2013: The Collection 6 MODIS aerosol products over land and ocean. Atmos. Meas. Tech., 6, 2989–3034, https://doi.org/10.5194/amt-6-2989-2013. Li, C., J. Joiner, N. A. Krotkov, and P. K. Bhartia, 2013: A fast and sensitive new satellite SO2 retrieval algorithm based on principal component analysis: Application to the ozone monitoring instrument. Geophys. Res. Lett., 40, 6314–6318, https://doi.org/10.1002/2013GL058134. Li, M., and Coauthors, 2017: MIX: A mosaic Asian anthropogenic emission inventory under the international collaboration framework of the MICS-Asia and HTAP. Atmos. Chem. Phys., 17, 935–963, https://doi.org/10.5194/acp-17-935-2017. Li, Z. Q., and Coauthors, 2018: Comprehensive study of optical, physical, chemical, and radiative properties of total columnar atmospheric aerosols over China: An overview of Sun–Sky Radiometer Observation Network (SONET) measurements.",
+          "page": 19,
+          "region": {
+            "x1": 317.9996032714844,
+            "y1": 30.36425018310547,
+            "x2": 576.3284301757812,
+            "y2": 748.375
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 19,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E21",
+          "page": 20,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.92431640625,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "Bull. Amer. Meteor. Soc., 99, 739–755, https://doi.org/10.1175/BAMS -D-17-0133.1. Lim, H., M. Choi, J. Kim, Y. Kasai, and P. W. Chan, 2018: AHI/Himawari-8 Yonsei aerosol retrieval (YAER): Algorithm, validation and merged products. Remote Sens., 10, 699, https://doi.org/10.3390/RS10050699. Lim, S., S. K. Park, and M. Županski, 2015: Ensemble data assimilation of total column ozone using a coupled meteorology-chemistry model and its impact on the structure of Typhoon Nabi (2005). Atmos. Chem. Phys., 15, 10 019– 10 031, https://doi.org/10.5194/acp-15-10019-2015. Lin, J.-T., and Coauthors, 2014: Retrieving tropospheric nitrogen dioxide from the Ozone Monitoring Instrument: Effects of aerosols, surface reflectance anisotropy, and vertical profile of nitrogen dioxide. Atmos. Chem. Phys., 14, 1441–1461, https://doi.org/10.5194/acp-14-1441-2014. —, and Coauthors, 2015: Influence of aerosols and surface reflectance on satellite NO2 retrieval: Seasonal and spatial characteristics and implications for NOx emission constraints. Atmos. Chem. Phys., 15, 11 217–11 241, https://doi .org/10.5194/acp-15-11217-2015. Lindfors, A. V., and Coauthors, 2018: The TROPOMI surface UV algorithm. Atmos. Meas. Tech., 11, 997–1008, https://doi.org/10.5194/amt-11-997-2018. Liu, M.-Y., and Coauthors, 2019: Improved aerosol correction for OMI tropospheric NO2 retrieval over East Asia: Constraint from CALIOP aerosol vertical profile. Atmos. Meas. Tech., 12, 1–21, https://doi.org/10.5194/amt-12-1-2019. Liu, X., P. K. Bhartia, K. Chance, R. J. D. Spurr, and T. P. Kurosu, 2010: Ozone profile retrievals from the Ozone Monitoring Instrument. Atmos. Chem. Phys., 10, 2521–2537, https://doi.org/10.5194/acp-10-2521-2010. —, A. P. Mizzi, J. L. Anderson, I. Y. Fung, and R. C. Cohen, 2017: Assimilation of satellite NO2 observations at high spatial resolution using OSSEs. Atmos. Chem. Phys., 17, 7067–7081, https://doi.org/10.5194/acp-17-7067-2017. Lucht, W., C. B. Schaaf, and A. H. Strahler, 2000: Assimilation of satellite NO2 observations at high spatial resolution using OSSEs. IEEE Trans. Geosci. Remote Sens., 17, 7067–7081, https://doi.org/10.5194/ACP-17-7067-2017. Malicet, J., D. Daumont, J. Charbonnier, C. Parisse, A. Chakir, and J. Brion, 1995: Ozone UV spectroscopy. 2. Absorption cross-sections and temperature dependence. J. Atmos. Chem., 21, 263–273, https://doi.org/10.1007/BF00696758. Marais, E. A., and Coauthors, 2012: Isoprene emissions in Africa inferred from OMI observations of formaldehyde columns. Atmos. Chem. Phys., 12, 6219– 6235, https://doi.org/10.5194/acp-12-6219-2012. Marécal, V., and Coauthors, 2015: A regional air quality forecasting system over Europe: The MACC-II daily ensemble production. Geosci. Model Dev., 8, 2777–2813, https://doi.org/10.5194/gmd-8-2777-2015. McKinlay, A. F., and B. L. Diffey, 1987: A reference action spectrum for ultra-violet induced erythema in human skin. Human Exposure to Ultraviolet Radiation: Risks and Regulations, W. F. Passchier and B. F. M. Bosnjakovich, Eds., Excerpta Medica, 83–87. McLinden, C. A., V. Fioletov, M. W. Shephard, N. Krotkov, C. Li, R. V. Martin, M. D. Moran, and J. Joiner, 2016: Space-based detection of missing sulfur dioxide sources of global air pollution. Nat. Geosci., 9, 496–500, https://doi .org/10.1038/ngeo2724. McPeters, R. D., S. Frith, and G. J. Labow, 2015: OMI total column ozone: Extending the long-term data record. Atmos. Meas. Tech., 8, 4845–4850, https://doi .org/10.5194/amt-8-4845-2015. Mijling, B., R. J. Van Der A, and Q. Zhang, 2013: Regional nitrogen oxides emission trends in East Asia observed from space. Atmos. Chem. Phys., 13, 12 003– 12 012, https://doi.org/10.5194/acp-13-12003-2013. Miyazaki, K., and Coauthors, 2019: Balance of emission and dynamical controls on ozone during the Korea-United States air quality campaign from multiconstituent satellite data assimilation. J. Geophys. Res. Atmos., 124, 387–413, https://doi.org/10.1029/2018JD028912. Munro, R., and Coauthors, 2016: The GOME-2 instrument on the MetOp series of satellites: Instrument design, calibration, and level 1 data processing—An overview. Atmos. Meas. Tech., 9, 1279–1301, https://doi.org/10.5194/amt-9-1279-2016. NIER and NASA, 2017: Introduction to the KORUS-AQ Rapid Science Synthesis Report. NIER and NASA Rep., 24 pp.",
+          "page": 20,
+          "region": {
+            "x1": 35.999900817871094,
+            "y1": 30.3174991607666,
+            "x2": 294.330078125,
+            "y2": 748.375
+          }
+        },
+        {
+          "text": "Ohara, T., H. Akimoto, J. Kurokawa, N. Horii, K. Yamaji, X. Yan, and T. Hayasaka, 2007: An Asian emission inventory of anthropogenic emission sources for the period 1980-2020. Atmos. Chem. Phys., 7, 4419–4444, https://doi .org/10.5194/acp-7-4419-2007. Palmer, P. I., and Coauthors, 2001: Air mass factor formulation for spectroscopic measurements from satellites: Application to formaldehyde retrievals from the Global Ozone Monitoring Experiment. J. Geophys. Res., 106, 14 539– 14 550, https://doi.org/10.1029/2000JD900772. Park, M. E., and Coauthors, 2014: New approach to monitor transboundary particulate pollution over northeast Asia. Atmos. Chem. Phys., 14, 659–674, https://doi.org/10.5194/acp-14-659-2014. Park, S., and Coauthors, 2017: Comparison of extended medium-range forecast skill between KMA ensemble, ocean coupled ensemble, and GloSea5. AsiaPac. J. Atmos. Sci., 53, 393–401, https://doi.org/10.1007/s13143-017-0035-2. Park, S., and Coauthors, 2019: Estimation of ground-level particulate matter concentrations through the synergistic use of satellite observations and processbased models over South Korea. Atmos. Chem. Phys., 19, 1097–1113, https:// doi.org/10.5194/acp-19-1097-2019. Park, S. K., S. Lim, and M. Županski, 2015: Structure of forecast error covariance in coupled atmosphere-chemistry data assimilation. Geosci. Model Dev., 8, 1315–1320, https://doi.org/10.5194/gmd-8-1315-2015. Park, S. S., J. Kim, H. Lee, O. Torres, K. M. Lee, and S. Deok Lee, 2016: Utilization of O4 slant column density to derive aerosol layer height from a space-borne UV–visible hyperspectral sensor: Sensitivity and case study. Atmos. Chem. Phys., 16, 1987–2006, https://doi.org/10.5194/acp-16-1987-2016. Platt, U., 1994: Differential optical absorption spectroscopy. Chem. Anal. Ser., 127, 27–83. Rienecker, M. M., and Coauthors, 2011: MERRA: NASA’s Modern-Era Retrospective Analysis for Research and Applications. J. Climate, 24, 3624–3648, https://doi.org/10.1175/JCLI-D-11-00015.1. Rodgers, C. D., 2000: Inverse Methods for Atmospheric Sounding: Theory and Practice. World Scientific, 256 pp. Roujean, J.-L., M. Leroy, and P.-Y. Deschamps, 1992: A bidirectional reflectance model of the Earth’s surface for the correction of remote sensing data. J. Geophys. Res., 97, 20 455–20 468, https://doi.org/10.1029/92JD01411. Saide, P. E., J. Kim, C. H. Song, M. Choi, Y. Cheng, and G. R. Carmichael, 2014: Assimilation of next generation geostationary aerosol optical depth retrievals to improve air quality simulations. Geophys. Res. Lett., 41, 9188–9196, https:// doi.org/10.1002/2014GL062089. Seo, S., and Coauthors, 2015: Estimation of PM10 concentrations over Seoul using multiple empirical models with AERONET and MODIS data collected during the DRAGON-Asia campaign. Atmos. Chem. Phys., 15, 319–334, https://doi .org/10.5194/acp-15-319-2015. Setlow, R. B., 1974: The wavelengths in sunlight effective in producing skin cancer: A theoretical analysis. Proc. Natl. Acad. Sci. USA, 71, 3363–3366, https:// doi.org/10.1073/pnas.71.9.3363. Shimizu, A., T. Nishizawa, Y. Jin, S.-W. Kim, Z. Wang, D. Batdorj, and N. Sugimoto, 2016: Evolution of a lidar network for tropospheric aerosol detection in East Asia. Opt. Eng., 56, https://doi.org/10.1117/1.OE.56.3.031219. Souri, A. H., Y. Choi, W. Jeon, J. H. Woo, Q. Zhang, and J. I. Kurokawa, 2017: Remote sensing evidence of decadal changes in major tropospheric ozone precursors over East Asia. J. Geophys. Res. Atmos., 122, 2474–2492, https://doi .org/10.1002/2016JD025663. Spurr, R. J. D., 2006: VLIDORT: A linearized pseudo-spherical vector discrete ordinate radiative transfer code for forward model and retrieval studies in multilayer multiple scattering media. J. Quant. Spectrosc. Radiat. Transfer, 102, 316–342, https://doi.org/10.1016/j.jqsrt.2006.05.005. Stammes, P., M. Sneep, J. F. de Haan, J. P. Veefkind, P. Wang, and P. F. Levelt, 2008: Effective cloud fractions from the Ozone Monitoring Instrument: Theoretical framework and validation. J. Geophys. Res., 113, D16S38, https://doi .org/10.1029/2007JD008820. Sugimoto, N., and I. Uno, 2009: Observation of Asian dust and air-pollution aerosols using a network of ground-based lidars (ADNet): Real time data processing for",
+          "page": 20,
+          "region": {
+            "x1": 317.9997863769531,
+            "y1": 30.36425018310547,
+            "x2": 576.314453125,
+            "y2": 748.375
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 20,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        },
+        {
+          "text": "A M E R I C A N M E T E O R O L O G I C A L S O C I E T Y J A N UA RY 2 0 2 0 E22",
+          "page": 21,
+          "region": {
+            "x1": 84.0,
+            "y1": 768.083984375,
+            "x2": 525.986328125,
+            "y2": 774.25
+          }
+        },
+        {
+          "text": "validation/assimilation of chemical transport models. IOP Conf. Ser. Earth Environ. Sci., 7, 012003, https://doi.org/10.1088/1755-1307/7/1/012003. Torres, O., C. Ahn, and Z. Chen, 2013: Improvements to the OMI near-UV aerosol algorithm using A-train CALIOP and AIRS observations. Atmos. Meas. Tech., 6, 3257–3270, https://doi.org/10.5194/amt-6-3257-2013. van Diedenhoven, B., O. P. Hasekamp, and J. Landgraf, 2008: Effects of clouds on ozone profile retrievals from satellite measurements in the ultraviolet. J. Geophys. Res., 113, D15311, https://doi.org/10.1029/2008JD009850. Vasilkov, A., and Coauthors, 2017: Accounting for the effects of surface BRDF on satellite cloud and trace-gas retrievals: A new approach based on geometrydependent Lambertian equivalent reflectivity applied to OMI algorithms. Atmos. Meas. Tech., 10, 333–349, https://doi.org/10.5194/amt-10-333-2017. Veefkind, J. P., and Coauthors, 2012: TROPOMI on the ESA Sentinel-5 Precursor: A GMES mission for global observations of the atmospheric composition for climate, air quality and ozone layer applications. Remote Sens. Environ., 120, 70–83, https://doi.org/10.1016/j.rse.2011.09.027. —, J. F. De Haan, M. Sneep, and P. F. Levelt, 2016: Improvements to the OMI O2–O2 operational cloud algorithm and comparisons with ground-based radar–lidar observations. Atmos. Meas. Tech., 9, 6035–6049, https://doi.org/10 .5194/amt-9-6035-2016. Vrekoussis, M., F. Wittrock, A. Richter, and J. P. Burrows, 2010: GOME-2 observations of oxygenated VOCs: What can we learn from the ratio glyoxal to formaldehyde on a global scale? Atmos. Chem. Phys., 10, 10 145–10 160, https:// doi.org/10.5194/acp-10-10145-2010. Woo, J.-H., S.-M. An, D.-Y. Kim, H.-K. Kim, K.-C. Choi, and Y.-H. Kim, 2013: Development of the Asia Emission Inventory in support of integrated modeling of climate and air quality (III). National Institute of Environmental Research Rep. NIER-SP2013-1, 456 pp.",
+          "page": 21,
+          "region": {
+            "x1": 35.999900817871094,
+            "y1": 30.36425018310547,
+            "x2": 294.3383483886719,
+            "y2": 345.875
+          }
+        },
+        {
+          "text": "Xu, J. W., and Coauthors, 2015: Estimating ground-level PM2.5 in eastern China using aerosol optical depth determined from the GOCI satellite instrument. Atmos. Chem. Phys., 15, 13 133–13 144, https://doi.org/10.5194/acp-15-13133-2015. Yang, J., 2019: Development of hybrid algorithm based on DOAS and PCA algorithm for SO2 column retrieval from UV hyperspectral satellite sensor. M.S. thesis, Dept. of Spatial Information Engineering, Pukyong National University, 120 pp. —, H. Lee, H. Hong, U. Jeong, J. Kim, C. Li, and N. A. Krotkov, 2018: A new DOASPCA hybrid algorithm for PBL SO2 retrieval from space-borne UV hyperspectral sensors: Development and applications to OMI and future GEMS sensor. 2018 AGU Fall Meeting, Washington, DC, Amer. Geophys. Union, Abstract A53G2556. Yeo, H., and Coauthors, 2016: The KALION automated aerosol type classification and mass concentration calculation algorithm. Korean J. Remote. Sens., 32, 119–131, https://doi.org/10.7780/kjrs.2016.32.2.5. Zhu, L., and Coauthors, 2014: Anthropogenic emissions of highly reactive volatile organic compounds in eastern Texas inferred from oversampling of satellite (OMI) measurements of HCHO columns. Environ. Res. Lett., 9, 114004, https://doi.org/10.1088/1748-9326/9/11/114004. Zoogman, P., and Coauthors, 2011: Ozone air quality measurement requirements for a geostationary satellite mission. Atmos. Environ., 45, 7143–7150, https:// doi.org/10.1016/j.atmosenv.2011.05.058. —, and Coauthors, 2017: Tropospheric Emissions: Monitoring of Pollution (TEMPO). J. Quant. Spectrosc. Radiat. Transfer, 186, 17–39, https://doi .org/10.1016/j.jqsrt.2016.05.008. Županski, M., 2005: Maximum likelihood ensemble filter: Theoretical aspects. Mon. Wea. Rev., 133, 1710–1726, https://doi.org/10.1175/MWR2946.1.",
+          "page": 21,
+          "region": {
+            "x1": 318.0,
+            "y1": 30.36425018310547,
+            "x2": 576.3248291015625,
+            "y2": 334.375
+          }
+        },
+        {
+          "text": "Unauthenticated | Downloaded 03/18/23 08:15 AM UTC",
+          "page": 21,
+          "region": {
+            "x1": 377.0,
+            "y1": 772.515625,
+            "x2": 587.0006103515625,
+            "y2": 777.0
+          }
+        }
+      ]
+    }
+  ]
+}
