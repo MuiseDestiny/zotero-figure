@@ -26,9 +26,9 @@
     mod
   ));
 
-  // node_modules/zotero-plugin-toolkit/dist/utils/debugBridge.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/debugBridge.js
   var require_debugBridge = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/utils/debugBridge.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/debugBridge.js"(exports) {
       "use strict";
       var __importDefault = exports && exports.__importDefault || function(mod) {
         return mod && mod.__esModule ? mod : { "default": mod };
@@ -130,9 +130,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/utils/pluginBridge.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/pluginBridge.js
   var require_pluginBridge = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/utils/pluginBridge.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/pluginBridge.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.PluginBridge = void 0;
@@ -203,9 +203,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/managers/toolkitGlobal.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/toolkitGlobal.js
   var require_toolkitGlobal = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/managers/toolkitGlobal.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/toolkitGlobal.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ToolkitGlobal = void 0;
@@ -269,9 +269,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/basic.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/basic.js
   var require_basic = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/basic.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/basic.js"(exports) {
       "use strict";
       var __importDefault = exports && exports.__importDefault || function(mod) {
         return mod && mod.__esModule ? mod : { "default": mod };
@@ -586,9 +586,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/tools/ui.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/ui.js
   var require_ui = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/tools/ui.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/ui.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.UITool = void 0;
@@ -1097,9 +1097,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/utils/wait.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/wait.js
   var require_wait = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/utils/wait.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/utils/wait.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.waitUntil = waitUntil;
@@ -1141,9 +1141,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/tools/reader.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/reader.js
   var require_reader = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/tools/reader.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/reader.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ReaderTool = void 0;
@@ -1252,9 +1252,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/tools/extraField.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/extraField.js
   var require_extraField = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/tools/extraField.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/tools/extraField.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ExtraFieldTool = void 0;
@@ -1329,9 +1329,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/managers/prompt.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/prompt.js
   var require_prompt = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/managers/prompt.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/prompt.js"(exports) {
       "use strict";
       var __importDefault = exports && exports.__importDefault || function(mod) {
         return mod && mod.__esModule ? mod : { "default": mod };
@@ -2055,9 +2055,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/managers/menu.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/menu.js
   var require_menu = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/managers/menu.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/menu.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.MenuManager = void 0;
@@ -2228,9 +2228,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/clipboard.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/clipboard.js
   var require_clipboard = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/clipboard.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/clipboard.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ClipboardHelper = void 0;
@@ -2307,9 +2307,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/filePicker.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/filePicker.js
   var require_filePicker = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/filePicker.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/filePicker.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.FilePickerHelper = void 0;
@@ -2390,9 +2390,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/progressWindow.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/progressWindow.js
   var require_progressWindow = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/progressWindow.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/progressWindow.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ProgressWindowHelper = void 0;
@@ -2491,9 +2491,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/virtualizedTable.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/virtualizedTable.js
   var require_virtualizedTable = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/virtualizedTable.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/virtualizedTable.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.VirtualizedTableHelper = void 0;
@@ -2579,9 +2579,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/dialog.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/dialog.js
   var require_dialog = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/dialog.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/dialog.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.DialogHelper = void 0;
@@ -3001,9 +3001,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/patch.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/patch.js
   var require_patch = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/patch.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/patch.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.PatchHelper = void 0;
@@ -3047,9 +3047,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/managers/fieldHook.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/fieldHook.js
   var require_fieldHook = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/managers/fieldHook.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/fieldHook.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.FieldHookManager = void 0;
@@ -3109,9 +3109,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/largePref.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/largePref.js
   var require_largePref = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/largePref.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/largePref.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.LargePrefHelper = void 0;
@@ -3340,9 +3340,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/managers/keyboard.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/keyboard.js
   var require_keyboard = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/managers/keyboard.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/managers/keyboard.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.KeyModifier = exports.KeyboardManager = void 0;
@@ -3581,9 +3581,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/helpers/guide.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/guide.js
   var require_guide = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/helpers/guide.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/helpers/guide.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.GuideHelper = void 0;
@@ -3975,9 +3975,9 @@ If you do not know what it is, please click Cancel to deny.`);
     }
   });
 
-  // node_modules/zotero-plugin-toolkit/dist/index.js
+  // node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/index.js
   var require_dist = __commonJS({
-    "node_modules/zotero-plugin-toolkit/dist/index.js"(exports) {
+    "node_modules/.pnpm/zotero-plugin-toolkit@3.0.4/node_modules/zotero-plugin-toolkit/dist/index.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.ZoteroToolkit = void 0;
@@ -4043,6 +4043,7 @@ If you do not know what it is, please click Cancel to deny.`);
   };
 
   // src/modules/views.ts
+  var SVGIcon = `<svg t="1748587495754" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1471" width="16" height="16"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3-7.7 16.2-7.7 35.2 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766z" p-id="1472"></path><path d="M508 336c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176z m0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z" p-id="1473"></path></svg>`;
   var Views = class {
     constructor() {
       this.view = "Annotation";
@@ -4057,25 +4058,54 @@ If you do not know what it is, please click Cancel to deny.`);
           backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`
         }
       }, document.lastChild);
-      window.addEventListener("click", (event) => {
-        if (!(event.target && event.target.baseURI == "resource://zotero/reader/reader.html" && event.target.tagName == "BUTTON" && event.target.classList.contains("tag") && event.target.innerText.match(/(Figure|Table)/))) {
-          return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        const reader = Zotero.Reader.getByTabID(Zotero_Tabs.selectedID);
-        const am = reader._internalReader._annotationManager;
-        this.clearFilter(reader);
-        if (Zotero.BetterNotes?.hooks?.onShowImageViewer) {
-          const annos = am._annotations.filter((a) => a.type == "image" && a.tags.find((t) => t.name.match(/^(Figure|Table)/)));
-          const srcs = annos.map((a) => a.image);
-          Zotero.BetterNotes?.hooks?.onShowImageViewer(
-            srcs,
-            annos.map((a) => a.tags[0].name).indexOf(event.target.innerText),
-            "Figure"
-          );
-        }
-      });
+      Zotero.Reader.registerEventListener(
+        "renderSidebarAnnotationHeader",
+        (event) => {
+          const { reader, doc, params, append } = event;
+          const annotationData = params.annotation;
+          if (annotationData.type === "image" && annotationData.comment?.startsWith("[zoterofigure]")) {
+            append(
+              ztoolkit.UI.createElement(doc, "div", {
+                classList: ["icon"],
+                properties: {
+                  innerHTML: SVGIcon,
+                  title: "\u67E5\u770B\u56FE\u8868"
+                },
+                listeners: [
+                  {
+                    type: "click",
+                    listener: (e) => {
+                      const am = reader._internalReader._annotationManager;
+                      const annos = am._annotations.filter(
+                        (a) => a.type === "image" && a.comment?.startsWith("[zoterofigure]")
+                      );
+                      const srcs = annos.map((a) => a.image);
+                      const index = annos.findIndex((a) => a.id === annotationData.id);
+                      Zotero.BetterNotes?.hooks?.onShowImageViewer(srcs, index, "Figure");
+                      e.preventDefault();
+                    }
+                  },
+                  {
+                    type: "mouseover",
+                    listener: (e) => {
+                      e.target.style.backgroundColor = "var(--color-sidepane)";
+                    }
+                  },
+                  {
+                    type: "mouseout",
+                    listener: (e) => {
+                      e.target.style.removeProperty("background-color");
+                    }
+                  }
+                ],
+                enableElementRecord: false,
+                ignoreIfExists: true
+              })
+            );
+          }
+        },
+        config.addonID
+      );
       addon.api.views = this;
       Zotero.Reader.registerEventListener("renderTextSelectionPopup", (event) => {
         const { reader } = event;
@@ -4087,7 +4117,11 @@ If you do not know what it is, please click Cancel to deny.`);
     async addToNote(item) {
       const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Add To Note", type: "default" }).show();
       let annos = item.getAnnotations();
-      annos = annos.filter((a) => a.annotationType == "image" && a.getTags()?.[0]?.tag?.match(/^(Figure|Table)/));
+      annos = annos.filter((a) => a.annotationType == "image" && a.annotationComment?.startsWith("[zoterofigure]"));
+      annos = annos.map((a) => {
+        a.annotationComment = a.annotationComment.replace("[zoterofigure]", "");
+        return a;
+      });
       await Zotero.EditorInstance.createNoteFromAnnotations(
         annos,
         // @ts-ignore
@@ -4257,7 +4291,7 @@ If you do not know what it is, please click Cancel to deny.`);
                           const popupWin = new ztoolkit.ProgressWindow("Figure", { closeTime: -1 }).createLine({ text: "Remove All Figures", type: "default" }).show();
                           this.switchToView(reader, "Figure", false);
                           let annos = reader._item.getAnnotations();
-                          annos = annos.filter((a) => a.annotationType == "image" && a.getTags()?.[0]?.tag?.match(/^(Figure|Table)/));
+                          annos = annos.filter((a) => a.annotationType == "image" && a.annotationComment?.startsWith("[zoterofigure]"));
                           await Promise.all(annos.map(async (anno) => await anno.eraseTx()));
                           popupWin.changeLine({ type: "success" });
                           popupWin.startCloseTimer(1e3);
@@ -4279,7 +4313,7 @@ If you do not know what it is, please click Cancel to deny.`);
         <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="none"><path fill="currentColor" d="m0 2.707 4 4 4-4L7.293 2 4 5.293.707 2z"></path></svg>`
         }
       }, ref);
-      if (reader._item.getAnnotations().find((i) => i.getTags().find((t) => t.tag.match(/^(Figure|Table)/)))) {
+      if (reader._item.getAnnotations().find((i) => i.annotationComment?.startsWith("[zoterofigure]"))) {
         this.button.style.filter = "none";
       }
       this.switchToView(reader, Zotero.Prefs.get(`${config.addonRef}.view`), false);
@@ -4308,7 +4342,7 @@ If you do not know what it is, please click Cancel to deny.`);
       am.render = () => {
         const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0);
         am._annotations.forEach((anno) => {
-          if (anno.tags.find((tag) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
+          if (anno.comment?.startsWith("[zoterofigure]")) {
             if (view == "Annotation") {
               anno._hidden = true;
             } else {
@@ -4469,7 +4503,8 @@ If you do not know what it is, please click Cancel to deny.`);
             figure.page,
             Object.values(figure.regionBoundary),
             figure.caption,
-            figure.figType + " " + figure.name
+            ""
+            // Empty tag since we're not using tags anymore
           );
           const i = figures.indexOf(figure) + 1;
           popupWin.changeLine({
@@ -4666,8 +4701,8 @@ If you do not know what it is, please click Cancel to deny.`);
     annotation.sortIndex = getSortIndex(pdfPages, annotation.position);
     annotation.pageLabel = annotation.pageLabel || "";
     annotation.text = annotation.text || "";
-    annotation.comment = comment;
-    annotation.tags = annotation.tags || [];
+    annotation.comment = "[zoterofigure]" + (comment || "");
+    annotation.tags = [];
     annotation.key = annotation.id = _generateObjectKey();
     annotation.dateCreated = (/* @__PURE__ */ new Date()).toISOString();
     annotation.dateModified = annotation.dateCreated;
@@ -4678,7 +4713,6 @@ If you do not know what it is, please click Cancel to deny.`);
       );
     }
     const savedAnnotation = await Zotero2.Annotations.saveFromJSON(attachment, annotation);
-    savedAnnotation.addTag(tag);
     await savedAnnotation.saveTx();
   }
 

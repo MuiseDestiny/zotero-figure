@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-this-alias */
 /* eslint-disable @typescript-eslint/no-non-null-withed-optional-chain */
 import { config } from "../../package.json";
+const SVGIcon = `<svg t="1748587495754" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="1471" width="16" height="16"><path d="M942.2 486.2C847.4 286.5 704.1 186 512 186c-192.2 0-335.4 100.5-430.2 300.3-7.7 16.2-7.7 35.2 0 51.5C176.6 737.5 319.9 838 512 838c192.2 0 335.4-100.5 430.2-300.3 7.7-16.2 7.7-35 0-51.5zM512 766c-161.3 0-279.4-81.8-362.7-254C232.6 339.8 350.7 258 512 258c161.3 0 279.4 81.8 362.7 254C791.5 684.2 673.4 766 512 766z" p-id="1472"></path><path d="M508 336c-97.2 0-176 78.8-176 176s78.8 176 176 176 176-78.8 176-176-78.8-176-176-176z m0 288c-61.9 0-112-50.1-112-112s50.1-112 112-112 112 50.1 112 112-50.1 112-112 112z" p-id="1473"></path></svg>`;
   
 export default class Views {
   private dataDir: string;
@@ -23,33 +24,56 @@ export default class Views {
       },
     }, document.lastChild as HTMLElement);
 
-    // 点击图标展开更多
-    window.addEventListener("click", (event: MouseEvent | any) => {
-      if (!(
-        event.target &&
-        event.target.baseURI == "resource://zotero/reader/reader.html" &&
-        event.target.tagName == "BUTTON" &&
-        event.target.classList.contains("tag") &&
-        event.target.innerText.match(/(Figure|Table)/)
-      )) { return }
-      event.preventDefault();
-      event.stopPropagation();
-      // 当点击未被激活的图表标注的标签时候
-      const reader = Zotero.Reader.getByTabID(Zotero_Tabs.selectedID)
-      const am = reader._internalReader._annotationManager
-      this.clearFilter(reader)
-      if (Zotero.BetterNotes?.hooks?.onShowImageViewer) {
-        // @ts-ignore
-        const annos = am._annotations
-          .filter((a: any) => a.type == "image" && a.tags.find((t:any) => t.name.match(/^(Figure|Table)/)))
-        const srcs = annos.map((a: any)=>a.image)
-        Zotero.BetterNotes?.hooks?.onShowImageViewer(
-          srcs,
-          annos.map((a: any) => a.tags[0].name).indexOf(event.target.innerText),
-          "Figure"
-        )
-      }
-    })
+    // 新增：为图表注释添加"查看图表"按钮
+    Zotero.Reader.registerEventListener(
+      "renderSidebarAnnotationHeader",
+      (event) => {
+        const { reader, doc, params, append } = event;
+        const annotationData = params.annotation;
+        // 只为图表注释添加按钮
+        if (annotationData.type === "image" && annotationData.comment?.startsWith("[zoterofigure]")) {
+          append(
+            ztoolkit.UI.createElement(doc, "div", {
+              classList: ["icon"],
+              properties: {
+                innerHTML: SVGIcon,
+                title: "查看图表",
+              },
+              listeners: [
+                {
+                  type: "click",
+                  listener: (e) => {
+                    const am = reader._internalReader._annotationManager;
+                    const annos = am._annotations.filter(
+                      (a) => a.type === "image" && a.comment?.startsWith("[zoterofigure]")
+                    );
+                    const srcs = annos.map((a) => a.image);
+                    const index = annos.findIndex((a) => a.id === annotationData.id);
+                    Zotero.BetterNotes?.hooks?.onShowImageViewer(srcs, index, "Figure");
+                    e.preventDefault();
+                  },
+                },
+                {
+                  type: "mouseover",
+                  listener: (e) => {
+                    (e.target as HTMLElement).style.backgroundColor = "var(--color-sidepane)";
+                  },
+                },
+                {
+                  type: "mouseout",
+                  listener: (e) => {
+                    (e.target as HTMLElement).style.removeProperty("background-color");
+                  },
+                },
+              ],
+              enableElementRecord: false,
+              ignoreIfExists: true,
+            })
+          );
+        }
+      },
+      config.addonID
+    );
 
     addon.api.views = this
 
@@ -67,7 +91,11 @@ export default class Views {
       .show()
     let annos = item.getAnnotations()
     annos = annos
-      .filter((a: any) => a.annotationType == "image" && a.getTags()?.[0]?.tag?.match(/^(Figure|Table)/))
+      .filter((a: any) => a.annotationType == "image" && a.annotationComment?.startsWith('[zoterofigure]'))
+    annos = annos.map((a: any) => {
+      a.annotationComment = a.annotationComment.replace('[zoterofigure]', '')
+      return a
+    })
     
     await Zotero.EditorInstance.createNoteFromAnnotations(annos,
       // @ts-ignore
@@ -248,7 +276,7 @@ export default class Views {
                         this.switchToView(reader, "Figure", false)
                         let annos = reader._item.getAnnotations()
                         annos = annos
-                          .filter((a: any) => a.annotationType == "image" && a.getTags()?.[0]?.tag?.match(/^(Figure|Table)/))
+                          .filter((a: any) => a.annotationType == "image" && a.annotationComment?.startsWith('[zoterofigure]'))
                         await Promise.all(annos.map(async (anno) => await anno.eraseTx()))
                         popupWin.changeLine({ type: "success" })
                         popupWin.startCloseTimer(1000)
@@ -272,7 +300,7 @@ export default class Views {
       }
     }, ref) as HTMLButtonElement
     // 判断是否已经导入
-    if (reader._item.getAnnotations().find(i => i.getTags().find(t => t.tag.match(/^(Figure|Table)/)))) {
+    if (reader._item.getAnnotations().find(i => i.annotationComment?.startsWith('[zoterofigure]'))) {
       this.button.style.filter = "none"
     }
     this.switchToView(reader, Zotero.Prefs.get(`${config.addonRef}.view`) as any, false)
@@ -307,8 +335,7 @@ export default class Views {
       const isFilter = !(am._filter.authors.length == 0 && am._filter.colors.length == 0 && am._filter.query == "" && am._filter.tags.length == 0)
       // const isFilter = false
       am._annotations.forEach((anno: any) => {
-        if (anno.tags.find((tag: any) => tag.name.startsWith("Figure") || tag.name.startsWith("Table"))) {
-          // 不显示图表，隐藏图表注释
+        if (anno.comment?.startsWith('[zoterofigure]')) {
           if (view == "Annotation") {
             anno._hidden = true
           } else {
@@ -497,7 +524,7 @@ export default class Views {
           figure.page,
           Object.values(figure.regionBoundary),
           figure.caption,
-          figure.figType + " " + figure.name
+          ""  // Empty tag since we're not using tags anymore
         )
         const i = figures.indexOf(figure) + 1
         
@@ -744,9 +771,8 @@ async function generateImageAnnotation(Zotero: any, reader: any, pageIndex: any,
 
   annotation.pageLabel = annotation.pageLabel || '';
   annotation.text = annotation.text || '';
-  annotation.comment = comment;
-  annotation.tags = annotation.tags || [];
-  // Automatically set properties
+  annotation.comment = '[zoterofigure]' + (comment || '');
+  annotation.tags = [];  // Initialize empty tags array
   annotation.key = annotation.id = _generateObjectKey();
   annotation.dateCreated = (new Date()).toISOString();
   annotation.dateModified = annotation.dateCreated;
@@ -759,7 +785,7 @@ async function generateImageAnnotation(Zotero: any, reader: any, pageIndex: any,
     );
   }
   const savedAnnotation = await Zotero.Annotations.saveFromJSON(attachment, annotation);
-  savedAnnotation.addTag(tag);
+  // savedAnnotation.addTag(tag);
   await savedAnnotation.saveTx();
 }
 
