@@ -16,12 +16,6 @@ export default class Views {
     this.addonDir = PathUtils.join(this.zoteroDir, config.addonRef)
     this.dataDir = PathUtils.join(this.addonDir, "data")
     this.figureDir = PathUtils.join(this.addonDir, "figure")
-    ztoolkit.UI.appendElement({
-      tag: 'div',
-      styles: {
-        backgroundImage: `url(chrome://${config.addonRef}/content/icons/favicon.png)`,
-      },
-    }, document.lastChild as HTMLElement);
 
     // 点击图标展开更多
     window.addEventListener("click", (event: MouseEvent | any) => {
@@ -126,7 +120,7 @@ export default class Views {
     while (!(_window = reader?._iframeWindow?.wrappedJSObject)) {
       await Zotero.Promise.delay(10)
     }
-    
+    const imgBase64String = `data:image/png;base64,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`
     const parent = _window.document.querySelector("#reader-ui .toolbar .start")!
     const ref = parent.querySelector("#pageNumber") as HTMLDivElement
     this.button = ztoolkit.UI.insertElementBefore({
@@ -267,7 +261,7 @@ export default class Views {
       ],
       properties: {
         innerHTML: `
-        <span style="background: url(chrome://${config.addonRef}/content/icons/favicon.png); background-size: 16px 16px; background-position: 35% center; background-repeat: no-repeat; display:block;width: 16px;height: 16px;margin-right: 5px;"></span>
+        <span style="background: url(${imgBase64String}); background-size: 16px 16px; background-position: 35% center; background-repeat: no-repeat; display:block;width: 16px;height: 16px;margin-right: 5px;"></span>
         <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" fill="none"><path fill="currentColor" d="m0 2.707 4 4 4-4L7.293 2 4 5.293.707 2z"></path></svg>`
       }
     }, ref) as HTMLButtonElement
@@ -395,16 +389,27 @@ export default class Views {
     // const cmdPath = Zotero.Prefs.get(`${config.addonRef}.path.cmd`) as string
     const javaPath = Zotero.Prefs.get(`${config.addonRef}.path.java`) as string
     const jarPath = PathUtils.join(this.zoteroDir, "pdffigures2.jar")
+
     if (!javaPath) {
       window.alert("Java路径尚未配置，请参考https://github.com/MuiseDestiny/zotero-figure配置")
       return []
     }
-    if (!(await IOUtils.exists(javaPath))) {
-      window.alert("Java不存在，请重新配置，请参考https://github.com/MuiseDestiny/zotero-figure配置")
+    try {
+      if (!(await IOUtils.exists(javaPath))) {
+        window.alert("Java不存在，请重新配置，请参考https://github.com/MuiseDestiny/zotero-figure配置")
+        return []
+      }
+    } catch (e) {
+      window.alert(`路径${javaPath}错误`)
       return []
     }
-    if (!(await IOUtils.exists(jarPath))) {
-      window.alert(`pdffigures2.jar不存在，请重新下载，并移动到 ${this.zoteroDir} 下，请参考https://github.com/MuiseDestiny/zotero-figure下载`)
+    try {      
+      if (!(await IOUtils.exists(jarPath))) {
+        window.alert(`pdffigures2.jar不存在，请重新下载，并移动到 ${this.zoteroDir} 下，请参考https://github.com/MuiseDestiny/zotero-figure下载`)
+        return []
+      }
+    } catch (e) {
+      window.alert(`路径${jarPath}错误`)
       return []
     }
 

@@ -8,7 +8,7 @@ async function onStartup() {
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-
+  
   await onMainWindowLoad(window)
 }
 
@@ -61,7 +61,7 @@ async function onNotify(
 async function onPrefsEvent(type: string, data: { [key: string]: any }) {
   switch (type) {
     case "load":
-      registerPrefsScripts(data.window);
+      // registerPrefsScripts(data.window);
       break;
     default:
       return;

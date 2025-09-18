@@ -1,6 +1,6 @@
 {
   "name": "zotero-figure",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "一个基于 PDFFigure2 的 PDF 图表解析插件",
   "config": {
     "addonName": "PDF Figure",
@@ -42,7 +42,7 @@
   "homepage": "https://github.com/MuiseDestiny/zotero-figure#readme",
   "dependencies": {
     "jschardet": "^3.0.0",
-    "zotero-plugin-toolkit": "^3.0.4"
+    "zotero-plugin-toolkit": "^5.1.0-beta.4"
   },
   "devDependencies": {
     "@types/node": "^20.1.1",
