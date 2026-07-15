@@ -18,7 +18,11 @@ const REBUILD_DEBOUNCE_MS = 150;
 async function watch() {
   const buildContext = await context(esbuildOptions);
   const watcher = chokidar.watch(watchedPaths, {
-    ignored: [/(^|[\/\\])\../, "addon/chrome/content/transformers/**"],
+    ignored: [
+      /(^|[\/\\])\../,
+      "addon/chrome/content/mupdf/**",
+      "addon/chrome/content/transformers/**",
+    ],
     ignoreInitial: true,
     persistent: true,
   });

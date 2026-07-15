@@ -17,6 +17,7 @@
     "build": "node scripts/build.mjs production",
     "build:check": "node scripts/check-build.mjs",
     "build:dev": "node scripts/build.mjs development",
+    "benchmark:models": "node scripts/benchmark-layout-models.mjs",
     "check:scripts": "node scripts/check-scripts.mjs",
     "compare:models": "node scripts/compare-layout-models.mjs",
     "stop": "node scripts/stop.mjs",
@@ -46,6 +47,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "mupdf": "1.28.0",
     "zotero-plugin-toolkit": "^5.1.0-beta.4"
   },
   "devDependencies": {
@@ -57,6 +59,7 @@
     "esbuild": "^0.19.9",
     "eslint": "^8.55.0",
     "eslint-config-prettier": "^9.1.0",
+    "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4",
     "prettier": "^3.1.1",
     "release-it": "^17.0.1",
     "replace-in-file": "^7.0.2",

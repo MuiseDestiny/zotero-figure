@@ -6,7 +6,20 @@ Zotero Figure ships exactly one runtime model inside the XPI: the optimized Q8 b
 
 | ID                      | Size       | SHA-256                                                            |
 | ----------------------- | ---------- | ------------------------------------------------------------------ |
-| `optimized-q8-d5d1e664` | 20,552,482 | `d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf` |
+| `optimized-q8-6c25a56c` | 19,505,323 | `6c25a56caf796a074e26def15eea9018686836155fd9e15e5e0950e9c08a4cac` |
+
+This file is derived from the upstream Q8 artifact with
+`onnx.utils.extract_model(source, target, ["images"], ["output0"])`. The input
+shape remains `[1, 3, 640, 640]`, the output remains `[1, 14, 8400]`, the ONNX
+opset remains 12, and dynamic UINT8 quantization remains in place. Five-PDF,
+15-page ONNX Runtime Web benchmarks produced bitwise-identical `output0`
+tensors and identical final detections while reducing warm inference time by
+3.67%.
+
+The exact source artifact is `optimized-q8-d5d1e664`, 20,552,482 bytes, with
+SHA-256 `d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf`.
+The output-pruning step is the only model transformation applied after that Q8
+artifact.
 
 The source asset is stored at the `embeddedPath` declared in `model-manifest.json`. At runtime the plugin reads that local `chrome://` resource, writes a temporary copy, verifies exact size and SHA-256, then moves it to:
 

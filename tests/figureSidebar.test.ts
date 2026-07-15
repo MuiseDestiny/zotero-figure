@@ -9,23 +9,26 @@ import {
 
 interface Entry {
   id: string;
-  kind: "figure" | "table";
+  kind: "figure" | "formula" | "table";
   pageIndex: number;
+  rect?: readonly [number, number, number, number];
   tag: string;
 }
 
 const metadata = (entry: Entry) => entry;
 
-test("counts all, figure, and table entries independently of filtering", () => {
+test("counts all result kinds independently of filtering", () => {
   const entries: Entry[] = [
     { id: "figure-1", kind: "figure", pageIndex: 0, tag: "Figure 1" },
     { id: "table-1", kind: "table", pageIndex: 1, tag: "Table 1" },
     { id: "figure-2", kind: "figure", pageIndex: 2, tag: "Figure 2" },
+    { id: "formula-1", kind: "formula", pageIndex: 3, tag: "Formula 1" },
   ];
 
   assert.deepEqual(countFigureSidebarItems(entries, metadata), {
-    all: 3,
+    all: 4,
     figure: 2,
+    formula: 1,
     table: 1,
   });
 });
@@ -62,21 +65,45 @@ test("filters sidebar entries by kind and preserves the source array", () => {
     ),
     ["table"],
   );
+  assert.deepEqual(
+    filterAndSortFigureSidebarItems(entries, "formula", metadata).map(
+      ({ id }) => id,
+    ),
+    [],
+  );
 });
 
-test("sorts by page, then tag, with stable ties", () => {
+test("sorts by page and visual position before using the tag", () => {
   const entries: Entry[] = [
     { id: "second", kind: "figure", pageIndex: 1, tag: "Figure 2" },
-    { id: "first", kind: "figure", pageIndex: 0, tag: "Figure 2" },
-    { id: "table", kind: "table", pageIndex: 0, tag: "Table 1" },
-    { id: "same-page", kind: "figure", pageIndex: 0, tag: "Figure 2" },
+    {
+      id: "lower",
+      kind: "figure",
+      pageIndex: 0,
+      rect: [40, 100, 240, 220],
+      tag: "Figure 1-6",
+    },
+    {
+      id: "upper-right",
+      kind: "table",
+      pageIndex: 0,
+      rect: [280, 400, 500, 520],
+      tag: "Table 8",
+    },
+    {
+      id: "upper-left",
+      kind: "figure",
+      pageIndex: 0,
+      rect: [30, 400, 250, 520],
+      tag: "Figure 1-5",
+    },
   ];
 
   const sorted = filterAndSortFigureSidebarItems(entries, "all", metadata);
 
   assert.deepEqual(
     sorted.map(({ id }) => id),
-    ["first", "same-page", "table", "second"],
+    ["upper-left", "upper-right", "lower", "second"],
   );
 });
 
@@ -101,5 +128,13 @@ test("builds concise navigation labels without duplicating figure tags", () => {
       tag: "Figure 1",
     }),
     "Figure 1 - Figure 10. Boundary check",
+  );
+  assert.equal(
+    getFigureSidebarNavigationLabel({ comment: "(1)", tag: "Formula 1" }),
+    "(1)",
+  );
+  assert.equal(
+    getFigureSidebarNavigationLabel({ comment: "", tag: "Formula" }),
+    "Formula",
   );
 });

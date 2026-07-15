@@ -17,8 +17,13 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   const panel = getRule(".zoterofigure-sidebar-panel");
   const controls = getRule(".zoterofigure-sidebar-controls");
   const filters = getRule(".zoterofigure-sidebar-filters");
+  const filterSlot = getRule(".zoterofigure-sidebar-filter-slot");
   const filterButton = getRule(".zoterofigure-sidebar-filter");
   const list = getRule(".zoterofigure-sidebar-list");
+  const cardHeader = getRule(".zoterofigure-sidebar-card > header");
+  const cardPage = getRule(".zoterofigure-card-page");
+  const cardImage = getExactRule(".zoterofigure-card-image");
+  const cardImageElement = getExactRule(".zoterofigure-card-image img");
   const noteIcon = getRule(".zoterofigure-native-note-icon");
   const analysisAction = getRule(".zoterofigure-analysis-action");
   const analysisIcon = getRule(".zoterofigure-analysis-plugin-icon");
@@ -40,9 +45,22 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(filters, /height\s*:\s*25px/);
   assert.match(filters, /justify-content\s*:\s*space-around/);
   assert.match(filters, /margin\s*:\s*0\.5em 1em/);
+  assert.match(filterSlot, /flex\s*:\s*1 1 0/);
+  assert.match(filterSlot, /position\s*:\s*relative/);
   assert.match(filterButton, /color\s*:\s*var\(--fill-primary\)/);
   assert.match(filterButton, /font\s*:\s*inherit/);
   assert.doesNotMatch(filterButton, /font-size\s*:\s*11px/);
+  assert.match(filterButton, /width\s*:\s*100%/);
+  assert.match(cardHeader, /color\s*:\s*var\(--fill-secondary\)/);
+  assert.match(cardPage, /color\s*:\s*var\(--fill-secondary\)/);
+  assert.match(cardImage, /background\s*:\s*var\(--material-background\)/);
+  assert.match(cardImage, /overflow\s*:\s*hidden/);
+  assert.match(cardImage, /padding\s*:\s*0/);
+  assert.match(cardImageElement, /height\s*:\s*auto\s*!important/);
+  assert.match(cardImageElement, /max-height\s*:\s*none\s*!important/);
+  assert.match(cardImageElement, /max-width\s*:\s*100%\s*!important/);
+  assert.match(cardImageElement, /min-width\s*:\s*0/);
+  assert.match(cardImageElement, /width\s*:\s*100%\s*!important/);
   assert.match(noteIcon, /height\s*:\s*16px/);
   assert.match(noteIcon, /width\s*:\s*16px/);
   assert.doesNotMatch(noteIcon, /mask\s*:/);
@@ -100,6 +118,27 @@ test("hides the result filters until local results exist", () => {
   );
 });
 
+test("renders reader analysis progress inside the sidebar", () => {
+  const runAnalysis = getSourceSection(
+    controllerSource,
+    "  private async runAnalysis(",
+    "  private cancelAnalysis(",
+  );
+  const progress = getRule(".zoterofigure-analysis-progress");
+  const progressTrack = getRule(".zoterofigure-analysis-progress-track");
+  const progressDetail = getRule(".zoterofigure-analysis-progress-detail");
+
+  assert.doesNotMatch(runAnalysis, /this\.createProgress\(/);
+  assert.match(runAnalysis, /panel\?\.updateAnalysisProgress\(/);
+  assert.match(runAnalysis, /latestProgress = progress/);
+  assert.match(panelSource, /role", "progressbar"/);
+  assert.match(panelSource, /"aria-valuenow"/);
+  assert.match(panelSource, /sidebar-analysis-progress-title/);
+  assert.match(progress, /padding\s*:\s*24px 18px 18px/);
+  assert.match(progressTrack, /height\s*:\s*5px/);
+  assert.match(progressDetail, /color\s*:\s*var\(--fill-secondary\)/);
+});
+
 test("navigates hover result menus without rebuilding the active filter", () => {
   const createFilters = getSourceSection(
     panelSource,
@@ -127,10 +166,14 @@ test("navigates hover result menus without rebuilding the active filter", () => 
     "  private async loadLocalImage(",
   );
   const filters = getRule(".zoterofigure-sidebar-filters");
+  const filterSlot = getRule(".zoterofigure-sidebar-filter-slot");
   const popover = getRule(".zoterofigure-filter-results");
   const resultLabel = getRule(".zoterofigure-filter-result-label");
 
   assert.match(createFilters, /filterAndSortFigureSidebarItems\(/);
+  assert.match(createFilters, /"all", "figure", "table", "formula"/);
+  assert.match(createFilters, /slot\.append\(button\)/);
+  assert.match(createFilters, /document,\s+slot,\s+button/);
   assert.match(createFilters, /addEventListener\("mouseenter"/);
   assert.match(createFilters, /addEventListener\("focus"/);
   assert.match(createFilters, /setAttribute\("aria-haspopup", "menu"\)/);
@@ -153,6 +196,7 @@ test("navigates hover result menus without rebuilding the active filter", () => 
 
   assert.match(filters, /overflow\s*:\s*visible/);
   assert.match(filters, /position\s*:\s*relative/);
+  assert.match(filterSlot, /position\s*:\s*relative/);
   assert.match(popover, /position\s*:\s*absolute/);
   assert.match(popover, /inset-inline\s*:\s*0/);
   assert.match(popover, /max-height\s*:\s*min\(320px, 45vh\)/);
@@ -160,6 +204,184 @@ test("navigates hover result menus without rebuilding the active filter", () => 
   assert.match(resultLabel, /overflow\s*:\s*hidden/);
   assert.match(resultLabel, /text-overflow\s*:\s*ellipsis/);
   assert.match(resultLabel, /white-space\s*:\s*nowrap/);
+});
+
+test("pins a complete card with an independent image URL", () => {
+  const createCard = getSourceSection(
+    panelSource,
+    "  private createCard(",
+    "  private scheduleImageNavigation(",
+  );
+  const pinCard = getSourceSection(
+    panelSource,
+    "  private async pinCard(",
+    "  private preparePinnedCardElement(",
+  );
+  const restoreInteractions = getSourceSection(
+    panelSource,
+    "  private restorePinnedCardInteractions(",
+    "  private bindPinnedCard(",
+  );
+  const preparePinnedCard = getSourceSection(
+    panelSource,
+    "  private preparePinnedCardElement(",
+    "  private restorePinnedCardInteractions(",
+  );
+  const bindPinnedCard = getSourceSection(
+    panelSource,
+    "  private bindPinnedCard(",
+    "  private bringPinnedCardToFront(",
+  );
+  const closePinnedCard = getSourceSection(
+    panelSource,
+    "  private closePinnedCard(",
+    "  private disposePinnedCards(",
+  );
+  const openMenu = getSourceSection(
+    panelSource,
+    "  private openMenu(",
+    "  private closeMenu(",
+  );
+  const openCommentEditor = getSourceSection(
+    panelSource,
+    "  private async openCommentEditor(",
+    "  private applyUpdatedResult(",
+  );
+  const applyUpdatedResult = getSourceSection(
+    panelSource,
+    "  private applyUpdatedResult(",
+    "  private getCurrentResult(",
+  );
+  const createComment = getSourceSection(
+    panelSource,
+    "  private createComment(",
+    "  private createMenuButton(",
+  );
+  const pinnedCard = getRule(
+    ".zoterofigure-sidebar-card.zoterofigure-pinned-card",
+  );
+
+  assert.match(createCard, /image\.addEventListener\("dblclick"/);
+  assert.match(createCard, /this\.cancelImageNavigation\(\)/);
+  assert.match(pinCard, /IOUtils\.read\(result\.imagePath\)/);
+  assert.match(pinCard, /this\.pinGeneration !== generation/);
+  assert.match(
+    pinCard,
+    /this\.pendingPinnedCards\.set\(result\.id, generation\)/,
+  );
+  assert.match(
+    pinCard,
+    /this\.pendingPinnedCards\.get\(result\.id\) === generation/,
+  );
+  assert.match(pinCard, /createDocumentBlobURL\(document/);
+  assert.match(pinCard, /sourceCard\.cloneNode\(true\)/);
+  assert.match(pinCard, /if \(!sourceCard\.isConnected\) return/);
+  assert.match(pinCard, /sourceBounds\.right/);
+  assert.match(pinCard, /sourceBounds\.top/);
+  assert.match(pinCard, /sourceBounds\.width/);
+  assert.match(
+    pinCard,
+    /document\.defaultView\?\.getComputedStyle\(sourceCard\)/,
+  );
+  assert.ok(
+    pinCard.indexOf("await IOUtils.read") <
+      pinCard.indexOf("const sourceBounds"),
+  );
+  assert.match(
+    pinCard,
+    /this\.restorePinnedCardInteractions\(element, result\)/,
+  );
+  assert.match(pinCard, /document\.documentElement\.append\(element\)/);
+  assert.match(pinCard, /releaseOrphanedImageURL/);
+  assert.match(
+    restoreInteractions,
+    /this\.createMenuButton\(document, result\)/,
+  );
+  assert.match(restoreInteractions, /this\.createComment\(document, result\)/);
+  assert.match(restoreInteractions, /this\.scheduleImageNavigation\(result\)/);
+  assert.match(
+    preparePinnedCard,
+    /sourceGeometry\.width > 0[\s\S]*sourceGeometry\.width[\s\S]*PINNED_CARD_FALLBACK_WIDTH/,
+  );
+  assert.match(preparePinnedCard, /element\.style\.fontFamily/);
+  assert.match(preparePinnedCard, /element\.style\.fontSize/);
+  assert.match(preparePinnedCard, /element\.style\.lineHeight/);
+  assert.match(
+    bindPinnedCard,
+    /x: sourceGeometry\.right \+ PINNED_CARD_MARGIN \+ stagger/,
+  );
+  assert.match(bindPinnedCard, /y: sourceGeometry\.top \+ stagger/);
+  assert.match(bindPinnedCard, /addEventListener\("click", handleClickCapture/);
+  assert.match(bindPinnedCard, /addEventListener\("pointerdown"/);
+  assert.match(bindPinnedCard, /setPointerCapture\(event\.pointerId\)/);
+  assert.match(bindPinnedCard, /addEventListener\("wheel"/);
+  assert.match(bindPinnedCard, /passive: false/);
+  assert.match(bindPinnedCard, /zoomPinnedCardAtPoint\(/);
+  assert.match(bindPinnedCard, /interpolatePinnedCardTransform\(/);
+  assert.match(bindPinnedCard, /getPinnedCardSmoothingProgress\(/);
+  assert.match(bindPinnedCard, /frameTime - previousTransformFrameTime/);
+  assert.match(
+    bindPinnedCard,
+    /PINNED_CARD_MAX_WHEEL_DELTA[\s\S]*PINNED_CARD_WHEEL_SENSITIVITY/,
+  );
+  assert.match(bindPinnedCard, /requestAnimationFrame\(step\)/);
+  assert.match(bindPinnedCard, /cancelAnimationFrame\(transformFrameID\)/);
+  assert.match(bindPinnedCard, /addEventListener\("dblclick"/);
+  assert.match(
+    bindPinnedCard,
+    /target\?\.closest\("button, a, input, select, textarea"\)/,
+  );
+  assert.match(bindPinnedCard, /this\.closePinnedCard\(resultID\)/);
+  assert.match(closePinnedCard, /this\.cancelImageNavigation\(\)/);
+  assert.match(closePinnedCard, /entry\.element\.contains\(this\.menuAnchor\)/);
+  assert.match(closePinnedCard, /this\.closeMenu\(\)/);
+  assert.match(
+    openMenu,
+    /\.zoterofigure-sidebar-card:not\(\.zoterofigure-pinned-card\)/,
+  );
+  assert.match(openMenu, /"sidebar-pin-image"/);
+  assert.match(openMenu, /this\.cancelImageNavigation\(\)/);
+  assert.match(openMenu, /return this\.pinCard\(result, sourceCard\)/);
+  assert.ok(
+    openMenu.indexOf('"sidebar-save-image"') <
+      openMenu.indexOf('"sidebar-pin-image"'),
+  );
+  assert.ok(
+    openMenu.indexOf('"sidebar-pin-image"') <
+      openMenu.indexOf('"sidebar-go-to-page"'),
+  );
+  assert.match(openMenu, /"sidebar-edit-comment"/);
+  assert.match(openMenu, /this\.openCommentEditor\(result\)/);
+  assert.match(openMenu, /"sidebar-correct-region"/);
+  assert.match(openMenu, /this\.openRegionEditor\(result\)/);
+  assert.match(openCommentEditor, /tag: "textarea"/);
+  assert.match(openCommentEditor, /"data-bind": "comment"/);
+  assert.match(openCommentEditor, /COMMENT_EDITOR_MAX_LENGTH/);
+  assert.match(openCommentEditor, /rows: 2/);
+  assert.match(openCommentEditor, /resize: "none"/);
+  assert.doesNotMatch(openCommentEditor, /resize: "vertical"/);
+  assert.match(openCommentEditor, /this\.options\.onEditComment\(/);
+  assert.match(applyUpdatedResult, /this\.translatedComments\.delete/);
+  assert.match(applyUpdatedResult, /this\.translationRequestID\+\+/);
+  assert.match(applyUpdatedResult, /this\.translationPending = false/);
+  assert.match(applyUpdatedResult, /this\.resultCards\.get\(updated\.id\)/);
+  assert.match(applyUpdatedResult, /this\.pinnedCards\.get\(updated\.id\)/);
+  assert.match(
+    applyUpdatedResult,
+    /this\.createMenuButton\(document, updated\)/,
+  );
+  assert.match(applyUpdatedResult, /this\.createComment\(document, updated\)/);
+  assert.match(applyUpdatedResult, /this\.refreshControls\(\)/);
+  assert.match(createComment, /!comment\.classList\.contains\("expanded"\)/);
+  assert.match(createComment, /this\.resultCards\.get\(resultID\)/);
+  assert.match(createComment, /this\.pinnedCards\.get\(resultID\)/);
+  assert.match(pinnedCard, /position\s*:\s*fixed/);
+  assert.match(pinnedCard, /transform-origin\s*:\s*top left/);
+  assert.doesNotMatch(
+    css,
+    /zoterofigure-pinned-card[^}]*pointer-events\s*:\s*none/,
+  );
+  assert.doesNotMatch(css, /zoterofigure-pinned-card:focus-visible/);
 });
 
 test("clears the sidebar before local files without touching annotation mirrors", () => {
@@ -229,6 +451,13 @@ function getRule(selector: string): string {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = css.match(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`));
   assert.ok(match, `Missing CSS rule for ${selector}`);
+  return match[1];
+}
+
+function getExactRule(selector: string): string {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = css.match(new RegExp(`(?:^|\\n)${escaped}\\s*\\{([^}]*)\\}`));
+  assert.ok(match, `Missing exact CSS rule for ${selector}`);
   return match[1];
 }
 

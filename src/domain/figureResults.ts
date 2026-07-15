@@ -1,6 +1,6 @@
 import type { AnnotationCandidate, Rect } from "./layout";
 
-export type FigureResultKind = "figure" | "table";
+export type FigureResultKind = "figure" | "formula" | "table";
 
 export interface FigureResultAnalysisIdentity {
   analysisVersion: number;
@@ -10,6 +10,8 @@ export interface FigureResultAnalysisIdentity {
 
 export interface FigureResultRecord {
   comment: string;
+  detectedComment?: string;
+  detectedRect?: Rect;
   id: string;
   imageFile: string;
   kind: FigureResultKind;
@@ -24,17 +26,31 @@ export interface FigureResultCandidate extends AnnotationCandidate {
 }
 
 export function getFigureResultKind(tag: string): FigureResultKind {
-  return /^Table(?:\s|$)/.test(tag) ? "table" : "figure";
+  if (/^Table(?:\s|$)/.test(tag)) return "table";
+  return /^Formula(?:\s|$)/.test(tag) ? "formula" : "figure";
 }
 
 export function getFigureResultFingerprint(
-  value: Pick<FigureResultRecord, "comment" | "pageIndex" | "rect" | "tag">,
+  value: Pick<FigureResultRecord, "comment" | "pageIndex" | "rect" | "tag"> &
+    Partial<Pick<FigureResultRecord, "detectedComment" | "detectedRect">>,
 ): string {
+  const detectedComment = value.detectedComment ?? value.comment;
+  const detectedRect = value.detectedRect ?? value.rect;
   return [
     value.pageIndex,
-    value.rect.map((coordinate) => coordinate.toFixed(1)).join(","),
+    detectedRect.map((coordinate) => coordinate.toFixed(1)).join(","),
     value.tag.trim(),
-    value.comment.trim(),
+    detectedComment.trim(),
+  ].join("|");
+}
+
+export function getFigureResultImageFingerprint(
+  value: Pick<FigureResultRecord, "comment" | "pageIndex" | "rect" | "tag"> &
+    Partial<Pick<FigureResultRecord, "detectedComment" | "detectedRect">>,
+): string {
+  return [
+    getFigureResultFingerprint(value),
+    value.rect.map((coordinate) => coordinate.toFixed(1)).join(","),
   ].join("|");
 }
 

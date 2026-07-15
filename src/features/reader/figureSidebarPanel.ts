@@ -1,4 +1,10 @@
+import type { DialogHelper } from "zotero-plugin-toolkit";
 import type { FigureResultKind } from "../../domain/figureResults";
+import type { Rect } from "../../domain/layout";
+import {
+  resizeNormalizedResultRegion,
+  type ResultRegionEditMode,
+} from "../../domain/resultRegion";
 import {
   countFigureSidebarItems,
   filterAndSortFigureSidebarItems,
@@ -7,7 +13,11 @@ import {
 } from "../../domain/figureSidebar";
 import {
   clampPinnedCardTransform,
+  getPinnedCardSmoothingProgress,
+  interpolatePinnedCardTransform,
   zoomPinnedCardAtPoint,
+  type Point,
+  type PinnedCardTransform,
   type Size,
 } from "../../domain/pinnedFigureCard";
 import {
@@ -35,9 +45,23 @@ const IMAGE_SINGLE_CLICK_DELAY_MS = 220;
 const PINNED_CARD_MARGIN = 12;
 const PINNED_CARD_MAX_SCALE = 3;
 const PINNED_CARD_MIN_SCALE = 0.35;
-const PINNED_CARD_MAX_WIDTH = 420;
-const PINNED_CARD_MIN_WIDTH = 240;
-const PINNED_CARD_Z_INDEX_BASE = 2_147_483_000;
+const PINNED_CARD_FALLBACK_WIDTH = 320;
+const PINNED_CARD_DRAG_THRESHOLD = 3;
+const PINNED_CARD_ZOOM_TIME_CONSTANT_MS = 55;
+const PINNED_CARD_WHEEL_SENSITIVITY = 0.0015;
+const PINNED_CARD_MAX_WHEEL_DELTA = 80;
+const PINNED_CARD_POSITION_EPSILON = 0.1;
+const PINNED_CARD_SCALE_EPSILON = 0.0005;
+const PINNED_CARD_Z_INDEX_BASE = 2_000_000_000;
+const COMMENT_EDITOR_MAX_LENGTH = 10_000;
+
+type AnalysisProgressState = "cancelled" | "error" | "running" | "success";
+
+interface SidebarAnalysisProgress {
+  progress: number;
+  state: AnalysisProgressState;
+  text: string;
+}
 
 export type FigureSidebarFilter = DomainFigureSidebarFilter;
 
@@ -57,12 +81,29 @@ interface FigureSidebarPanelOptions {
   ): Promise<ReadonlyMap<string, string>>;
   onClear(): Promise<void>;
   onCopyImage(result: StoredFigureResult): Promise<void>;
+  onCorrectRegion(
+    result: StoredFigureResult,
+    rect: Rect,
+  ): Promise<StoredFigureResult | undefined>;
+  onEditComment(
+    result: StoredFigureResult,
+    comment: string,
+  ): Promise<StoredFigureResult | undefined>;
   onGoToPage(result: StoredFigureResult): Promise<void>;
+  onPrepareCorrection(
+    result: StoredFigureResult,
+  ): Promise<ResultCorrectionPreview>;
   onRemove(result: StoredFigureResult): Promise<void>;
   onSaveImage(result: StoredFigureResult): Promise<void>;
   onSyncAnnotations(): Promise<void>;
   ownerWindow: Window;
   reader: PdfReader;
+}
+
+export interface ResultCorrectionPreview {
+  detectedRect: Rect;
+  imageURL: string;
+  rect: Rect;
 }
 
 type MenuPopup = XUL.MenuPopup & {
@@ -201,8 +242,19 @@ interface PinnedFigureCard {
   element: HTMLElement;
 }
 
+interface PinnedCardSourceGeometry {
+  fontFamily: string;
+  fontSize: string;
+  lineHeight: string;
+  right: number;
+  top: number;
+  width: number;
+}
+
 export class FigureSidebarPanel {
   private active = false;
+  private analysisProgress?: SidebarAnalysisProgress;
+  private analysisProgressTimerID?: number;
   private readonly blobURLReleasers = new Set<() => void>();
   private document?: Document;
   private filter: FigureSidebarFilter = "all";
@@ -210,6 +262,9 @@ export class FigureSidebarPanel {
   private filterPopoverAnchor?: HTMLButtonElement;
   private filterPopoverCloseTimerID?: number;
   private menu?: MenuPopup;
+  private menuAnchor?: Element;
+  private commentEditor?: DialogHelper;
+  private correctionEditor?: DialogHelper;
   private mountedSidebar?: Element;
   private panel?: HTMLDivElement;
   private panelContent?: HTMLDivElement;
@@ -229,8 +284,9 @@ export class FigureSidebarPanel {
   private readonly resultCards = new Map<string, HTMLElement>();
   private resultScrollTimerID?: number;
   private imageNavigationTimerID?: number;
-  private readonly pendingPinnedCardIDs = new Set<string>();
+  private readonly pendingPinnedCards = new Map<string, number>();
   private readonly pinnedCards = new Map<string, PinnedFigureCard>();
+  private pinGeneration = 0;
   private pinnedCardZIndex = PINNED_CARD_Z_INDEX_BASE;
   private scrollContainer?: HTMLElement;
   private tab?: HTMLButtonElement;
@@ -246,6 +302,11 @@ export class FigureSidebarPanel {
   private readonly handleSidebarScroll = (): void => {
     this.closeFilterPopover();
     this.scheduleImageVisibilityScan();
+  };
+
+  private readonly handleReaderPageHide = (event: Event): void => {
+    if (event.currentTarget !== this.document?.defaultView) return;
+    this.detachDocument();
   };
 
   private readonly handleTabClick = (event: MouseEvent): void => {
@@ -287,6 +348,10 @@ export class FigureSidebarPanel {
       this.detachDocument();
     }
     this.document = document;
+    document.defaultView?.addEventListener(
+      "pagehide",
+      this.handleReaderPageHide,
+    );
     this.ensureStyle(document);
     if (!document.querySelector<HTMLElement>("#reader-ui")) return;
     this.mountedSidebar = undefined;
@@ -313,6 +378,34 @@ export class FigureSidebarPanel {
     else panelContent.prepend(controls);
   }
 
+  public updateAnalysisProgress(
+    text: string,
+    progress: number,
+    state: AnalysisProgressState = "running",
+    clearAfterMs?: number,
+  ): void {
+    if (this.disposed) return;
+    if (this.analysisProgressTimerID !== undefined) {
+      this.options.ownerWindow.clearTimeout(this.analysisProgressTimerID);
+      this.analysisProgressTimerID = undefined;
+    }
+    const value: SidebarAnalysisProgress = {
+      progress: Math.max(0, Math.min(100, progress)),
+      state,
+      text,
+    };
+    this.analysisProgress = value;
+    this.refreshAnalysisProgress();
+    if (clearAfterMs !== undefined) {
+      this.analysisProgressTimerID = this.options.ownerWindow.setTimeout(() => {
+        this.analysisProgressTimerID = undefined;
+        if (this.analysisProgress !== value) return;
+        this.analysisProgress = undefined;
+        this.refreshAnalysisProgress();
+      }, clearAfterMs);
+    }
+  }
+
   public reloadResults(): void {
     if (this.disposed || !this.panelContent) return;
     this.requestResults(this.panelContent, true);
@@ -320,6 +413,10 @@ export class FigureSidebarPanel {
 
   public dispose(): void {
     this.disposed = true;
+    if (this.analysisProgressTimerID !== undefined) {
+      this.options.ownerWindow.clearTimeout(this.analysisProgressTimerID);
+      this.analysisProgressTimerID = undefined;
+    }
     this.translationRequestID++;
     this.expandedComments.clear();
     this.translatedComments.clear();
@@ -330,6 +427,7 @@ export class FigureSidebarPanel {
 
   private detachDocument(): void {
     this.renderRevision++;
+    this.pinGeneration++;
     this.closeFilterPopover();
     this.cancelResultScroll();
     this.cancelImageNavigation();
@@ -344,8 +442,11 @@ export class FigureSidebarPanel {
     this.expandedComments.clear();
     this.translatedComments.clear();
     this.resultCards.clear();
-    this.menu?.remove();
-    this.menu = undefined;
+    this.closeMenu();
+    this.commentEditor?.window?.close();
+    this.commentEditor = undefined;
+    this.correctionEditor?.window?.close();
+    this.correctionEditor = undefined;
     if (this.remountTimerID !== undefined) {
       this.options.ownerWindow.clearTimeout(this.remountTimerID);
       this.remountTimerID = undefined;
@@ -358,6 +459,10 @@ export class FigureSidebarPanel {
     this.mountedSidebar = undefined;
     this.pdfTranslateAvailable = undefined;
     this.tablist?.removeEventListener("click", this.handleTabClick, true);
+    this.document?.defaultView?.removeEventListener(
+      "pagehide",
+      this.handleReaderPageHide,
+    );
     const content =
       this.panel?.parentElement ??
       this.document?.querySelector<HTMLElement>("#sidebarContent");
@@ -444,6 +549,7 @@ export class FigureSidebarPanel {
     const document = this.document;
     const panelContent = this.panelContent;
     if (!document || !panelContent) return;
+    this.cancelImageNavigation();
     if (this.results !== undefined) {
       this.renderContent(panelContent, this.results);
       return;
@@ -511,6 +617,7 @@ export class FigureSidebarPanel {
   ): void {
     const document = this.document;
     if (!document) return;
+    this.cancelImageNavigation();
     this.closeFilterPopover();
     this.resultCards.clear();
     this.resetImageLoads();
@@ -522,14 +629,16 @@ export class FigureSidebarPanel {
     const list = document.createElement("div");
     list.className = "zoterofigure-sidebar-list";
     if (!filtered.length) {
-      const empty = document.createElement("div");
-      empty.className = "zoterofigure-sidebar-empty";
-      empty.textContent = getString("sidebar-empty");
-      list.append(empty);
+      if (!this.analysisProgress) list.append(this.createEmpty(document));
     } else {
       for (const result of filtered) list.append(this.createCard(result));
     }
     const children: HTMLElement[] = [this.createControls(document, results)];
+    if (this.analysisProgress) {
+      children.push(
+        this.createAnalysisProgress(document, this.analysisProgress),
+      );
+    }
     if (this.translationError) {
       const status = document.createElement("div");
       status.className = "zoterofigure-sidebar-status";
@@ -559,6 +668,106 @@ export class FigureSidebarPanel {
     loading.className = "zoterofigure-sidebar-empty";
     loading.textContent = getString("sidebar-loading");
     return loading;
+  }
+
+  private createEmpty(document: Document): HTMLElement {
+    const empty = document.createElement("div");
+    empty.className = "zoterofigure-sidebar-empty";
+    empty.textContent = getString("sidebar-empty");
+    return empty;
+  }
+
+  private createAnalysisProgress(
+    document: Document,
+    value: SidebarAnalysisProgress,
+  ): HTMLDivElement {
+    const container = document.createElement("div");
+    container.className = `zoterofigure-analysis-progress is-${value.state}`;
+    container.setAttribute("role", "progressbar");
+    container.setAttribute("aria-valuemin", "0");
+    container.setAttribute("aria-valuemax", "100");
+    container.setAttribute("aria-valuenow", String(Math.round(value.progress)));
+    container.setAttribute(
+      "aria-label",
+      getString("sidebar-analysis-progress-title"),
+    );
+
+    const heading = document.createElement("div");
+    heading.className = "zoterofigure-analysis-progress-heading";
+    const title = document.createElement("span");
+    title.textContent = getString("sidebar-analysis-progress-title");
+    const percentage = document.createElement("span");
+    percentage.className = "zoterofigure-analysis-progress-percentage";
+    percentage.textContent = `${Math.round(value.progress)}%`;
+    heading.append(title, percentage);
+
+    const track = document.createElement("div");
+    track.className = "zoterofigure-analysis-progress-track";
+    const fill = document.createElement("div");
+    fill.className = "zoterofigure-analysis-progress-fill";
+    fill.style.width = `${value.progress}%`;
+    track.append(fill);
+
+    const detail = document.createElement("div");
+    detail.className = "zoterofigure-analysis-progress-detail";
+    detail.textContent = value.text;
+    container.append(heading, track, detail);
+    return container;
+  }
+
+  private refreshAnalysisProgress(): void {
+    const document = this.document;
+    const panelContent = this.panelContent;
+    if (!document || !panelContent) return;
+    const current = panelContent.querySelector<HTMLElement>(
+      ".zoterofigure-analysis-progress",
+    );
+    if (this.analysisProgress) {
+      if (current) {
+        current.className = `zoterofigure-analysis-progress is-${this.analysisProgress.state}`;
+        current.setAttribute(
+          "aria-valuenow",
+          String(Math.round(this.analysisProgress.progress)),
+        );
+        const percentage = current.querySelector<HTMLElement>(
+          ".zoterofigure-analysis-progress-percentage",
+        );
+        if (percentage) {
+          percentage.textContent = `${Math.round(this.analysisProgress.progress)}%`;
+        }
+        const fill = current.querySelector<HTMLElement>(
+          ".zoterofigure-analysis-progress-fill",
+        );
+        if (fill) fill.style.width = `${this.analysisProgress.progress}%`;
+        const detail = current.querySelector<HTMLElement>(
+          ".zoterofigure-analysis-progress-detail",
+        );
+        if (detail) detail.textContent = this.analysisProgress.text;
+      } else {
+        const next = this.createAnalysisProgress(
+          document,
+          this.analysisProgress,
+        );
+        const controls = panelContent.querySelector<HTMLElement>(
+          ".zoterofigure-sidebar-controls",
+        );
+        if (controls) controls.after(next);
+        else panelContent.prepend(next);
+      }
+    } else {
+      current?.remove();
+    }
+
+    if (this.results?.length === 0) {
+      const list = panelContent.querySelector<HTMLElement>(
+        ".zoterofigure-sidebar-list",
+      );
+      const empty = list?.querySelector<HTMLElement>(
+        ".zoterofigure-sidebar-empty",
+      );
+      if (this.analysisProgress) empty?.remove();
+      else if (list && !empty) list.append(this.createEmpty(document));
+    }
   }
 
   private createActions(
@@ -699,7 +908,7 @@ export class FigureSidebarPanel {
     const filters = document.createElement("div");
     filters.className = "zoterofigure-sidebar-filters";
     const counts = countFigureSidebarItems(results, (result) => result);
-    for (const filter of ["all", "figure", "table"] as const) {
+    for (const filter of ["all", "figure", "table", "formula"] as const) {
       const filterResults = filterAndSortFigureSidebarItems(
         results,
         filter,
@@ -726,25 +935,13 @@ export class FigureSidebarPanel {
         button.setAttribute("aria-expanded", "false");
         button.setAttribute("aria-haspopup", "menu");
         button.addEventListener("mouseenter", () =>
-          this.openFilterPopover(
-            document,
-            slot,
-            button,
-            filter,
-            filterResults,
-          ),
+          this.openFilterPopover(document, slot, button, filter, filterResults),
         );
         button.addEventListener("mouseleave", () =>
           this.scheduleFilterPopoverClose(),
         );
         button.addEventListener("focus", () =>
-          this.openFilterPopover(
-            document,
-            slot,
-            button,
-            filter,
-            filterResults,
-          ),
+          this.openFilterPopover(document, slot, button, filter, filterResults),
         );
         button.addEventListener("blur", (event) => {
           const next = event.relatedTarget as Node | null;
@@ -1093,14 +1290,14 @@ export class FigureSidebarPanel {
     });
     image.addEventListener("click", (event) => {
       if (event.detail > 1) return;
-      this.scheduleImageNavigation(result);
+      this.scheduleImageNavigation(this.getCurrentResult(result.id) ?? result);
     });
     image.addEventListener("dblclick", (event) => {
       event.preventDefault();
       event.stopPropagation();
       this.cancelImageNavigation();
-      void this.pinCard(result, card).catch((error) =>
-        Zotero.logError(toError(error)),
+      void this.pinCard(this.getCurrentResult(result.id) ?? result, card).catch(
+        (error) => Zotero.logError(toError(error)),
       );
     });
 
@@ -1135,73 +1332,149 @@ export class FigureSidebarPanel {
       this.bringPinnedCardToFront(existing.element);
       return;
     }
-    if (this.pendingPinnedCardIDs.has(result.id)) return;
+    if (this.pendingPinnedCards.has(result.id)) return;
     const document = this.document;
     if (!document) return;
+    const generation = this.pinGeneration;
 
-    this.pendingPinnedCardIDs.add(result.id);
+    this.pendingPinnedCards.set(result.id, generation);
+    let orphanedElement: HTMLElement | undefined;
+    let releaseOrphanedImageURL: (() => void) | undefined;
     try {
       const bytes = await IOUtils.read(result.imagePath);
-      if (this.disposed || this.document !== document) return;
+      if (
+        this.disposed ||
+        this.document !== document ||
+        this.pinGeneration !== generation
+      ) {
+        return;
+      }
       const blobURL = createDocumentBlobURL(document, [bytes], {
         type: "image/png",
       });
-      if (this.disposed || this.document !== document) {
-        blobURL.release();
+      releaseOrphanedImageURL = blobURL.release;
+      if (
+        this.disposed ||
+        this.document !== document ||
+        this.pinGeneration !== generation
+      ) {
         return;
       }
+      if (!sourceCard.isConnected) return;
+      const sourceBounds = sourceCard.getBoundingClientRect();
+      const sourceStyle = document.defaultView?.getComputedStyle(sourceCard);
+      const sourceGeometry: PinnedCardSourceGeometry = {
+        fontFamily: sourceStyle?.fontFamily ?? "",
+        fontSize: sourceStyle?.fontSize ?? "",
+        lineHeight: sourceStyle?.lineHeight ?? "",
+        right: sourceBounds.right,
+        top: sourceBounds.top,
+        width: sourceBounds.width,
+      };
 
       const element = sourceCard.cloneNode(true) as HTMLElement;
-      const image = element.querySelector<HTMLImageElement>(
-        ".zoterofigure-card-image img",
+      orphanedElement = element;
+      const imageContainer = element.querySelector<HTMLElement>(
+        ".zoterofigure-card-image",
       );
-      if (!image) {
-        blobURL.release();
-        return;
-      }
+      if (!imageContainer) return;
+      const image = document.createElement("img");
+      image.alt = this.getDisplayComment(result);
+      image.decoding = "async";
+      image.draggable = false;
       image.src = blobURL.url;
-      this.preparePinnedCardElement(element);
+      imageContainer.replaceChildren(image);
+      this.restorePinnedCardInteractions(element, result);
+      this.preparePinnedCardElement(element, sourceGeometry);
       document.documentElement.append(element);
 
-      const entry = this.bindPinnedCard(result.id, element, blobURL.release);
+      const entry = this.bindPinnedCard(
+        result.id,
+        element,
+        blobURL.release,
+        sourceGeometry,
+      );
       this.pinnedCards.set(result.id, entry);
+      orphanedElement = undefined;
+      releaseOrphanedImageURL = undefined;
       this.bringPinnedCardToFront(element);
-      element.focus({ preventScroll: true });
     } finally {
-      this.pendingPinnedCardIDs.delete(result.id);
+      orphanedElement?.remove();
+      releaseOrphanedImageURL?.();
+      if (this.pendingPinnedCards.get(result.id) === generation) {
+        this.pendingPinnedCards.delete(result.id);
+      }
     }
   }
 
-  private preparePinnedCardElement(element: HTMLElement): void {
+  private preparePinnedCardElement(
+    element: HTMLElement,
+    sourceGeometry: PinnedCardSourceGeometry,
+  ): void {
     const document = element.ownerDocument;
     const root = document.documentElement;
-    const sourceWidth = element.getBoundingClientRect().width;
     const availableWidth = Math.max(
-      160,
+      1,
       root.clientWidth - PINNED_CARD_MARGIN * 2,
     );
     const width = Math.min(
-      PINNED_CARD_MAX_WIDTH,
       availableWidth,
-      Math.max(PINNED_CARD_MIN_WIDTH, sourceWidth),
+      sourceGeometry.width > 0
+        ? sourceGeometry.width
+        : PINNED_CARD_FALLBACK_WIDTH,
     );
     element.classList.add("zoterofigure-pinned-card");
     element.style.left = "0px";
     element.style.top = "0px";
-    element.style.transform = "scale(1)";
+    element.style.transform = "translate3d(0, 0, 0) scale(1)";
     element.style.width = `${width}px`;
-    element.tabIndex = 0;
-    for (const descendant of element.querySelectorAll<HTMLElement>(
-      "button, [href], input, select, textarea, [tabindex]",
-    )) {
-      descendant.tabIndex = -1;
+    if (sourceGeometry.fontFamily) {
+      element.style.fontFamily = sourceGeometry.fontFamily;
     }
+    if (sourceGeometry.fontSize) {
+      element.style.fontSize = sourceGeometry.fontSize;
+    }
+    if (sourceGeometry.lineHeight) {
+      element.style.lineHeight = sourceGeometry.lineHeight;
+    }
+    element.tabIndex = 0;
+  }
+
+  private restorePinnedCardInteractions(
+    element: HTMLElement,
+    result: StoredFigureResult,
+  ): void {
+    const document = element.ownerDocument;
+    const header = element.querySelector<HTMLElement>("header");
+    header?.addEventListener("click", (event) => {
+      if (event.detail > 1) return;
+      this.scheduleImageNavigation(result);
+    });
+
+    const menuHost = element.querySelector<HTMLElement>(
+      ".zoterofigure-card-end",
+    );
+    menuHost?.replaceChildren(this.createMenuButton(document, result));
+
+    const existingComment = element.querySelector<HTMLElement>(
+      ".zoterofigure-card-comment",
+    );
+    existingComment?.replaceWith(this.createComment(document, result));
+
+    const image = element.querySelector<HTMLElement>(
+      ".zoterofigure-card-image",
+    );
+    image?.addEventListener("click", (event) => {
+      if (event.detail > 1) return;
+      this.scheduleImageNavigation(result);
+    });
   }
 
   private bindPinnedCard(
     resultID: string,
     element: HTMLElement,
     releaseImageURL: () => void,
+    sourceGeometry: PinnedCardSourceGeometry,
   ): PinnedFigureCard {
     const document = element.ownerDocument;
     const root = document.documentElement;
@@ -1211,87 +1484,193 @@ export class FigureSidebarPanel {
       width: baseBounds.width,
     };
     const stagger = this.pinnedCards.size * 18;
+    const initialPosition: Point = {
+      x: sourceGeometry.right + PINNED_CARD_MARGIN + stagger,
+      y: sourceGeometry.top + stagger,
+    };
     let transform = clampPinnedCardTransform(
       {
         scale: 1,
-        x: root.clientWidth - cardSize.width - PINNED_CARD_MARGIN - stagger,
-        y: PINNED_CARD_MARGIN + stagger,
+        ...initialPosition,
       },
       cardSize,
       getDocumentViewportSize(document),
       PINNED_CARD_MARGIN,
     );
+    let renderedTransform = { ...transform };
+    let transformFrameID: number | undefined;
+    let previousTransformFrameTime: number | undefined;
     let draggingPointerID: number | undefined;
-    let previousPointerX = 0;
-    let previousPointerY = 0;
+    let pointerStartX = 0;
+    let pointerStartY = 0;
+    let cardStartX = 0;
+    let cardStartY = 0;
+    let dragMoved = false;
+    let suppressNextClick = false;
+    let suppressClickTimerID: number | undefined;
 
-    const applyTransform = (): void => {
-      element.style.left = `${transform.x}px`;
-      element.style.top = `${transform.y}px`;
-      element.style.transform = `scale(${transform.scale})`;
+    const renderTransform = (value: PinnedCardTransform): void => {
+      element.style.transform = `translate3d(${value.x}px, ${value.y}px, 0) scale(${value.scale})`;
     };
-    const clampToViewport = (): void => {
+    const cancelTransformAnimation = (): void => {
+      if (transformFrameID === undefined) return;
+      cancelAnimationFrame(transformFrameID);
+      transformFrameID = undefined;
+      previousTransformFrameTime = undefined;
+    };
+    const applyTransformImmediately = (): void => {
+      cancelTransformAnimation();
+      renderedTransform = { ...transform };
+      renderTransform(renderedTransform);
+    };
+    const animateTransform = (): void => {
+      if (transformFrameID !== undefined) return;
+      const step = (frameTime: number): void => {
+        transformFrameID = undefined;
+        const elapsedMilliseconds = Math.min(
+          64,
+          Math.max(
+            0,
+            previousTransformFrameTime === undefined
+              ? 1000 / 60
+              : frameTime - previousTransformFrameTime,
+          ),
+        );
+        previousTransformFrameTime = frameTime;
+        renderedTransform = interpolatePinnedCardTransform(
+          renderedTransform,
+          transform,
+          getPinnedCardSmoothingProgress(
+            elapsedMilliseconds,
+            PINNED_CARD_ZOOM_TIME_CONSTANT_MS,
+          ),
+        );
+        const settled = pinnedCardTransformsAreClose(
+          renderedTransform,
+          transform,
+        );
+        if (settled) renderedTransform = { ...transform };
+        renderTransform(renderedTransform);
+        if (!settled) transformFrameID = requestAnimationFrame(step);
+        else previousTransformFrameTime = undefined;
+      };
+      transformFrameID = requestAnimationFrame(step);
+    };
+    const updateClampedTransform = (): void => {
       transform = clampPinnedCardTransform(
         transform,
         cardSize,
         getDocumentViewportSize(document),
         PINNED_CARD_MARGIN,
       );
-      applyTransform();
+    };
+    const clampToViewport = (): void => {
+      updateClampedTransform();
+      applyTransformImmediately();
+    };
+    const animateToClampedTransform = (): void => {
+      updateClampedTransform();
+      animateTransform();
+    };
+    const adoptRenderedTransform = (): void => {
+      cancelTransformAnimation();
+      transform = { ...renderedTransform };
+      renderTransform(renderedTransform);
     };
     const handlePointerDown = (event: PointerEvent): void => {
       if (event.button !== 0 || !event.isPrimary) return;
-      event.preventDefault();
-      event.stopPropagation();
       this.bringPinnedCardToFront(element);
+      const target = event.target as Element | null;
+      if (target?.closest("button, a, input, select, textarea")) return;
+      event.stopPropagation();
+      adoptRenderedTransform();
       element.focus({ preventScroll: true });
       draggingPointerID = event.pointerId;
-      previousPointerX = event.clientX;
-      previousPointerY = event.clientY;
-      element.classList.add("is-dragging");
-      element.setPointerCapture(event.pointerId);
+      pointerStartX = event.clientX;
+      pointerStartY = event.clientY;
+      cardStartX = transform.x;
+      cardStartY = transform.y;
+      dragMoved = false;
     };
     const handlePointerMove = (event: PointerEvent): void => {
       if (event.pointerId !== draggingPointerID) return;
+      const deltaX = event.clientX - pointerStartX;
+      const deltaY = event.clientY - pointerStartY;
+      if (
+        !dragMoved &&
+        Math.hypot(deltaX, deltaY) < PINNED_CARD_DRAG_THRESHOLD
+      ) {
+        return;
+      }
       event.preventDefault();
+      if (!dragMoved) {
+        dragMoved = true;
+        element.classList.add("is-dragging");
+        element.setPointerCapture(event.pointerId);
+      }
       transform = {
         ...transform,
-        x: transform.x + event.clientX - previousPointerX,
-        y: transform.y + event.clientY - previousPointerY,
+        x: cardStartX + deltaX,
+        y: cardStartY + deltaY,
       };
-      previousPointerX = event.clientX;
-      previousPointerY = event.clientY;
       clampToViewport();
     };
     const stopDragging = (event: PointerEvent): void => {
       if (event.pointerId !== draggingPointerID) return;
       draggingPointerID = undefined;
       element.classList.remove("is-dragging");
+      if (dragMoved) {
+        suppressNextClick = true;
+        if (suppressClickTimerID !== undefined) {
+          this.options.ownerWindow.clearTimeout(suppressClickTimerID);
+        }
+        suppressClickTimerID = this.options.ownerWindow.setTimeout(() => {
+          suppressClickTimerID = undefined;
+          suppressNextClick = false;
+        }, 50);
+      }
+      dragMoved = false;
       if (element.hasPointerCapture(event.pointerId)) {
         element.releasePointerCapture(event.pointerId);
       }
+    };
+    const handleClickCapture = (event: MouseEvent): void => {
+      if (!suppressNextClick) return;
+      suppressNextClick = false;
+      event.preventDefault();
+      event.stopImmediatePropagation();
     };
     const handleWheel = (event: WheelEvent): void => {
       event.preventDefault();
       event.stopPropagation();
       this.bringPinnedCardToFront(element);
-      const boundedDelta = Math.max(-100, Math.min(100, event.deltaY));
+      const boundedDelta = Math.max(
+        -PINNED_CARD_MAX_WHEEL_DELTA,
+        Math.min(
+          PINNED_CARD_MAX_WHEEL_DELTA,
+          normalizeWheelDelta(event, root.clientHeight),
+        ),
+      );
       const nextScale = Math.max(
         PINNED_CARD_MIN_SCALE,
         Math.min(
           PINNED_CARD_MAX_SCALE,
-          transform.scale * Math.exp(-boundedDelta * 0.0025),
+          transform.scale *
+            Math.exp(-boundedDelta * PINNED_CARD_WHEEL_SENSITIVITY),
         ),
       );
       transform = zoomPinnedCardAtPoint(transform, nextScale, {
         x: event.clientX,
         y: event.clientY,
       });
-      clampToViewport();
+      animateToClampedTransform();
     };
     const handleDoubleClick = (event: MouseEvent): void => {
+      const target = event.target as Element | null;
+      if (target?.closest("button, a, input, select, textarea")) return;
       event.preventDefault();
       event.stopPropagation();
+      this.cancelImageNavigation();
       this.closePinnedCard(resultID);
     };
     const handleKeyDown = (event: KeyboardEvent): void => {
@@ -1302,15 +1681,17 @@ export class FigureSidebarPanel {
     };
     const view = document.defaultView;
 
+    element.addEventListener("click", handleClickCapture, true);
     element.addEventListener("pointerdown", handlePointerDown);
     element.addEventListener("pointermove", handlePointerMove);
     element.addEventListener("pointerup", stopDragging);
     element.addEventListener("pointercancel", stopDragging);
+    element.addEventListener("lostpointercapture", stopDragging);
     element.addEventListener("wheel", handleWheel, { passive: false });
     element.addEventListener("dblclick", handleDoubleClick);
     element.addEventListener("keydown", handleKeyDown);
     view?.addEventListener("resize", clampToViewport);
-    applyTransform();
+    applyTransformImmediately();
 
     let disposed = false;
     return {
@@ -1318,6 +1699,10 @@ export class FigureSidebarPanel {
       dispose: () => {
         if (disposed) return;
         disposed = true;
+        if (suppressClickTimerID !== undefined) {
+          this.options.ownerWindow.clearTimeout(suppressClickTimerID);
+        }
+        cancelTransformAnimation();
         view?.removeEventListener("resize", clampToViewport);
         element.remove();
         releaseImageURL();
@@ -1332,12 +1717,16 @@ export class FigureSidebarPanel {
   private closePinnedCard(resultID: string): void {
     const entry = this.pinnedCards.get(resultID);
     if (!entry) return;
+    this.cancelImageNavigation();
+    if (this.menuAnchor && entry.element.contains(this.menuAnchor)) {
+      this.closeMenu();
+    }
     this.pinnedCards.delete(resultID);
     entry.dispose();
   }
 
   private disposePinnedCards(): void {
-    this.pendingPinnedCardIDs.clear();
+    this.pendingPinnedCards.clear();
     for (const entry of this.pinnedCards.values()) entry.dispose();
     this.pinnedCards.clear();
     this.pinnedCardZIndex = PINNED_CARD_Z_INDEX_BASE;
@@ -1526,6 +1915,37 @@ export class FigureSidebarPanel {
     const comment = document.createElement("button");
     comment.type = "button";
     comment.className = "zoterofigure-card-comment";
+    this.applyCommentExpansion(comment, expanded);
+    const textNode = document.createElement("span");
+    textNode.className = "zoterofigure-card-comment-text";
+    textNode.textContent = text;
+    comment.append(textNode);
+    comment.addEventListener("click", (event) => {
+      event.stopPropagation();
+      this.setCommentExpansion(
+        result.id,
+        !comment.classList.contains("expanded"),
+      );
+    });
+    return comment;
+  }
+
+  private setCommentExpansion(resultID: string, expanded: boolean): void {
+    if (expanded) this.expandedComments.add(resultID);
+    else this.expandedComments.delete(resultID);
+    const cards = [
+      this.resultCards.get(resultID),
+      this.pinnedCards.get(resultID)?.element,
+    ];
+    for (const card of cards) {
+      const comment = card?.querySelector<HTMLElement>(
+        ".zoterofigure-card-comment:not(.is-empty)",
+      );
+      if (comment) this.applyCommentExpansion(comment, expanded);
+    }
+  }
+
+  private applyCommentExpansion(comment: HTMLElement, expanded: boolean): void {
     comment.classList.toggle("expanded", expanded);
     comment.setAttribute("aria-expanded", String(expanded));
     comment.setAttribute(
@@ -1534,25 +1954,6 @@ export class FigureSidebarPanel {
         expanded ? "sidebar-collapse-caption" : "sidebar-expand-caption",
       ),
     );
-    const textNode = document.createElement("span");
-    textNode.className = "zoterofigure-card-comment-text";
-    textNode.textContent = text;
-    comment.append(textNode);
-    comment.addEventListener("click", (event) => {
-      event.stopPropagation();
-      const nextExpanded = !this.expandedComments.has(result.id);
-      if (nextExpanded) this.expandedComments.add(result.id);
-      else this.expandedComments.delete(result.id);
-      comment.classList.toggle("expanded", nextExpanded);
-      comment.setAttribute("aria-expanded", String(nextExpanded));
-      comment.setAttribute(
-        "aria-label",
-        getString(
-          nextExpanded ? "sidebar-collapse-caption" : "sidebar-expand-caption",
-        ),
-      );
-    });
-    return comment;
   }
 
   private createMenuButton(
@@ -1576,7 +1977,7 @@ export class FigureSidebarPanel {
     anchor: HTMLButtonElement,
     result: StoredFigureResult,
   ): void {
-    this.menu?.remove();
+    this.closeMenu();
     const menu = this.options.ownerWindow.document.createXULElement(
       "menupopup",
     ) as MenuPopup;
@@ -1587,8 +1988,23 @@ export class FigureSidebarPanel {
     this.appendMenuItem(menu, "sidebar-save-image", () =>
       this.options.onSaveImage(result),
     );
+    const sourceCard = anchor.closest<HTMLElement>(
+      ".zoterofigure-sidebar-card:not(.zoterofigure-pinned-card)",
+    );
+    if (sourceCard) {
+      this.appendMenuItem(menu, "sidebar-pin-image", () => {
+        this.cancelImageNavigation();
+        return this.pinCard(result, sourceCard);
+      });
+    }
     this.appendMenuItem(menu, "sidebar-go-to-page", () =>
       this.options.onGoToPage(result),
+    );
+    this.appendMenuItem(menu, "sidebar-edit-comment", () =>
+      this.openCommentEditor(result),
+    );
+    this.appendMenuItem(menu, "sidebar-correct-region", () =>
+      this.openRegionEditor(result),
     );
     menu.append(
       this.options.ownerWindow.document.createXULElement("menuseparator"),
@@ -1603,9 +2019,217 @@ export class FigureSidebarPanel {
       this.options.ownerWindow.document.querySelector("#browser") ??
       this.options.ownerWindow.document.documentElement;
     container.append(menu);
-    menu.addEventListener("popuphidden", () => menu.remove(), { once: true });
-    menu.openPopup(anchor, "after_start", 0, 0, false, false);
     this.menu = menu;
+    this.menuAnchor = anchor;
+    menu.addEventListener(
+      "popuphidden",
+      () => {
+        menu.remove();
+        if (this.menu !== menu) return;
+        this.menu = undefined;
+        this.menuAnchor = undefined;
+      },
+      { once: true },
+    );
+    menu.openPopup(anchor, "after_start", 0, 0, false, false);
+  }
+
+  private closeMenu(): void {
+    const menu = this.menu;
+    this.menu = undefined;
+    this.menuAnchor = undefined;
+    menu?.remove();
+  }
+
+  private async openCommentEditor(result: StoredFigureResult): Promise<void> {
+    this.commentEditor?.window?.close();
+    const dialogData: {
+      _lastButtonId?: string;
+      comment: string;
+      unloadLock?: { promise: Promise<void>; resolve: () => void };
+    } = { comment: result.comment };
+    const dialog = new ztoolkit.Dialog(1, 1)
+      .setDialogData(dialogData)
+      .addCell(0, 0, {
+        tag: "div",
+        styles: {
+          display: "flex",
+          flexDirection: "column",
+          gap: "8px",
+          minWidth: "420px",
+          width: "100%",
+        },
+        children: [
+          {
+            tag: "label",
+            attributes: { for: "zoterofigure-comment-editor" },
+            properties: {
+              textContent: getString("sidebar-edit-comment-description"),
+            },
+            styles: {
+              color: "var(--fill-secondary)",
+              fontSize: "12px",
+            },
+          },
+          {
+            tag: "textarea",
+            id: "zoterofigure-comment-editor",
+            attributes: {
+              "data-bind": "comment",
+              "data-prop": "value",
+              maxlength: COMMENT_EDITOR_MAX_LENGTH,
+              rows: 2,
+            },
+            styles: {
+              background: "var(--material-background)",
+              border: "1px solid var(--fill-quaternary)",
+              borderRadius: "5px",
+              boxSizing: "border-box",
+              color: "var(--fill-primary)",
+              font: "inherit",
+              lineHeight: "1.45",
+              height: "4.1em",
+              maxHeight: "4.1em",
+              minHeight: "4.1em",
+              overflowY: "auto",
+              padding: "8px",
+              resize: "none",
+              width: "100%",
+            },
+          },
+        ],
+      })
+      .addButton(getString("sidebar-edit-comment-save"), "save")
+      .addButton(getString("sidebar-edit-comment-cancel"), "cancel")
+      .open(getString("sidebar-edit-comment-title"), {
+        centerscreen: true,
+        fitContent: true,
+        noDialogMode: true,
+        resizable: true,
+      });
+    this.commentEditor = dialog;
+    dialog.window.addEventListener(
+      "load",
+      () => {
+        const textarea =
+          dialog.window.document.querySelector<HTMLTextAreaElement>(
+            "#zoterofigure-comment-editor",
+          );
+        textarea?.focus();
+        textarea?.setSelectionRange(
+          textarea.value.length,
+          textarea.value.length,
+        );
+      },
+      { once: true },
+    );
+    try {
+      await dialogData.unloadLock?.promise;
+      if (dialogData._lastButtonId !== "save") return;
+      const updated = await this.options.onEditComment(
+        result,
+        dialogData.comment,
+      );
+      if (updated) this.applyUpdatedResult(updated);
+    } finally {
+      if (this.commentEditor === dialog) this.commentEditor = undefined;
+    }
+  }
+
+  private async openRegionEditor(result: StoredFigureResult): Promise<void> {
+    this.correctionEditor?.window?.close();
+    const preview = await this.options.onPrepareCorrection(result);
+    const dialogData: {
+      _lastButtonId?: string;
+      rect: Rect;
+      unloadLock?: { promise: Promise<void>; resolve: () => void };
+    } = { rect: [...preview.rect] };
+    const dialog = new ztoolkit.Dialog(1, 1)
+      .setDialogData(dialogData)
+      .addCell(0, 0, {
+        tag: "div",
+        id: "zoterofigure-region-editor",
+      })
+      .addButton(getString("sidebar-correct-region-save"), "save")
+      .addButton(getString("sidebar-correct-region-cancel"), "cancel")
+      .open(getString("sidebar-correct-region-title"), {
+        centerscreen: true,
+        fitContent: true,
+        noDialogMode: true,
+        resizable: true,
+      });
+    this.correctionEditor = dialog;
+    let cleanup = () => {};
+    dialog.window.addEventListener(
+      "load",
+      () => {
+        const host = dialog.window.document.querySelector<HTMLElement>(
+          "#zoterofigure-region-editor",
+        );
+        if (host) {
+          cleanup = installRegionEditor(
+            dialog.window.document,
+            host,
+            preview,
+            dialogData,
+          );
+        }
+      },
+      { once: true },
+    );
+    try {
+      await dialogData.unloadLock?.promise;
+      if (dialogData._lastButtonId !== "save") return;
+      const updated = await this.options.onCorrectRegion(
+        result,
+        dialogData.rect,
+      );
+      if (!updated) return;
+      this.closePinnedCard(result.id);
+      this.reloadResults();
+    } finally {
+      cleanup();
+      if (this.correctionEditor === dialog) this.correctionEditor = undefined;
+    }
+  }
+
+  private applyUpdatedResult(updated: StoredFigureResult): void {
+    if (!this.results) return;
+    this.results = this.results.map((result) =>
+      result.id === updated.id ? updated : result,
+    );
+    this.translationRequestID++;
+    this.translationPending = false;
+    this.translatedComments.delete(updated.id);
+    this.closeFilterPopover();
+    for (const entry of this.imageEntries) {
+      if (entry.result.id !== updated.id) continue;
+      entry.result = updated;
+      entry.image.alt = updated.comment;
+    }
+    const cards = [
+      this.resultCards.get(updated.id),
+      this.pinnedCards.get(updated.id)?.element,
+    ];
+    for (const card of cards) {
+      if (!card) continue;
+      const document = card.ownerDocument;
+      card
+        .querySelector<HTMLElement>(".zoterofigure-card-end")
+        ?.replaceChildren(this.createMenuButton(document, updated));
+      card
+        .querySelector<HTMLElement>(".zoterofigure-card-comment")
+        ?.replaceWith(this.createComment(document, updated));
+      const image = card.querySelector<HTMLImageElement>(
+        ".zoterofigure-card-image img",
+      );
+      if (image) image.alt = updated.comment;
+    }
+    this.refreshControls();
+  }
+
+  private getCurrentResult(resultID: string): StoredFigureResult | undefined {
+    return this.results?.find((result) => result.id === resultID);
   }
 
   private appendMenuItem(
@@ -1733,6 +2357,183 @@ function isNativeSidebarView(
   return view === "annotations" || view === "outline" || view === "thumbnails";
 }
 
+function getDocumentViewportSize(document: Document): Size {
+  return {
+    height: document.documentElement.clientHeight,
+    width: document.documentElement.clientWidth,
+  };
+}
+
+function pinnedCardTransformsAreClose(
+  current: PinnedCardTransform,
+  target: PinnedCardTransform,
+): boolean {
+  return (
+    Math.abs(current.x - target.x) <= PINNED_CARD_POSITION_EPSILON &&
+    Math.abs(current.y - target.y) <= PINNED_CARD_POSITION_EPSILON &&
+    Math.abs(current.scale - target.scale) <= PINNED_CARD_SCALE_EPSILON
+  );
+}
+
+function normalizeWheelDelta(event: WheelEvent, pageHeight: number): number {
+  if (event.deltaMode === 1) return event.deltaY * 16;
+  if (event.deltaMode === 2) return event.deltaY * pageHeight;
+  return event.deltaY;
+}
+
+function installRegionEditor(
+  document: Document,
+  host: HTMLElement,
+  preview: ResultCorrectionPreview,
+  dialogData: { rect: Rect },
+): () => void {
+  const style = document.createElement("style");
+  style.textContent = `
+    #zoterofigure-region-editor {
+      align-items: center;
+      display: flex;
+      flex-direction: column;
+      max-width: 80vw;
+      min-width: 420px;
+    }
+    #zoterofigure-region-stage {
+      background: var(--material-mix-quinary);
+      display: inline-block;
+      line-height: 0;
+      overflow: hidden;
+      position: relative;
+    }
+    #zoterofigure-region-page {
+      display: block;
+      height: auto;
+      max-height: 68vh;
+      max-width: min(720px, 78vw);
+      user-select: none;
+      width: auto;
+    }
+    #zoterofigure-region-selection {
+      background: color-mix(in srgb, var(--accent-blue, #3b82f6) 14%, transparent);
+      border: 2px solid var(--accent-blue, #3b82f6);
+      box-sizing: border-box;
+      cursor: move;
+      position: absolute;
+      touch-action: none;
+    }
+    .zoterofigure-region-handle {
+      background: var(--material-background);
+      border: 2px solid var(--accent-blue, #3b82f6);
+      box-sizing: border-box;
+      height: 12px;
+      position: absolute;
+      width: 12px;
+    }
+    .zoterofigure-region-handle[data-handle="nw"] { cursor: nwse-resize; left: 0; top: 0; transform: translate(-50%, -50%); }
+    .zoterofigure-region-handle[data-handle="ne"] { cursor: nesw-resize; right: 0; top: 0; transform: translate(50%, -50%); }
+    .zoterofigure-region-handle[data-handle="sw"] { bottom: 0; cursor: nesw-resize; left: 0; transform: translate(-50%, 50%); }
+    .zoterofigure-region-handle[data-handle="se"] { bottom: 0; cursor: nwse-resize; right: 0; transform: translate(50%, 50%); }
+    #zoterofigure-region-reset {
+      align-self: flex-start;
+      margin-top: 8px;
+    }
+  `;
+
+  const stage = document.createElement("div");
+  stage.id = "zoterofigure-region-stage";
+  const image = document.createElement("img");
+  image.id = "zoterofigure-region-page";
+  image.alt = "";
+  image.draggable = false;
+  image.src = preview.imageURL;
+  const selection = document.createElement("div");
+  selection.id = "zoterofigure-region-selection";
+  selection.setAttribute(
+    "aria-label",
+    getString("sidebar-correct-region-selection"),
+  );
+  for (const handle of ["nw", "ne", "sw", "se"] as const) {
+    const node = document.createElement("span");
+    node.className = "zoterofigure-region-handle";
+    node.dataset.handle = handle;
+    node.setAttribute("aria-hidden", "true");
+    selection.append(node);
+  }
+  stage.append(image, selection);
+  const reset = document.createElement("button");
+  reset.id = "zoterofigure-region-reset";
+  reset.type = "button";
+  reset.textContent = getString("sidebar-correct-region-reset");
+  host.replaceChildren(style, stage, reset);
+
+  const originalRect = [...preview.detectedRect] as Rect;
+  const render = () => {
+    const [left, top, right, bottom] = dialogData.rect;
+    selection.style.left = `${left * 100}%`;
+    selection.style.top = `${top * 100}%`;
+    selection.style.width = `${(right - left) * 100}%`;
+    selection.style.height = `${(bottom - top) * 100}%`;
+  };
+  render();
+
+  const view = document.defaultView;
+  let pointerID: number | undefined;
+  let pointerStartX = 0;
+  let pointerStartY = 0;
+  let startRect = [...dialogData.rect] as Rect;
+  let mode: ResultRegionEditMode = "move";
+  const handlePointerDown = (event: PointerEvent) => {
+    if (event.button !== 0 || pointerID !== undefined) return;
+    event.preventDefault();
+    pointerID = event.pointerId;
+    pointerStartX = event.clientX;
+    pointerStartY = event.clientY;
+    startRect = [...dialogData.rect];
+    const handle = (event.target as HTMLElement).dataset.handle;
+    mode =
+      handle === "ne" || handle === "nw" || handle === "se" || handle === "sw"
+        ? handle
+        : "move";
+    selection.setPointerCapture(event.pointerId);
+  };
+  const handlePointerMove = (event: PointerEvent) => {
+    if (event.pointerId !== pointerID) return;
+    const bounds = stage.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) return;
+    const deltaX = (event.clientX - pointerStartX) / bounds.width;
+    const deltaY = (event.clientY - pointerStartY) / bounds.height;
+    dialogData.rect = resizeNormalizedResultRegion(
+      startRect,
+      mode,
+      deltaX,
+      deltaY,
+    );
+    render();
+  };
+  const handlePointerUp = (event: PointerEvent) => {
+    if (event.pointerId !== pointerID) return;
+    if (selection.hasPointerCapture(event.pointerId)) {
+      selection.releasePointerCapture(event.pointerId);
+    }
+    pointerID = undefined;
+  };
+  const handleReset = () => {
+    dialogData.rect = [...originalRect];
+    render();
+  };
+  selection.addEventListener("pointerdown", handlePointerDown);
+  view?.addEventListener("pointermove", handlePointerMove);
+  view?.addEventListener("pointerup", handlePointerUp);
+  view?.addEventListener("pointercancel", handlePointerUp);
+  reset.addEventListener("click", handleReset);
+
+  return () => {
+    selection.removeEventListener("pointerdown", handlePointerDown);
+    view?.removeEventListener("pointermove", handlePointerMove);
+    view?.removeEventListener("pointerup", handlePointerUp);
+    view?.removeEventListener("pointercancel", handlePointerUp);
+    reset.removeEventListener("click", handleReset);
+  };
+}
+
 function createSvgIcon(
   document: Document,
   kind:
@@ -1837,6 +2638,15 @@ function iconParts(
         ],
         ["circle", { cx: "9", cy: "9", r: "2" }],
         ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" }],
+      ];
+    case "formula":
+      return [
+        [
+          "path",
+          {
+            d: "M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2",
+          },
+        ],
       ];
     case "table":
       return [

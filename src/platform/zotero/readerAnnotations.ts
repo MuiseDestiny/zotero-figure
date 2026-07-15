@@ -61,7 +61,7 @@ export function getGeneratedReaderAnnotations(
 
 export function getReaderAnnotationKind(
   annotation: ReaderAnnotationData,
-): "figure" | "table" | undefined {
+): "figure" | "formula" | "table" | undefined {
   return getGeneratedAnnotationKind(annotation);
 }
 

@@ -2,6 +2,7 @@ import * as assert from "node:assert/strict";
 import test from "node:test";
 import {
   getFigureResultFingerprint,
+  getFigureResultImageFingerprint,
   getFigureResultID,
   type FigureResultAnalysisIdentity,
 } from "../src/domain/figureResults";
@@ -37,6 +38,14 @@ test("figure result fingerprints and IDs are stable after normalization", () => 
   assert.notEqual(
     getFigureResultID(candidate),
     getFigureResultID({ ...equivalent, pageIndex: 1 }),
+  );
+  assert.equal(
+    getFigureResultFingerprint({
+      ...candidate,
+      comment: "Figure 1. Manually corrected",
+      detectedComment: candidate.comment,
+    }),
+    getFigureResultFingerprint(candidate),
   );
 });
 
@@ -142,7 +151,7 @@ test("replace-page reuses a versioned PNG when the fingerprint is unchanged", as
     );
     assert.deepEqual(manifest.imageCache[seeded.results[0].id], {
       ...DEFAULT_FIGURE_RESULT_ANALYSIS_IDENTITY,
-      fingerprint: getFigureResultFingerprint(candidate),
+      fingerprint: getFigureResultImageFingerprint(candidate),
       sourceFingerprint: "item:4:ATTACHMENT:1",
     });
     harness.io.operations.directories.length = 0;
@@ -419,10 +428,130 @@ test("persists translations in the local manifest by target-language context", a
     const manifest = JSON.parse(
       harness.io.readText(getManifestPath())!,
     ) as Record<string, unknown>;
-    assert.equal(manifest.schemaVersion, 3);
+    assert.equal(manifest.schemaVersion, 5);
     assert.ok(manifest.analysisIdentity);
     assert.ok(manifest.imageCache);
     assert.ok(manifest.translations);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("preserves manual captions across repeated analysis without rewriting PNGs", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate({ comment: "Figure 1. Detected caption" });
+  const contextKey = "zotero-pdf-translate/v1:zh-Hans";
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    const original = seeded.results[0];
+    await store.saveTranslations(harness.item, contextKey, [
+      { id: original.id, source: original.comment, text: "旧翻译" },
+    ]);
+
+    const updated = await store.updateComment(
+      harness.item,
+      original.id,
+      "  Figure 1. Corrected caption  ",
+    );
+
+    assert.equal(updated?.id, original.id);
+    assert.equal(updated?.comment, "Figure 1. Corrected caption");
+    assert.equal(updated?.detectedComment, candidate.comment);
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [1, 2, 3]);
+    assert.equal(
+      (await store.getCachedTranslations(harness.item, contextKey)).size,
+      0,
+    );
+    assert.equal(
+      (await store.getReusablePageResults(harness.item, 0, [candidate]))?.[0]
+        .comment,
+      "Figure 1. Corrected caption",
+    );
+
+    harness.io.operations.writes.length = 0;
+    const repeated = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(9)],
+      "replace-page",
+    );
+    assert.equal(repeated.skipped, 1);
+    assert.equal(repeated.results[0].comment, "Figure 1. Corrected caption");
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [1, 2, 3]);
+    assert.deepEqual(harness.io.operations.writes, []);
+
+    const reset = await store.updateComment(
+      harness.item,
+      original.id,
+      candidate.comment,
+    );
+    assert.equal(reset?.comment, candidate.comment);
+    assert.equal(reset?.detectedComment, undefined);
+    const manifest = JSON.parse(harness.io.readText(getManifestPath())!) as {
+      schemaVersion: number;
+    };
+    assert.equal(manifest.schemaVersion, 5);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("persists manual crop corrections across repeated analysis", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+  const correctedRect: [number, number, number, number] = [2, 3, 12, 14];
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1)],
+      "replace-page",
+    );
+    const original = seeded.results[0];
+    const corrected = await store.updateRegion(
+      harness.item,
+      original.id,
+      correctedRect,
+      bytes(9, 8),
+    );
+
+    assert.equal(corrected?.id, original.id);
+    assert.deepEqual(corrected?.rect, correctedRect);
+    assert.deepEqual(corrected?.detectedRect, candidate.rect);
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [9, 8]);
+
+    const repeated = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(2)],
+      "replace-page",
+    );
+    assert.deepEqual(repeated.results[0].rect, correctedRect);
+    assert.deepEqual(repeated.results[0].detectedRect, candidate.rect);
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [9, 8]);
+
+    const reset = await store.updateRegion(
+      harness.item,
+      original.id,
+      candidate.rect,
+      bytes(7),
+    );
+    assert.deepEqual(reset?.rect, candidate.rect);
+    assert.equal(reset?.detectedRect, undefined);
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [7]);
   } finally {
     harness.restore();
   }
@@ -461,7 +590,7 @@ test("migrates schema v1 without losing results or images", async () => {
     const upgraded = JSON.parse(harness.io.readText(getManifestPath())!) as {
       schemaVersion: number;
     };
-    assert.equal(upgraded.schemaVersion, 3);
+    assert.equal(upgraded.schemaVersion, 5);
 
     harness.io.operations.writes.length = 0;
     await store.reconcilePage(
@@ -526,7 +655,7 @@ test("migrates schema v2 translations and rebuilds missing image metadata", asyn
       imageCache?: unknown;
       schemaVersion: number;
     };
-    assert.equal(upgraded.schemaVersion, 3);
+    assert.equal(upgraded.schemaVersion, 5);
     assert.ok(upgraded.imageCache);
     assert.equal(
       (await store.getCachedTranslations(harness.item, contextKey)).get(
@@ -691,6 +820,38 @@ test("preserves translations for unchanged results and prunes replaced results",
       ).includes(seeded.results[0].id),
       false,
     );
+  } finally {
+    harness.restore();
+  }
+});
+
+test("discovers only attachment result directories with manifests", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  try {
+    harness.io.writeText(
+      "/data/zotero-figure/results/4/B_ATTACHMENT/manifest.json",
+      "{}",
+    );
+    harness.io.writeText(
+      "/data/zotero-figure/results/4/A_ATTACHMENT/manifest.json",
+      "{}",
+    );
+    harness.io.writeText(
+      "/data/zotero-figure/results/4/NO_MANIFEST/images/result.png",
+      "not-an-image",
+    );
+    harness.io.writeText(
+      "/data/zotero-figure/results/4/invalid.key/manifest.json",
+      "{}",
+    );
+
+    assert.deepEqual(await store.listIndexedAttachmentKeys(4), [
+      "A_ATTACHMENT",
+      "B_ATTACHMENT",
+    ]);
+    assert.deepEqual(await store.listIndexedAttachmentKeys(5), []);
+    await assert.rejects(store.listIndexedAttachmentKeys(-1), /invalid ID/);
   } finally {
     harness.restore();
   }

@@ -1,21 +1,11 @@
-preferences-model-title = Модель анализа макета
-preferences-model-description = Оптимизированная модель Q8 включена в Zotero Figure. Перед локальным анализом она копируется в каталог данных Zotero и автоматически проверяется.
 preferences-restore-model =
     .label = Восстановить встроенную модель
 preferences-verify =
     .label = Проверить снова
 preferences-reveal =
     .label = Показать в папке
-preferences-managed-directory =
-    .value = Управляемое хранилище
-preferences-managed-directory-description = Встроенная модель извлекается сюда один раз и перед каждым анализом проверяется по точному размеру и SHA-256.
-
-preferences-analysis-title = Поведение анализа
-preferences-duplicate-mode =
-    .value = Существующие результаты
-preferences-duplicate-replace = Заменять результаты на каждой проанализированной странице
-preferences-duplicate-skip = Сохранять результаты и добавлять только недостающие
-preferences-duplicate-description = Замена обновляет локальные результаты на каждой проанализированной странице. Сохранение добавляет только рисунки и таблицы, которых еще нет в локальном хранилище.
 preferences-sync-annotations =
     .label = После анализа также синхронизировать результаты с аннотациями изображений Zotero
-preferences-sync-annotations-description = Боковая панель всегда использует локальные результаты. При включении те же результаты копируются в аннотации Zotero для синхронизации и других плагинов, читающих аннотации. По умолчанию отключено.
+preferences-sync-annotations-help =
+    .tooltiptext = Боковая панель всегда использует локальные результаты. При включении те же результаты также копируются в аннотации Zotero для синхронизации и других плагинов, читающих аннотации. По умолчанию отключено.
+    .aria-label = О синхронизации аннотаций

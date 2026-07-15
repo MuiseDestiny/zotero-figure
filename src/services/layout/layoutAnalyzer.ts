@@ -4,18 +4,18 @@ import {
   pageMayContainFigures,
   type AnnotationCandidate,
   type PageLayoutData,
+  type Rect,
 } from "../../domain/layout";
 import {
+  mapLayoutElementsToPdf,
+  transformRect,
+} from "../../domain/pdfCoordinates";
+import {
   reconcileGeneratedAnnotations,
+  type AnnotationTarget,
   type DuplicateMode,
 } from "../../platform/zotero/annotations";
-import {
-  getPageCount,
-  getPageData,
-  renderPageImage,
-  renderPageImageCrops,
-  type PdfReader,
-} from "../../platform/zotero/reader";
+import type { PdfReader } from "../../platform/zotero/reader";
 import {
   isCancellationError,
   OperationCancelledError,
@@ -26,10 +26,16 @@ import { getPref } from "../../utils/prefs";
 import { MODEL_NAME, type ModelVariant } from "../model/modelCatalog";
 import { modelManager } from "../model/modelManager";
 import { LayoutWorkerPool } from "./workerPool";
-import { cropPageImage } from "./pageImageCropper";
+import { MuPdfEngine } from "../pdf/muPdfEngine";
+import type {
+  PdfAnalysisDocument,
+  PdfAnalysisPageData,
+  PdfEngine,
+} from "../pdf/pdfEngine";
 import {
   FigureResultStore,
   type FigureResultStoreReconcile,
+  type StoredFigureResult,
 } from "../results/figureResultStore";
 
 export interface AnalysisProgress {
@@ -66,6 +72,7 @@ export interface AnalysisTimings {
   manifestWriteMs: number;
   modelPreparationMs: number;
   pageDataMs: number;
+  pdfPreparationMs: number;
   postprocessMs: number;
   preprocessMs: number;
   previewFallbackMs: number;
@@ -87,8 +94,15 @@ export interface AnalysisTimings {
 }
 
 export interface AnalysisOptions {
+  annotationReader?: PdfReader;
   signal?: AbortSignal;
   syncAnnotations?: boolean;
+}
+
+export interface ResultCorrectionPreview {
+  detectedRect: Rect;
+  image: ArrayBuffer;
+  rect: Rect;
 }
 
 interface PageOutcome {
@@ -130,11 +144,13 @@ interface PageOutcome {
   workerTotalMs: number;
 }
 
-const LAYOUT_WORKER_COUNT = 1;
-// At most one 12 MP preview canvas (~46 MiB RGBA), one page of encoded crops,
-// and one detection page/tensor may coexist. Keep this bound in sync with the
-// memory analysis in docs/PERFORMANCE.md.
+const LAYOUT_WORKER_COUNT = 2;
+// Two single-threaded ONNX workers may each retain one 640 px image/tensor.
+// MuPDF renders one direct region at a time (at most 8 MP) and never retains a
+// full high-resolution page canvas. Keep these limits aligned with
+// docs/PERFORMANCE.md.
 const MAX_SCHEDULED_PAGES = 3;
+const MAX_OPEN_PDF_DOCUMENTS = 2;
 const MAX_DETECTION_PAGES = 2;
 const MAX_PDF_RENDERS = 1;
 const MAX_PREVIEW_PAGES = 1;
@@ -146,6 +162,9 @@ const SCAN_PROGRESS_WEIGHT = 0.2;
 export class LayoutAnalyzer {
   private readonly scheduledPages = new PagePipelineLimiter(
     MAX_SCHEDULED_PAGES,
+  );
+  private readonly openPdfDocuments = new PagePipelineLimiter(
+    MAX_OPEN_PDF_DOCUMENTS,
   );
   private readonly detectionPages = new PagePipelineLimiter(
     MAX_DETECTION_PAGES,
@@ -159,10 +178,17 @@ export class LayoutAnalyzer {
   private workerPool?: LayoutWorkerPool;
   private workerPoolKey?: string;
 
-  constructor(private readonly resultStore = new FigureResultStore()) {}
+  constructor(
+    private readonly resultStore = new FigureResultStore(),
+    private readonly pdfEngine: PdfEngine = new MuPdfEngine(),
+    private readonly layoutWorkerCount = LAYOUT_WORKER_COUNT,
+  ) {}
 
   public async prewarm(): Promise<void> {
-    const validation = await modelManager.ensureRecommendedModel();
+    const [validation] = await Promise.all([
+      modelManager.ensureRecommendedModel(),
+      this.pdfEngine.prepare(),
+    ]);
     if (validation.state !== "valid") return;
     await this.getWorkerPool(validation.path, validation.variant).prepare();
   }
@@ -171,10 +197,93 @@ export class LayoutAnalyzer {
     this.workerPool?.dispose();
     this.workerPool = undefined;
     this.workerPoolKey = undefined;
+    this.pdfEngine.dispose();
   }
 
-  public async analyze(
+  public async createResultCorrectionPreview(
+    attachment: Zotero.Item,
+    result: StoredFigureResult,
+    signal?: AbortSignal,
+  ): Promise<ResultCorrectionPreview> {
+    const releaseDocument = await this.openPdfDocuments.acquire(signal);
+    let document: PdfAnalysisDocument | undefined;
+    try {
+      document = await this.pdfEngine.open(attachment, signal);
+      const page = await document.getPageData(result.pageIndex, signal);
+      const releaseRender = await this.pdfRenders.acquire(signal);
+      try {
+        const rendered = await document.renderDetectionImage(
+          result.pageIndex,
+          signal,
+        );
+        return {
+          detectedRect: normalizePdfRectForPage(
+            result.detectedRect ?? result.rect,
+            page,
+          ),
+          image: rendered.image,
+          rect: normalizePdfRectForPage(result.rect, page),
+        };
+      } finally {
+        releaseRender();
+      }
+    } finally {
+      await document?.close();
+      releaseDocument();
+    }
+  }
+
+  public async correctResultRegion(
+    attachment: Zotero.Item,
+    result: StoredFigureResult,
+    normalizedRect: Rect,
+    signal?: AbortSignal,
+  ): Promise<StoredFigureResult | undefined> {
+    const releaseDocument = await this.openPdfDocuments.acquire(signal);
+    let document: PdfAnalysisDocument | undefined;
+    try {
+      document = await this.pdfEngine.open(attachment, signal);
+      const page = await document.getPageData(result.pageIndex, signal);
+      const pdfRect = denormalizePageRect(normalizedRect, page);
+      const releasePreview = await this.previewPages.acquire(signal);
+      const releaseRender = await this.pdfRenders.acquire(signal);
+      try {
+        const rendered = await document.renderRegions(
+          result.pageIndex,
+          [pdfRect],
+          signal,
+        );
+        const image = rendered.images[0];
+        if (!image) throw new Error("Corrected result image was not rendered");
+        return await this.resultStore.updateRegion(
+          attachment,
+          result.id,
+          pdfRect,
+          image,
+        );
+      } finally {
+        releaseRender();
+        releasePreview();
+      }
+    } finally {
+      await document?.close();
+      releaseDocument();
+    }
+  }
+
+  public analyze(
     reader: PdfReader,
+    progress: AnalysisProgress,
+    options: AnalysisOptions = {},
+  ): Promise<AnalysisSummary> {
+    return this.analyzeAttachment(reader._item, progress, {
+      ...options,
+      annotationReader: options.annotationReader ?? reader,
+    });
+  }
+
+  public async analyzeAttachment(
+    attachment: Zotero.Item,
     progress: AnalysisProgress,
     options: AnalysisOptions = {},
   ): Promise<AnalysisSummary> {
@@ -195,6 +304,7 @@ export class LayoutAnalyzer {
       manifestWriteMs: 0,
       modelPreparationMs: 0,
       pageDataMs: 0,
+      pdfPreparationMs: 0,
       postprocessMs: 0,
       preprocessMs: 0,
       previewFallbackMs: 0,
@@ -217,9 +327,17 @@ export class LayoutAnalyzer {
     const { signal } = options;
     const syncAnnotations = options.syncAnnotations === true;
     throwIfAborted(signal);
-    const modelStartedAt = Date.now();
-    const validation = await modelManager.ensureRecommendedModel({ signal });
-    timings.modelPreparationMs = Date.now() - modelStartedAt;
+    const modelPreparation = measureAsync(() =>
+      modelManager.ensureRecommendedModel({ signal }),
+    );
+    const pdfPreparation = measureAsync(() => this.pdfEngine.prepare(signal));
+    const [modelResult, pdfResult] = await Promise.all([
+      modelPreparation,
+      pdfPreparation,
+    ]);
+    const validation = modelResult.value;
+    timings.modelPreparationMs = modelResult.elapsedMs;
+    timings.pdfPreparationMs = pdfResult.elapsedMs;
     throwIfAborted(signal);
     if (validation.state === "missing") {
       throw new Error(getString("error-model-file-unavailable"));
@@ -228,18 +346,33 @@ export class LayoutAnalyzer {
       throw new Error(getString("error-model-integrity"));
     }
 
-    const totalPages = getPageCount(reader);
-    const sourceFingerprintStartedAt = Date.now();
-    const sourceFingerprint = await this.resultStore.getSourceFingerprint(
-      reader._item,
-      signal,
-    );
-    timings.sourceFingerprintMs = Date.now() - sourceFingerprintStartedAt;
     const duplicateMode = getDuplicateMode();
     const workerPool = this.getWorkerPool(validation.path, validation.variant);
-    const workerStartedAt = Date.now();
-    await workerPool.prepare(signal);
-    timings.workerPreparationMs = Date.now() - workerStartedAt;
+    const [fingerprintResult, workerResult] = await Promise.all([
+      measureAsync(() =>
+        this.resultStore.getSourceFingerprint(attachment, signal),
+      ),
+      measureAsync(() => workerPool.prepare(signal)),
+    ]);
+    const sourceFingerprint = fingerprintResult.value;
+    timings.sourceFingerprintMs = fingerprintResult.elapsedMs;
+    timings.workerPreparationMs = workerResult.elapsedMs;
+    const annotationTarget = syncAnnotations
+      ? (options.annotationReader ?? attachment)
+      : undefined;
+    const releaseOpenDocument = await this.openPdfDocuments.acquire(signal);
+    let documentResult: { elapsedMs: number; value: PdfAnalysisDocument };
+    try {
+      documentResult = await measureAsync(() =>
+        this.pdfEngine.open(attachment, signal),
+      );
+    } catch (error) {
+      releaseOpenDocument();
+      throw error;
+    }
+    const pdfDocument = documentResult.value;
+    const totalPages = pdfDocument.pageCount;
+    timings.pdfPreparationMs += documentResult.elapsedMs;
 
     const operationController = new AbortController();
     const abortOperation = () => operationController.abort();
@@ -285,7 +418,10 @@ export class LayoutAnalyzer {
           );
 
           const pageDataStartedAt = Date.now();
-          const page = await getPageData(reader, pageIndex);
+          const page = await pdfDocument.getPageData(
+            pageIndex,
+            operationSignal,
+          );
           timings.pageDataMs += Date.now() - pageDataStartedAt;
           throwIfAborted(operationSignal);
           if (!pageMayContainFigures(page.chars)) {
@@ -305,19 +441,23 @@ export class LayoutAnalyzer {
             const pageData = {
               chars: page.chars,
               height: page.viewBox[3] - page.viewBox[1],
+              pageBounds: page.pageBounds,
               pageIndex,
+              pageToPdf: page.pageToPdf,
               viewBox: page.viewBox,
               width: page.viewBox[2] - page.viewBox[0],
             };
             const pageTask = (async () => {
               try {
                 const outcome = await this.processPage(
-                  reader,
+                  attachment,
+                  pdfDocument,
                   workerPool,
                   pageData,
                   sourceFingerprint,
                   duplicateMode,
                   syncAnnotations,
+                  annotationTarget,
                   operationSignal,
                 );
                 completedPages++;
@@ -383,18 +523,26 @@ export class LayoutAnalyzer {
       timings.eventLoopLongTaskCount = responsivenessResult.longTaskCount;
       timings.totalMs = Date.now() - analysisStartedAt;
       if (completed) {
-        logAnalysisCompletion(reader, summary, syncAnnotations);
+        logAnalysisCompletion(attachment, summary, syncAnnotations);
+      }
+      try {
+        await pdfDocument.close();
+      } finally {
+        releaseOpenDocument();
       }
     }
   }
 
   private async processPage(
-    reader: PdfReader,
+    attachment: Zotero.Item,
+    pdfDocument: PdfAnalysisDocument,
     workerPool: LayoutWorkerPool,
-    page: Omit<PageLayoutData, "elements">,
+    page: Omit<PageLayoutData, "elements"> &
+      Pick<PdfAnalysisPageData, "pageBounds" | "pageToPdf">,
     sourceFingerprint: string,
     duplicateMode: DuplicateMode,
     syncAnnotations: boolean,
+    annotationTarget?: AnnotationTarget,
     signal?: AbortSignal,
   ): Promise<PageOutcome> {
     let annotationMs = 0;
@@ -435,9 +583,12 @@ export class LayoutAnalyzer {
         detectionRenderWaitMs = Date.now() - renderWaitStartedAt;
         let image: ArrayBuffer;
         try {
-          const renderingStartedAt = Date.now();
-          image = await renderPageImage(reader, page.pageIndex, page.viewBox);
-          renderingMs = Date.now() - renderingStartedAt;
+          const rendered = await pdfDocument.renderDetectionImage(
+            page.pageIndex,
+            signal,
+          );
+          image = rendered.image;
+          renderingMs = rendered.renderMs + rendered.encodeMs;
         } finally {
           releaseRender();
         }
@@ -448,7 +599,7 @@ export class LayoutAnalyzer {
           page.pageIndex,
           signal,
         );
-        elements = detection.elements;
+        elements = mapLayoutElementsToPdf(detection.elements, page);
         workerDecodeMs = detection.timings.decodeMs;
         workerQueueMs = detection.timings.queueMs;
         preprocessMs = detection.timings.preprocessMs;
@@ -463,7 +614,7 @@ export class LayoutAnalyzer {
       const candidates = buildAnnotationCandidates({ ...page, elements });
       const cacheLookupStartedAt = Date.now();
       const reusableResults = await this.resultStore.getReusablePageResults(
-        reader._item,
+        attachment,
         page.pageIndex,
         candidates,
         signal,
@@ -482,7 +633,7 @@ export class LayoutAnalyzer {
           releasePdfRender = await this.pdfRenders.acquire(signal);
           previewPdfRenderWaitMs = Date.now() - pdfRenderWaitStartedAt;
           const rendered = await this.renderResultImages(
-            reader,
+            pdfDocument,
             candidates,
             page,
             signal,
@@ -521,7 +672,7 @@ export class LayoutAnalyzer {
               },
             }
           : await this.resultStore.reconcilePage(
-              reader._item,
+              attachment,
               page.pageIndex,
               candidates,
               resultImages,
@@ -535,15 +686,26 @@ export class LayoutAnalyzer {
       }
       resultImages = [];
       if (syncAnnotations) {
+        if (!annotationTarget) {
+          throw new Error("Annotation mirroring requires a PDF attachment");
+        }
         const annotationWaitStartedAt = Date.now();
         const releaseAnnotation = await this.annotationPages.acquire(signal);
         annotationStageWaitMs = Date.now() - annotationWaitStartedAt;
         const annotationStartedAt = Date.now();
         try {
+          const annotationCandidates = stored.results
+            .filter((result) => result.pageIndex === page.pageIndex)
+            .map((result) => ({
+              comment: result.comment,
+              pageIndex: result.pageIndex,
+              rect: result.rect,
+              tag: result.tag,
+            }));
           const reconciled = await reconcileGeneratedAnnotations(
-            reader,
+            annotationTarget,
             page.pageIndex,
-            candidates,
+            annotationCandidates,
             duplicateMode,
             signal,
           );
@@ -647,7 +809,7 @@ export class LayoutAnalyzer {
   }
 
   private async renderResultImages(
-    reader: PdfReader,
+    pdfDocument: PdfAnalysisDocument,
     candidates: readonly AnnotationCandidate[],
     page: Omit<PageLayoutData, "elements">,
     signal?: AbortSignal,
@@ -669,67 +831,22 @@ export class LayoutAnalyzer {
         scale: 0,
       };
     }
-    let cropEncodingMs = 0;
-    let pageRenderMs = 0;
-    let pixelCount = 0;
-    let scale = 0;
-    let images: Array<ArrayBuffer | undefined> = candidates.map(
-      () => undefined,
+    const rendered = await pdfDocument.renderRegions(
+      page.pageIndex,
+      candidates.map(({ rect }) => rect),
+      signal,
     );
-    try {
-      const rendered = await renderPageImageCrops(
-        reader,
-        page.pageIndex,
-        page.viewBox,
-        candidates.map(({ rect }) => rect),
-        signal,
-      );
-      images = rendered.images;
-      cropEncodingMs = rendered.cropEncodingMs;
-      pageRenderMs = rendered.pageRenderMs;
-      pixelCount = rendered.pixelCount;
-      scale = rendered.scale;
-    } catch (error) {
-      if (isCancellationError(error)) throw error;
-      ztoolkit.log(
-        "Falling back after the bounded high-resolution page renderer failed",
-        error,
-      );
-    }
-
-    const missingIndices = images.flatMap((image, index) =>
-      image ? [] : [index],
-    );
-    let fallbackMs = 0;
-    if (missingIndices.length > 0) {
-      const fallbackStartedAt = Date.now();
-      const fallbackPageImage = await renderPageImage(
-        reader,
-        page.pageIndex,
-        page.viewBox,
-      );
-      const fallbackImages = await cropPageImage(
-        fallbackPageImage,
-        page.viewBox,
-        missingIndices.map((index) => candidates[index].rect),
-        signal,
-      );
-      for (let index = 0; index < missingIndices.length; index++) {
-        images[missingIndices[index]] = fallbackImages[index];
-      }
-      fallbackMs = Date.now() - fallbackStartedAt;
-    }
     throwIfAborted(signal);
-    if (images.some((image) => !image)) {
+    if (rendered.images.length !== candidates.length) {
       throw new Error("One or more figure previews could not be rendered");
     }
     return {
-      cropEncodingMs,
-      fallbackMs,
-      images: images as ArrayBuffer[],
-      pageRenderMs,
-      pixelCount,
-      scale,
+      cropEncodingMs: rendered.encodeMs,
+      fallbackMs: 0,
+      images: rendered.images,
+      pageRenderMs: rendered.renderMs,
+      pixelCount: rendered.pixelCount,
+      scale: rendered.maxScale,
     };
   }
 
@@ -744,7 +861,11 @@ export class LayoutAnalyzer {
       this.workerPoolKey !== key
     ) {
       this.workerPool?.dispose();
-      this.workerPool = createWorkerPool(variant, modelPath);
+      this.workerPool = createWorkerPool(
+        variant,
+        modelPath,
+        this.layoutWorkerCount,
+      );
       this.workerPoolKey = key;
     }
     return this.workerPool;
@@ -752,14 +873,14 @@ export class LayoutAnalyzer {
 }
 
 function logAnalysisCompletion(
-  reader: PdfReader,
+  attachment: Zotero.Item,
   summary: AnalysisSummary,
   syncAnnotations: boolean,
 ): void {
   try {
     ztoolkit.log(
       "Layout analysis completed",
-      createAnalysisTimingLog(reader, summary, syncAnnotations),
+      createAnalysisTimingLog(attachment, summary, syncAnnotations),
     );
   } catch (error) {
     Zotero.logError(error instanceof Error ? error : new Error(String(error)));
@@ -767,16 +888,16 @@ function logAnalysisCompletion(
 }
 
 function createAnalysisTimingLog(
-  reader: PdfReader,
+  attachment: Zotero.Item,
   summary: AnalysisSummary,
   syncAnnotations: boolean,
 ) {
   const timings = summary.timings;
   return {
     attachment: {
-      itemID: reader._item.id,
-      key: reader._item.key,
-      libraryID: reader._item.libraryID,
+      itemID: attachment.id,
+      key: attachment.key,
+      libraryID: attachment.libraryID,
     },
     wallMs: roundMilliseconds(timings.totalMs),
     pages: {
@@ -792,6 +913,7 @@ function createAnalysisTimingLog(
     },
     setupMs: {
       model: roundMilliseconds(timings.modelPreparationMs),
+      pdfEngine: roundMilliseconds(timings.pdfPreparationMs),
       sourceFingerprint: roundMilliseconds(timings.sourceFingerprintMs),
       worker: roundMilliseconds(timings.workerPreparationMs),
     },
@@ -857,9 +979,18 @@ function roundMetric(value: number): number {
   return Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
 }
 
+async function measureAsync<T>(
+  operation: () => Promise<T>,
+): Promise<{ elapsedMs: number; value: T }> {
+  const startedAt = Date.now();
+  const value = await operation();
+  return { elapsedMs: Date.now() - startedAt, value };
+}
+
 function createWorkerPool(
   variant: ModelVariant,
   modelPath: string,
+  workerCount = LAYOUT_WORKER_COUNT,
 ): LayoutWorkerPool {
   const resourceBaseURL = `chrome://${config.addonRef}/content/`;
   return new LayoutWorkerPool({
@@ -877,7 +1008,7 @@ function createWorkerPool(
     quantized: variant.quantized,
     resourceBaseURL,
     wasmURL: `${resourceBaseURL}transformers/dist/ort-wasm-simd-threaded.jsep.wasm`,
-    workerCount: LAYOUT_WORKER_COUNT,
+    workerCount,
   });
 }
 
@@ -1015,6 +1146,47 @@ function reportDetectionProgress(
       (SCAN_PROGRESS_WEIGHT +
         (completedPages / totalPages) * (1 - SCAN_PROGRESS_WEIGHT)),
   );
+}
+
+function normalizePdfRectForPage(rect: Rect, page: PdfAnalysisPageData): Rect {
+  const pageRect = transformRect(rect, page.pdfToPage);
+  const [pageLeft, pageTop, pageRight, pageBottom] = page.pageBounds;
+  const width = pageRight - pageLeft;
+  const height = pageBottom - pageTop;
+  if (width <= 0 || height <= 0) throw new Error("Invalid PDF page bounds");
+  return normalizeUnitRect([
+    (pageRect[0] - pageLeft) / width,
+    (pageRect[1] - pageTop) / height,
+    (pageRect[2] - pageLeft) / width,
+    (pageRect[3] - pageTop) / height,
+  ]);
+}
+
+function denormalizePageRect(rect: Rect, page: PdfAnalysisPageData): Rect {
+  const normalized = normalizeUnitRect(rect);
+  const [pageLeft, pageTop, pageRight, pageBottom] = page.pageBounds;
+  const width = pageRight - pageLeft;
+  const height = pageBottom - pageTop;
+  if (width <= 0 || height <= 0) throw new Error("Invalid PDF page bounds");
+  return transformRect(
+    [
+      pageLeft + normalized[0] * width,
+      pageTop + normalized[1] * height,
+      pageLeft + normalized[2] * width,
+      pageTop + normalized[3] * height,
+    ],
+    page.pageToPdf,
+  ).map((coordinate) => Math.round(coordinate * 100) / 100) as Rect;
+}
+
+function normalizeUnitRect(value: Rect): Rect {
+  const rect = value.map((coordinate) =>
+    Math.max(0, Math.min(1, coordinate)),
+  ) as Rect;
+  if (rect[2] - rect[0] < 0.005 || rect[3] - rect[1] < 0.005) {
+    throw new Error("Corrected result region is too small");
+  }
+  return rect;
 }
 
 async function yieldToUI(signal?: AbortSignal): Promise<void> {

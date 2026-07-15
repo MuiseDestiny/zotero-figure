@@ -70,6 +70,30 @@ test("runs at most one detection at a time on each worker", async () => {
   assert.equal(worker.terminated, true);
 });
 
+test("runs two detections concurrently across two single-task workers", async () => {
+  const firstWorker = new FakeWorker();
+  const secondWorker = new FakeWorker();
+  const pool = createPool([firstWorker, secondWorker], { workerCount: 2 });
+  const first = pool.detect(new ArrayBuffer(1), 0);
+  const second = pool.detect(new ArrayBuffer(1), 1);
+  await flushTasks();
+
+  assert.equal(firstWorker.messages[1].type, "DETECT");
+  assert.equal(secondWorker.messages[1].type, "DETECT");
+  firstWorker.respond({
+    results: [],
+    taskID: firstWorker.messages[1].taskID,
+    type: "RESULT",
+  });
+  secondWorker.respond({
+    results: [],
+    taskID: secondWorker.messages[1].taskID,
+    type: "RESULT",
+  });
+  await Promise.all([first, second]);
+  pool.dispose();
+});
+
 test("rejects active and queued tasks when disposed", async () => {
   const worker = new FakeWorker();
   const pool = createPool([worker]);

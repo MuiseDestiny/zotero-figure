@@ -1,21 +1,11 @@
-preferences-model-title = 版面分析模型
-preferences-model-description = Zotero Figure 已内置优化版 Q8 模型。插件会将其释放到 Zotero 数据目录，并在本地推理前自动校验。
 preferences-restore-model =
     .label = 恢复内置模型
 preferences-verify =
     .label = 重新校验
 preferences-reveal =
     .label = 在文件夹中显示
-preferences-managed-directory =
-    .value = 托管存储位置
-preferences-managed-directory-description = 内置模型只需释放到此处一次；每次分析前都会严格校验文件大小和 SHA-256。
-
-preferences-analysis-title = 分析行为
-preferences-duplicate-mode =
-    .value = 已有结果
-preferences-duplicate-replace = 替换每个已分析页面的结果
-preferences-duplicate-skip = 保留已有结果，仅补充缺失项
-preferences-duplicate-description = “替换”会更新每个已解析页面的本地结果；“保留”只会补充本地尚未保存的图和表。
 preferences-sync-annotations =
     .label = 解析后同时将结果同步写入 Zotero 图片标注
-preferences-sync-annotations-description = 侧边栏始终使用本地结果。开启后，同一批结果会额外写入 Zotero 标注，供同步和其他读取标注的插件使用。默认关闭。
+preferences-sync-annotations-help =
+    .tooltiptext = 侧边栏始终读取本地结果。开启后，同一批结果会额外镜像到 Zotero 标注，供同步及其他读取标注的插件使用。默认关闭。
+    .aria-label = 查看标注同步说明

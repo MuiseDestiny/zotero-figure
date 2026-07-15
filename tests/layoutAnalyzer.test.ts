@@ -1,8 +1,14 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
-import type { LayoutElement } from "../src/domain/layout";
+import type {
+  AnnotationCandidate,
+  LayoutElement,
+  Rect,
+} from "../src/domain/layout";
 import type { PdfReader } from "../src/platform/zotero/reader";
 import { LayoutAnalyzer } from "../src/services/layout/layoutAnalyzer";
+import { FigureResultStore } from "../src/services/results/figureResultStore";
+import type { PdfEngine } from "../src/services/pdf/pdfEngine";
 import { RECOMMENDED_MODEL } from "../src/services/model/modelCatalog";
 import { modelManager } from "../src/services/model/modelManager";
 import { OperationCancelledError } from "../src/utils/cancellation";
@@ -86,7 +92,7 @@ const detectionResults: LayoutElement[] = [
 
 test("analysis renders one high-resolution page for all local previews", async () => {
   const harness = installAnalyzerHarness();
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   try {
     const summary = await analyzer.analyze(harness.reader, { update() {} });
 
@@ -135,14 +141,11 @@ test("analysis renders one high-resolution page for all local previews", async (
   }
 });
 
-test("falls back to the detection-page crop when preview rendering fails", async () => {
+test("does not persist a low-resolution fallback when region rendering fails", async () => {
   const harness = installAnalyzerHarness({ previewRenderer: false });
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   try {
-    const summary = await analyzer.analyze(harness.reader, { update() {} });
-
-    assert.equal(summary.pagesAnalyzed, 1);
-    assert.equal(summary.resultsCreated, 1);
+    await assert.rejects(analyzer.analyze(harness.reader, { update() {} }));
     assert.equal(harness.renderedPreviewPageCount(), 0);
   } finally {
     analyzer.dispose();
@@ -152,7 +155,7 @@ test("falls back to the detection-page crop when preview rendering fails", async
 
 test("reuses versioned local previews on repeated analysis", async () => {
   const harness = installAnalyzerHarness();
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   try {
     await analyzer.analyze(harness.reader, { update() {} });
     const repeated = await analyzer.analyze(harness.reader, { update() {} });
@@ -177,9 +180,75 @@ test("reuses versioned local previews on repeated analysis", async () => {
   }
 });
 
+test("mirrors a persisted manual caption instead of the detected caption", async () => {
+  const harness = installAnalyzerHarness({ allowAnnotations: true });
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  try {
+    await analyzer.analyze(harness.reader, { update() {} });
+    const [stored] = await store.list(harness.reader._item);
+    await store.updateComment(
+      harness.reader._item,
+      stored.id,
+      "Figure 1. Manually corrected",
+    );
+
+    const summary = await analyzer.analyze(
+      harness.reader,
+      { update() {} },
+      { syncAnnotations: true },
+    );
+
+    assert.equal(summary.annotationsCreated, 1);
+    assert.deepEqual(harness.annotationComments(), [
+      "Figure 1. Manually corrected",
+    ]);
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("maps a corrected preview rectangle back to PDF coordinates", async () => {
+  const harness = installAnalyzerHarness();
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  const candidate: AnnotationCandidate = {
+    comment: "Figure 1. Caption",
+    pageIndex: 0,
+    rect: [1, 2, 10, 12],
+    tag: "Figure 1",
+  };
+  try {
+    const seeded = await store.reconcilePage(
+      harness.reader._item,
+      0,
+      [candidate],
+      [Uint8Array.of(1).buffer],
+      "replace-page",
+    );
+    const preview = await analyzer.createResultCorrectionPreview(
+      harness.reader._item,
+      seeded.results[0],
+    );
+    assert.deepEqual(preview.rect, [0.01, 0.88, 0.1, 0.98]);
+
+    const updated = await analyzer.correctResultRegion(
+      harness.reader._item,
+      seeded.results[0],
+      [0.2, 0.3, 0.6, 0.7],
+    );
+    assert.deepEqual(updated?.rect, [20, 30, 60, 70]);
+    assert.deepEqual(harness.renderedRegionRects.at(-1), [[20, 30, 60, 70]]);
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
 test("overlaps the second page but waits for a permit before rendering the third", async () => {
   const harness = installAnalyzerHarness({ automatic: false, pageCount: 3 });
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   const controller = new AbortController();
   const progress: number[] = [];
   const analysis = analyzer.analyze(
@@ -223,7 +292,7 @@ test("shares the two-page detection limit across concurrent readers", async () =
     pageCount: 2,
     readerCount: 2,
   });
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   const controller = new AbortController();
   const analyses = harness.readers.map((reader) =>
     analyzer.analyze(reader, { update() {} }, { signal: controller.signal }),
@@ -257,7 +326,7 @@ test("shares the two-page detection limit across concurrent readers", async () =
 
 test("cancels active and permit-waiting pages as OperationCancelledError", async () => {
   const harness = installAnalyzerHarness({ automatic: false, pageCount: 3 });
-  const analyzer = new LayoutAnalyzer();
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
   const controller = new AbortController();
   const analysis = analyzer.analyze(
     harness.reader,
@@ -289,6 +358,7 @@ test("cancels active and permit-waiting pages as OperationCancelledError", async
 });
 
 interface AnalyzerHarnessOptions {
+  allowAnnotations?: boolean;
   automatic?: boolean;
   pageCount?: number;
   previewRenderer?: boolean;
@@ -296,55 +366,36 @@ interface AnalyzerHarnessOptions {
 }
 
 function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
+  annotationComments(): readonly string[];
   annotationWrites(): number;
   logs(): readonly (readonly unknown[])[];
+  pdfEngine: PdfEngine;
   reader: PdfReader;
   readers: PdfReader[];
   renderedPages: number[];
+  renderedRegionRects: Rect[][];
   renderedPreviewPageCount(): number;
   restore(): void;
   worker(): AnalyzerWorker;
 } {
   const previousZotero = globalThis.Zotero;
   const previousWorker = globalThis.Worker;
-  const previousOffscreenCanvas = globalThis.OffscreenCanvas;
-  const previousCreateImageBitmap = globalThis.createImageBitmap;
   const previousAddon = (globalThis as any).addon;
   const previousZtoolkit = (globalThis as any).ztoolkit;
   const originalEnsureModel = modelManager.ensureRecommendedModel;
   const io = installMemoryIO();
   io.writeBytes("/data/zotero-figure/models/model.onnx", Uint8Array.of(1));
   let writes = 0;
+  const annotationComments: string[] = [];
   const logs: unknown[][] = [];
   let renderedPreviewPages = 0;
   const renderedPages: number[] = [];
+  const renderedRegionRects: Rect[][] = [];
 
   AnalyzerWorker.automatic = options.automatic ?? true;
   AnalyzerWorker.instances.length = 0;
 
   globalThis.Worker = AnalyzerWorker as unknown as typeof Worker;
-  globalThis.createImageBitmap = async () =>
-    ({
-      close() {},
-      height: 100,
-      width: 100,
-    }) as ImageBitmap;
-  globalThis.OffscreenCanvas = class {
-    public constructor(
-      public width: number,
-      public height: number,
-    ) {}
-
-    public async convertToBlob(): Promise<Blob> {
-      return new Blob([Uint8Array.from([137, 80, 78, 71])], {
-        type: "image/png",
-      });
-    }
-
-    public getContext(): OffscreenCanvasRenderingContext2D {
-      return { drawImage() {} } as unknown as OffscreenCanvasRenderingContext2D;
-    }
-  } as unknown as typeof OffscreenCanvas;
   (globalThis as any).addon = { data: {} };
   (globalThis as any).ztoolkit = {
     log(...values: unknown[]) {
@@ -353,13 +404,24 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
   };
   globalThis.Zotero = {
     Annotations: {
-      saveFromJSON: async () => {
+      saveFromJSON: async (
+        _item: Zotero.Item,
+        annotation: { comment: string },
+      ) => {
         writes++;
-        throw new Error("Annotation mirroring should be opt-in");
+        if (!options.allowAnnotations) {
+          throw new Error("Annotation mirroring should be opt-in");
+        }
+        annotationComments.push(annotation.comment);
+        return {
+          saveTx: async () => undefined,
+          setTags: () => undefined,
+        } as unknown as Zotero.Item;
       },
     },
     DataDirectory: { dir: "/data" },
     Prefs: { get: () => "replace-page" },
+    Utilities: { generateObjectKey: () => "ANNOTATION-KEY" },
   } as unknown as typeof Zotero;
   modelManager.ensureRecommendedModel = async () => ({
     hash: RECOMMENDED_MODEL.sha256,
@@ -420,6 +482,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
           _primaryView: {},
         },
         _item: {
+          getAnnotations: () => [],
           id: readerIndex + 1,
           key: `ATTACHMENT-${readerIndex + 1}`,
           libraryID: 1,
@@ -427,20 +490,69 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
       }) as unknown as PdfReader,
   );
 
+  const pdfEngine: PdfEngine = {
+    dispose() {},
+    async prepare() {},
+    async open() {
+      return {
+        pageCount: options.pageCount ?? 1,
+        async close() {},
+        async getPageData() {
+          return {
+            chars: [
+              {
+                c: "Figure 1. Caption",
+                rect: [10, 5, 80, 18],
+              },
+            ],
+            pageBounds: [0, 0, 100, 100],
+            pdfToPage: [1, 0, 0, -1, 0, 100],
+            pageToPdf: [1, 0, 0, -1, 0, 100],
+            viewBox: [0, 0, 100, 100],
+          };
+        },
+        async renderDetectionImage(pageIndex) {
+          renderedPages.push(pageIndex);
+          return {
+            encodeMs: 1,
+            image: Uint8Array.from([1, 2, 3]).buffer,
+            pixelCount: 409_600,
+            renderMs: 1,
+          };
+        },
+        async renderRegions(_pageIndex, rects) {
+          if (options.previewRenderer === false) {
+            throw new Error("Preview rendering unavailable");
+          }
+          renderedRegionRects.push(rects.map((rect) => [...rect] as Rect));
+          renderedPreviewPages++;
+          return {
+            encodeMs: 1,
+            images: [Uint8Array.from([137, 80, 78, 71]).buffer],
+            maxScale: 4,
+            pixelCount: 160_000,
+            renderMs: 2,
+          };
+        },
+      };
+    },
+  };
+
   return {
+    annotationComments: () => annotationComments,
     annotationWrites: () => writes,
     logs: () => logs,
+    pdfEngine,
     reader: readers[0],
     readers,
     renderedPages,
+    renderedRegionRects,
     renderedPreviewPageCount: () => renderedPreviewPages,
     restore: () => {
       modelManager.ensureRecommendedModel = originalEnsureModel;
       io.restore();
       globalThis.Zotero = previousZotero;
       globalThis.Worker = previousWorker;
-      globalThis.OffscreenCanvas = previousOffscreenCanvas;
-      globalThis.createImageBitmap = previousCreateImageBitmap;
       (globalThis as any).addon = previousAddon;
       (globalThis as any).ztoolkit = previousZtoolkit;
       AnalyzerWorker.instances.length = 0;

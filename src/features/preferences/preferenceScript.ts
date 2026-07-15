@@ -18,7 +18,6 @@ const controllers = new WeakMap<Window, ModelPreferencesController>();
 export async function registerPrefs(): Promise<void> {
   if (preferencePaneID) return;
   preferencePaneID = await Zotero.PreferencePanes.register({
-    helpURL: "https://github.com/MuiseDestiny/zotero-figure#installation",
     image: `chrome://${config.addonRef}/content/icons/favicon.png`,
     label: config.addonName,
     pluginID: config.addonID,
@@ -35,28 +34,22 @@ export function registerPrefsScripts(window: Window): void {
 
 class ModelPreferencesController {
   private closed = false;
-  private readonly duplicateMode: HTMLSelectElement;
   private readonly syncAnnotations: Element & { checked: boolean };
   private installController?: AbortController;
-  private readonly metadata: Element;
   private readonly revealButton: Element;
   private refreshToken = 0;
   private readonly restoreButton: Element;
   private readonly status: Element;
   private readonly statusRow: Element;
-  private readonly storagePath: Element;
   private readonly verifyButton: Element;
 
   constructor(private readonly window: Window) {
     const doc = window.document;
-    this.duplicateMode = requireElement(doc, "#duplicate-mode");
     this.syncAnnotations = requireElement(doc, "#sync-annotations");
-    this.metadata = requireElement(doc, "#model-metadata");
     this.revealButton = requireElement(doc, "#reveal-model");
     this.restoreButton = requireElement(doc, "#restore-model");
     this.status = requireElement(doc, "#model-status");
     this.statusRow = requireElement(doc, "#model-status-row");
-    this.storagePath = requireElement(doc, "#managed-model-path");
     this.verifyButton = requireElement(doc, "#verify-model");
   }
 
@@ -70,13 +63,6 @@ class ModelPreferencesController {
     this.revealButton.addEventListener("command", () => {
       void this.revealModel();
     });
-    this.duplicateMode.addEventListener("change", () => {
-      const value = this.duplicateMode.value;
-      setPref(
-        "duplicateMode",
-        value === "skip-existing" ? "skip-existing" : "replace-page",
-      );
-    });
     this.syncAnnotations.addEventListener("command", () => {
       setPref("syncAnnotations", this.syncAnnotations.checked);
     });
@@ -89,11 +75,6 @@ class ModelPreferencesController {
       },
       { once: true },
     );
-    this.storagePath.textContent = modelManager.getManagedDirectory();
-    this.duplicateMode.value =
-      getPref("duplicateMode") === "skip-existing"
-        ? "skip-existing"
-        : "replace-page";
     this.syncAnnotations.checked = getPref("syncAnnotations") === true;
     this.resetRestoreLabel();
     void this.prepareModel(false);
@@ -180,40 +161,43 @@ class ModelPreferencesController {
 
   private renderValidation(validation: ModelValidation): void {
     if (validation.state === "missing") {
-      this.metadata.textContent = getString("preferences-model-expected", {
-        args: {
-          hash: shortHash(RECOMMENDED_MODEL.sha256),
-          size: formatFileSize(RECOMMENDED_MODEL.size),
-        },
-      });
+      this.setStatusDetail(
+        getString("preferences-model-expected", {
+          args: {
+            hash: shortHash(RECOMMENDED_MODEL.sha256),
+            size: formatFileSize(RECOMMENDED_MODEL.size),
+          },
+        }),
+      );
       this.setStatus("missing", getString("preferences-status-missing"));
       return;
     }
 
     if (validation.state === "invalid") {
-      this.metadata.textContent = getString(
-        "preferences-model-invalid-details",
-        {
+      this.setStatusDetail(
+        getString("preferences-model-invalid-details", {
           args: {
             hash: validation.actualHash
               ? shortHash(validation.actualHash)
               : getString("preferences-hash-not-computed"),
             size: formatFileSize(validation.size),
           },
-        },
+        }),
       );
       this.setStatus("invalid", getString("preferences-status-invalid"));
       return;
     }
 
     const variantName = getString(validation.variant.labelKey);
-    this.metadata.textContent = getString("preferences-model-valid-details", {
-      args: {
-        hash: shortHash(validation.hash),
-        name: variantName,
-        size: formatFileSize(validation.size),
-      },
-    });
+    this.setStatusDetail(
+      getString("preferences-model-valid-details", {
+        args: {
+          hash: shortHash(validation.hash),
+          name: variantName,
+          size: formatFileSize(validation.size),
+        },
+      }),
+    );
     this.setStatus(
       "valid",
       getString("preferences-status-valid", { args: { name: variantName } }),
@@ -246,6 +230,11 @@ class ModelPreferencesController {
   ): void {
     this.statusRow.setAttribute("data-state", state);
     this.status.textContent = text;
+  }
+
+  private setStatusDetail(text: string): void {
+    this.statusRow.setAttribute("title", text);
+    this.statusRow.setAttribute("tooltiptext", text);
   }
 
   private resetRestoreLabel(): void {

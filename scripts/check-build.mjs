@@ -15,16 +15,26 @@ if (!result.outputFiles?.length) {
 }
 
 const requiredInputs = [
+  "src/domain/figureGallery.ts",
   "src/domain/layout.ts",
+  "src/domain/pdfCoordinates.ts",
+  "src/domain/resultRegion.ts",
   "src/domain/figureResults.ts",
+  "src/features/library/figureBatchController.ts",
+  "src/features/gallery/figureGalleryController.ts",
   "src/features/reader/figureSidebarPanel.ts",
   "src/features/reader/figureReaderController.ts",
   "src/platform/zotero/pdfTranslate.ts",
+  "src/platform/zotero/figureGallery.ts",
+  "src/platform/zotero/mainTab.ts",
   "src/platform/zotero/annotations.ts",
+  "src/platform/zotero/attachmentFile.ts",
+  "src/services/figureOutputService.ts",
   "src/services/layout/layoutAnalyzer.ts",
-  "src/services/layout/pageImageCropper.ts",
   "src/services/results/figureResultStore.ts",
+  "src/services/results/figureGalleryIndex.ts",
   "src/services/layout/workerPool.ts",
+  "src/services/pdf/muPdfEngine.ts",
   "src/services/model/modelCatalog.ts",
   "src/services/model/modelManager.ts",
   "src/utils/cancellation.ts",
@@ -36,12 +46,17 @@ for (const input of requiredInputs) {
 
 const requiredAssets = [
   "addon/chrome/content/figure-sidebar.css",
-  "addon/chrome/content/preferences.css",
+  "addon/chrome/content/gallery/gallery.css",
+  "addon/chrome/content/gallery/gallery.js",
+  "addon/chrome/content/gallery/index.html",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/config.json",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/preprocessor_config.json",
   "node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.mjs",
   "node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.wasm",
   "node_modules/@huggingface/transformers/dist/transformers.js",
+  "node_modules/mupdf/dist/mupdf-wasm.js",
+  "node_modules/mupdf/dist/mupdf-wasm.wasm",
+  "node_modules/mupdf/dist/mupdf.js",
 ];
 for (const asset of requiredAssets) {
   if (!existsSync(asset))
@@ -53,11 +68,23 @@ validateZotero9UpdateTemplate("scripts/update-template.json");
 const embeddedModel = validateModelManifest();
 validateEmbeddedModel(embeddedModel);
 validatePreferencesMarkup();
+validateGalleryMarkup();
 
 await transform(readFileSync("addon/chrome/content/yolo-worker.js", "utf8"), {
   loader: "js",
   target: "firefox128",
 });
+await transform(readFileSync("addon/chrome/content/mupdf-worker.js", "utf8"), {
+  loader: "js",
+  target: "firefox128",
+});
+await transform(
+  readFileSync("addon/chrome/content/gallery/gallery.js", "utf8"),
+  {
+    loader: "js",
+    target: "firefox128",
+  },
+);
 
 for (const key of [
   "addonID",
@@ -165,9 +192,6 @@ function validateEmbeddedModel(model) {
 function validatePreferencesMarkup() {
   const markup = readFileSync("addon/chrome/content/preferences.xhtml", "utf8");
   for (const id of [
-    "duplicate-mode",
-    "managed-model-path",
-    "model-metadata",
     "model-status",
     "model-status-row",
     "reveal-model",
@@ -180,13 +204,46 @@ function validatePreferencesMarkup() {
     }
   }
   if (
-    !markup.includes('href="preferences.css"') ||
-    !/<html:select\s+id="duplicate-mode"\s+native="true">/.test(markup) ||
-    markup.includes('id="model-path"')
+    !markup.includes("<html:style>") ||
+    !markup.includes(
+      "#zotero-prefpane-__addonRef__ .button-row > .model-action-button + .model-action-button",
+    ) ||
+    !markup.includes('data-l10n-id="preferences-sync-annotations-help"') ||
+    markup.includes('id="duplicate-mode"') ||
+    markup.includes('id="model-path"') ||
+    markup.includes('id="managed-model-path"') ||
+    markup.includes('id="model-metadata"')
   ) {
     throw new Error(
-      "Preferences must use the native result selector and hide the immutable model path",
+      "Preferences must expose only model maintenance and annotation synchronization controls",
     );
+  }
+}
+
+function validateGalleryMarkup() {
+  const markup = readFileSync(
+    "addon/chrome/content/gallery/index.html",
+    "utf8",
+  );
+  for (const id of [
+    "collection-filter",
+    "document-filter",
+    "gallery-grid",
+    "keyword-filter",
+    "library-filter",
+    "type-filter",
+    "year-filter",
+  ]) {
+    if (!markup.includes(`id="${id}"`)) {
+      throw new Error(`Gallery markup is missing #${id}`);
+    }
+  }
+  if (
+    !markup.includes("chrome://zotero/content/include.js") ||
+    !markup.includes('src="gallery.js?v=__buildTimestamp__"') ||
+    !markup.includes('href="gallery.css?v=__buildTimestamp__"')
+  ) {
+    throw new Error("Gallery must load the Zotero bridge and local assets");
   }
 }
 

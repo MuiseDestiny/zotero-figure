@@ -1,13 +1,46 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getReaderImageCropDataURL,
   renderReaderImageCrop,
   renderReaderImageCropBytes,
   type ReaderImageCrop,
 } from "../src/platform/zotero/readerImageRenderer";
 import type { PdfReader } from "../src/platform/zotero/reader";
+import { installMemoryIO } from "./helpers/memoryIO";
 
 const PNG_DATA_URL = "data:image/png;base64,AAAA";
+
+test("uses the shared local MuPDF PNG before the Reader fallback", async () => {
+  const io = installMemoryIO();
+  let readerCalled = false;
+  try {
+    io.writeBytes("/results/figure.png", Uint8Array.of(137, 80, 78, 71));
+    const reader = {
+      _internalReader: {
+        _lastView: {
+          _pdfRenderer: {
+            _renderAnnotationImage: async () => {
+              readerCalled = true;
+              return PNG_DATA_URL;
+            },
+          },
+        },
+      },
+    } as unknown as PdfReader;
+
+    const result = await getReaderImageCropDataURL(
+      reader,
+      { pageIndex: 0, rect: [0, 0, 10, 10] },
+      "/results/figure.png",
+    );
+
+    assert.match(result, /^data:image\/png;base64,/);
+    assert.equal(readerCalled, false);
+  } finally {
+    io.restore();
+  }
+});
 
 test("renders a result crop through Zotero's coordinate image renderer", async () => {
   let received: unknown;

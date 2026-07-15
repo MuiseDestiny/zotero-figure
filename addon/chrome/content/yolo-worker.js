@@ -8,13 +8,15 @@ import {
 
 const MODEL_SIZE = 640;
 const MODEL_INPUT_SIZE = { height: MODEL_SIZE, width: MODEL_SIZE };
-const MAX_INFERENCE_THREADS = 4;
-const RESERVED_UI_THREADS = 2;
+const INFERENCE_THREADS = 1;
 const RELEVANT_LAYOUT_TYPES = new Set([
   "figure",
   "figure_caption",
   "table",
   "table_caption",
+  "table_footnote",
+  "isolate_formula",
+  "formula_caption",
 ]);
 const CLASS_THRESHOLDS = {
   0: 0.25,
@@ -391,11 +393,7 @@ function clamp(value) {
 }
 
 function getInferenceThreadCount() {
-  const availableThreads = Number(self.navigator?.hardwareConcurrency) || 2;
-  return Math.max(
-    1,
-    Math.min(MAX_INFERENCE_THREADS, availableThreads - RESERVED_UI_THREADS),
-  );
+  return INFERENCE_THREADS;
 }
 
 function disposeModelOutput(output) {

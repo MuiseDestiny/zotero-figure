@@ -19,5 +19,20 @@ test("shares one analyzer across main windows and disposes it at shutdown", () =
     /new FigureReaderController\(win, \{\s*layoutAnalyzer,\s*resultStore,/,
   );
   assert.match(hooksSource, /layoutAnalyzer\.dispose\(\)/);
+  assert.match(
+    hooksSource,
+    /new FigureBatchController\(layoutAnalyzer, resultStore\)/,
+  );
+  assert.match(hooksSource, /batchController\.start\(\)/);
+  assert.match(hooksSource, /batchController\.dispose\(\)/);
   assert.match(controllerSource, /if \(this\.ownsLayoutAnalyzer\)/);
+  assert.match(
+    hooksSource,
+    /const galleryControllers = new Map<Window, FigureGalleryController>/,
+  );
+  assert.match(
+    hooksSource,
+    /galleryControllers\.set\(win, galleryController\)/,
+  );
+  assert.match(hooksSource, /galleryControllers\.clear\(\)/);
 });

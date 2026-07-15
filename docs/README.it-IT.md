@@ -1,29 +1,33 @@
 # Zotero Figure
 
-Estrazione locale di figure e tabelle dai PDF in Zotero.
+Estrazione locale di figure, tabelle e formule dai PDF in Zotero.
 
 [English](../README.md) | [简体中文](README.zh-CN.md) | [Italiano](README.it-IT.md) | [Русский](README.ru-RU.md) | [日本語](README.ja-JP.md) | [Español](README.es-ES.md)
 
-Zotero Figure renderizza localmente le pagine PDF, rileva figure, tabelle e relative didascalie con DocLayout-YOLO e mostra le immagini estratte in un pannello dedicato del lettore PDF. Il PDF e i dati di inferenza non vengono inviati a servizi remoti.
+Zotero Figure legge localmente gli allegati PDF con MuPDF WASM, rileva figure, tabelle, formule isolate, didascalie e note a piè di tabella con DocLayout-YOLO e mostra le immagini estratte in un pannello dedicato del lettore PDF. L'analisi non richiede un Reader aperto e il PDF non viene inviato a servizi remoti.
 
 > Il modello può commettere errori. Sono benvenute segnalazioni di arresti anomali, problemi di installazione e difetti di integrazione riproducibili; la precisione del rilevamento dipende soprattutto dal modello.
 
 ## Funzioni
 
-- Rilevamento locale di figure e tabelle.
+- Rilevamento locale di figure, tabelle e formule isolate.
+- La nota a piè di tabella più vicina viene inclusa nel ritaglio e nella didascalia della tabella.
+- Lettura diretta dell'allegato in un Worker MuPDF WASM, estrazione di pagine e testo, rendering delle immagini di rilevamento a 640 px e rendering diretto dei PNG ad alta risoluzione dalle coordinate PDF. Il pannello Reader e i futuri flussi batch condividono gli stessi risultati locali.
 - Modello Q8 ottimizzato incluso nell'XPI, copia installata verificata tramite dimensione esatta e SHA-256, quindi byte verificati trasferiti al Worker e sottoposti a un ulteriore controllo SHA-256 prima dell'inferenza.
 - Indice dei risultati per allegato salvato come JSON e immagini estratte salvate come PNG nella directory dati di Zotero.
 - Nuova analisi sicura, sostituendo i risultati locali pagina per pagina o aggiungendo solo quelli mancanti.
-- Analisi annullabile; l'annullamento durante l'inferenza termina il Worker attivo, che viene ricreato per le attività successive. Il rilevamento rimane a 640 px. Ogni pagina con risultati viene renderizzata una sola volta fino a 4x, 12 megapixel e 8192 px per lato, quindi tutti i rettangoli rilevati vengono ritagliati da quell'unica immagine della pagina.
+- Analisi annullabile; l'annullamento termina i Worker di inferenza interessati, che vengono ricreati per le attività successive. Il rilevamento rimane a 640 px. Ogni risultato non memorizzato viene renderizzato direttamente dal rettangolo PDF, con lato lungo obiettivo di 2400 px, fino a 6x e 8 megapixel, senza una tela ad alta risoluzione dell'intera pagina.
 - Anche le pagine senza testo estraibile vengono inviate al rilevatore anziché essere ignorate. Le pagine con testo usano indicazioni complete e più rigorose per figure e tabelle in inglese, cinese, italiano e russo.
 - Icona Zotero Figure nella barra laterale sinistra come unico accesso principale; il plugin non aggiunge pulsanti alla barra superiore del lettore.
-- Schede responsive con filtri nell'ordine **Tutto**, **Figure** e **Tabelle**, ciascuno con il relativo numero di risultati. I PNG locali vengono caricati vicino all'area visibile tramite URL Blob revocabili, con al massimo tre letture di immagini simultanee.
+- Schede responsive ordinate prima per pagina PDF e poi per posizione visiva, dall'alto verso il basso e da sinistra a destra, con filtri **Tutto**, **Figure**, **Tabelle** e **Formule**, ciascuno con il relativo numero di risultati. I PNG locali vengono caricati vicino all'area visibile tramite URL Blob revocabili, con al massimo tre letture di immagini simultanee.
 - Le didascalie lunghe sono compresse per impostazione predefinita; fai clic per espanderle o comprimerle.
 - Barra delle azioni per analizzare, annullare, aggiungere tutti i risultati a una nota, aggiornare o cancellare i risultati locali. La cancellazione svuota subito il pannello, rimuove JSON e PNG in background e non elimina le annotazioni speculari Zotero esistenti.
+- Avanzamento dell'analisi Reader mostrato direttamente nella barra laterale con percentuale, barra di progresso e testo localizzato della fase corrente, senza una finestra di avanzamento separata.
 - Se è installato Zotero PDF Translate, traduci le didascalie dalla barra delle azioni e torna all'originale con un secondo clic. Le traduzioni riuscite vengono memorizzate localmente per lingua di destinazione e riutilizzate.
 - I risultati locali esistenti possono essere convertiti su richiesta in annotazioni Zotero dalla barra delle azioni.
-- Menu di ogni scheda per copiare o salvare l'immagine, raggiungere la pagina, aggiungerla a una nota o rimuoverla.
-- Sincronizzazione facoltativa dei risultati come annotazioni immagine native, con tag `Figure N` o `Table N` e didascalia nel commento. L'opzione è disattivata per impostazione predefinita.
+- Menu di ogni scheda per copiare, salvare o fissare l'immagine, modificare la didascalia, correggere il ritaglio su un'anteprima trascinabile dell'intera pagina, raggiungere la pagina, aggiungerla a una nota o rimuoverla. Il ritaglio corretto viene renderizzato di nuovo in alta risoluzione e sopravvive alle nuove analisi.
+- Sincronizzazione facoltativa dei risultati come annotazioni immagine native, con tag `Figure N`, `Table N` o `Formula N` e didascalia nel commento. L'opzione è disattivata per impostazione predefinita.
+- Preferenze limitate alla manutenzione del modello integrato e alla sincronizzazione facoltativa delle annotazioni; la spiegazione della sincronizzazione è disponibile tramite una compatta icona di aiuto con punto interrogativo.
 - Creazione di note Zotero con allegati PNG realmente incorporati, per una singola scheda o per tutti i risultati. Ogni immagine nella nota rimane cliccabile e porta al ritaglio corrispondente nel PDF di origine senza richiedere un'annotazione speculare.
 - Interfaccia in inglese, cinese semplificato, italiano e russo.
 
@@ -42,7 +46,7 @@ La pipeline locale corrente non richiede più Java o `pdffigures2.jar`.
 
 ## Modello integrato
 
-Zotero Figure include esclusivamente il modello Q8 ottimizzato `optimized-q8-d5d1e664`, da 20.552.482 byte, con SHA-256 `d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf`. L'XPI lo copia in `zotero-figure/models/` nella directory dati di Zotero e verifica la copia prima dell'analisi.
+Zotero Figure include esclusivamente il modello Q8 con le uscite inutilizzate rimosse `optimized-q8-6c25a56c`, da 19.505.323 byte, con SHA-256 `6c25a56caf796a074e26def15eea9018686836155fd9e15e5e0950e9c08a4cac`. Mantiene esattamente il tensore `output0` usato dal plugin ed elimina sette rami di uscita inutilizzati. L'XPI lo copia in `zotero-figure/models/` nella directory dati di Zotero e verifica la copia prima dell'analisi.
 
 Dopo aver ottenuto l'XPI non serve accedere a GitHub o Hugging Face per il modello. Pubblica lo stesso XPI su GitHub Releases e su uno specchio nazionale, verificando lo stesso SHA-256. Consulta la [politica di distribuzione](MODEL_DISTRIBUTION.md).
 
@@ -50,21 +54,22 @@ Dopo aver ottenuto l'XPI non serve accedere a GitHub o Hugging Face per il model
 
 1. Apri un allegato PDF nel lettore di Zotero.
 2. Seleziona l'icona Zotero Figure nella barra laterale sinistra. Non è presente un pulsante Zotero Figure nella barra superiore del lettore.
-3. Seleziona **Analizza figure e tabelle** nella barra delle azioni e attendi il completamento del rendering e del rilevamento.
-4. Passa tra **Tutto**, **Figure** e **Tabelle**. Dal menu di una scheda puoi copiare o salvare l'immagine, raggiungere la pagina, aggiungerla a una nota o rimuoverla.
+3. Seleziona **Analizza figure, tabelle e formule** nella barra delle azioni e attendi il completamento del rendering e del rilevamento.
+4. Passa tra **Tutto**, **Figure**, **Tabelle** e **Formule**. Dal menu di una scheda puoi copiare, salvare, fissare o correggere l'immagine, modificare la didascalia, raggiungere la pagina, aggiungerla a una nota o rimuoverla.
 5. Se Zotero PDF Translate è installato, usa il pulsante della lingua per tradurre le didascalie; fai clic di nuovo per ripristinare gli originali.
 6. Quando serve, usa **Aggiungi tutti i risultati a una nota**, **Aggiorna figure e tabelle** o **Cancella i risultati locali**. La cancellazione riguarda solo i JSON e PNG locali del plugin, non le annotazioni speculari Zotero esistenti.
 7. Per creare anche annotazioni immagine sincronizzate, abilita **Dopo l'analisi, sincronizza anche i risultati nelle annotazioni immagine Zotero** nelle preferenze. L'opzione è disattivata per impostazione predefinita.
+8. Per l'elaborazione in batch, seleziona uno o più elementi della libreria o allegati PDF, fai clic con il pulsante destro e usa **PDF Figure > Analizza figure, tabelle e formule**, **Analizza figure, tabelle e formule e aggiungile a una nota** oppure **Analizza figure, tabelle e formule e crea annotazioni**. I PDF vengono elaborati in sequenza e non serve aprire una scheda del lettore.
 
-Il pannello legge sempre l'archivio locale del plugin. Per ogni allegato PDF, i metadati sono salvati in `zotero-figure/results/<libraryID>/<attachmentKey>/manifest.json` nella directory dati di Zotero, con i PNG nella directory `images/` adiacente. Lo schema v3 del manifest memorizza le traduzioni delle didascalie per lingua di destinazione e identità versionate della cache delle immagini. Se l'impronta dell'allegato di origine (dimensione e data di modifica del file, con ripiego sulla versione dell'elemento Zotero), la versione di analisi, l'hash del modello, la versione dell'anteprima e l'impronta del risultato coincidono con la cache, e il relativo PNG esiste ancora, le analisi successive riutilizzano quel PNG. Il manifest, le cache delle traduzioni e i PNG non usano Zotero Sync. Abilitando la sincronizzazione delle annotazioni viene creata una copia aggiuntiva come annotazione nativa, utile per la sincronizzazione e per gli altri plugin, ma la fonte dati del pannello non cambia. Le immagini aggiunte alle note sono allegati incorporati, non collegamenti ai percorsi PNG locali; anche senza annotazioni speculari, un clic porta al ritaglio corrispondente nel PDF di origine.
+Il pannello legge sempre l'archivio locale del plugin. Per ogni allegato PDF, i metadati sono salvati in `zotero-figure/results/<libraryID>/<attachmentKey>/manifest.json` nella directory dati di Zotero, con i PNG nella directory `images/` adiacente. Lo schema v5 del manifest memorizza correzioni manuali di didascalie e ritagli, traduzioni per lingua di destinazione e identità versionate della cache delle immagini. Le didascalie e i ritagli corretti restano dopo una nuova analisi perché i valori rilevati vengono conservati separatamente per confrontare la cache; la modifica di una didascalia elimina la vecchia cache di traduzione del risultato. Le analisi successive riutilizzano un PNG solo se coincidono l'impronta dell'allegato di origine (dimensione e data di modifica del file, con ripiego sulla versione dell'elemento Zotero), la versione di analisi, l'hash del modello, la versione dell'anteprima, l'impronta del risultato e quella del ritaglio corrente, e il relativo PNG esiste ancora. Il manifest, le cache delle traduzioni e i PNG non usano Zotero Sync. Abilitando la sincronizzazione delle annotazioni viene creata una copia aggiuntiva come annotazione nativa, utile per la sincronizzazione e per gli altri plugin, ma la fonte dati del pannello non cambia. Le immagini aggiunte alle note sono allegati incorporati, non collegamenti ai percorsi PNG locali; anche senza annotazioni speculari, un clic porta al ritaglio corrispondente nel PDF di origine.
 
-La preparazione del modello e del Worker viene pianificata quando il lettore è inattivo. La prima analisi può comunque essere più lenta se parte prima del completamento. Il tempo dipende da lunghezza e complessità del PDF, CPU e memoria disponibile.
+La preparazione di MuPDF, del modello e dei Worker viene pianificata quando il lettore è inattivo. La prima analisi può comunque essere più lenta se parte prima del completamento. Il tempo dipende da lunghezza e complessità del PDF, CPU e memoria disponibile.
 
-Durante l'analisi vengono pianificate al massimo tre pagine alla volta. Le fasi limitate separatamente consentono al massimo due pagine nel rilevamento, un rendering di pagina per il rilevamento, una pagina di anteprima ad alta risoluzione e un'operazione di archiviazione. Le pagine di rilevamento sono renderizzate a 640 px. Per una pagina di risultati non presente nella cache, il PDF viene renderizzato una sola volta entro una scala di 4x, 12 megapixel o 8192 px per lato, e tutti i rettangoli dei risultati vengono ritagliati dalla stessa immagine. Un singolo Worker di inferenza viene riutilizzato e può impiegare fino a quattro thread WASM, riservando capacità logica a Zotero; l'annullamento dell'inferenza attiva termina il Worker anziché lasciarlo usare la CPU. Il singolo Worker evita sessioni duplicate del modello.
+Durante l'analisi vengono pianificate al massimo tre pagine alla volta. Le fasi limitate consentono al massimo due pagine nel rilevamento, una richiesta di rendering MuPDF, una fase di regioni ad alta risoluzione e un'operazione di archiviazione. Le immagini di rilevamento hanno il lato lungo di 640 px. I risultati non memorizzati vengono renderizzati uno alla volta direttamente dai rettangoli PDF, con lato lungo obiettivo di 2400 px, fino a 6x e 8 megapixel. Due Worker ONNX persistenti lavorano in parallelo con un thread di inferenza ciascuno; l'annullamento termina i Worker interessati. Questo duplica la sessione Q8 ma elimina la precedente tela ad alta risoluzione dell'intera pagina. Vedi il [budget delle prestazioni](PERFORMANCE.md).
 
 ## Privacy
 
-Il rilevamento usa Transformers.js e ONNX Runtime Web dentro Zotero. Nessuna pagina PDF viene inviata a servizi remoti e il modello non viene scaricato durante l'esecuzione.
+L'analisi e il rendering PDF usano MuPDF WASM integrato; il rilevamento usa Transformers.js e ONNX Runtime Web dentro Zotero. Nessuna pagina PDF viene inviata a servizi remoti e il modello non viene scaricato durante l'esecuzione.
 
 I file JSON e PNG dei risultati rimangono nella directory dati di Zotero. Possono lasciare il dispositivo solo se l'utente esegue separatamente il backup o la sincronizzazione di tale directory, oppure abilita la sincronizzazione delle annotazioni per crearne una copia aggiuntiva.
 
@@ -85,7 +90,7 @@ npm run build
 | Percorso              | Responsabilità                                         |
 | --------------------- | ------------------------------------------------------ |
 | `src/domain`          | Tipi e algoritmi puri per layout e didascalie          |
-| `src/features`        | Interfaccia del lettore e preferenze                   |
+| `src/features`        | Interfaccia del lettore, azioni batch e preferenze     |
 | `src/services`        | Analisi, coda di inferenza, ritaglio e archivio locale |
 | `src/platform/zotero` | Confini tipizzati verso le API Zotero                  |
 | `addon`               | Bootstrap, traduzioni, Worker e metadati modello       |

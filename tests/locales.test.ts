@@ -43,12 +43,32 @@ test("runtime Fluent contains every message requested by source code", () => {
       ),
     );
   requestedKeys.push(...modelManifest.variants.map(({ labelKey }) => labelKey));
+  requestedKeys.push(...readGalleryMessageKeys());
 
   assert.deepEqual(
     [...new Set(requestedKeys)].filter((key) => !runtimeKeys.has(key)).sort(),
     [],
   );
 });
+
+function readGalleryMessageKeys(): string[] {
+  const source = readFileSync(
+    "addon/chrome/content/gallery/gallery.js",
+    "utf8",
+  );
+  const keys = [
+    ...source.matchAll(
+      /setLocalizedText\(\s*[^,]+,\s*["`](gallery-[\w-]+)["`]/g,
+    ),
+    ...source.matchAll(/localize\(\s*["`](gallery-[\w-]+)["`]/g),
+    ...source.matchAll(/showState\(\s*[^,]+,\s*["`](gallery-[\w-]+)["`]/g),
+    ...source.matchAll(
+      /populateSelect\([\s\S]*?\n\s*["`](gallery-filter-all-[\w-]+)["`]/g,
+    ),
+  ].map((match) => match[1]);
+  keys.push("gallery-empty-filtered", "gallery-empty-library");
+  return [...new Set(keys.filter((key) => !key.endsWith("-")))];
+}
 
 function readKeys(path: string): string[] {
   return readFileSync(path, "utf8")

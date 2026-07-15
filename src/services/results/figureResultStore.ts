@@ -1,17 +1,20 @@
 import {
   createFigureResultRecord,
   getFigureResultFingerprint,
+  getFigureResultImageFingerprint,
   getFigureResultID,
   getFigureResultKind,
   type FigureResultAnalysisIdentity,
   type FigureResultRecord,
 } from "../../domain/figureResults";
-import type { AnnotationCandidate } from "../../domain/layout";
+import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import type { DuplicateMode } from "../../platform/zotero/annotations";
 import { OperationCancelledError } from "../../utils/cancellation";
 import { RECOMMENDED_MODEL } from "../model/modelCatalog";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 5;
+const PREVIOUS_SCHEMA_VERSION = 4;
+const IMAGE_CACHE_SCHEMA_VERSION = 3;
 const TRANSLATION_SCHEMA_VERSION = 2;
 const LEGACY_SCHEMA_VERSION = 1;
 const ROOT_DIRECTORY = "zotero-figure/results";
@@ -19,9 +22,9 @@ const attachmentLocks = new Map<string, AttachmentLockState>();
 
 export const DEFAULT_FIGURE_RESULT_ANALYSIS_IDENTITY: FigureResultAnalysisIdentity =
   Object.freeze({
-    analysisVersion: 2,
+    analysisVersion: 4,
     modelHash: RECOMMENDED_MODEL.sha256,
-    previewVersion: "pdf-page-crops-v2",
+    previewVersion: "mupdf-region-v1",
   });
 
 export interface FigureResultTranslation {
@@ -111,6 +114,29 @@ export class FigureResultStore {
     } finally {
       release();
     }
+  }
+
+  public async listIndexedAttachmentKeys(libraryID: number): Promise<string[]> {
+    if (!Number.isInteger(libraryID) || libraryID < 0) {
+      throw new Error("Figure result library has an invalid ID");
+    }
+    const directory = PathUtils.join(
+      Zotero.DataDirectory.dir,
+      ...ROOT_DIRECTORY.split("/"),
+      String(libraryID),
+    );
+    if (!(await IOUtils.exists(directory))) return [];
+
+    const children = await IOUtils.getChildren(directory);
+    const keys: string[] = [];
+    for (const child of children) {
+      const key = PathUtils.filename(child);
+      if (!/^[A-Za-z0-9_-]+$/.test(key)) continue;
+      if (await IOUtils.exists(PathUtils.join(child, "manifest.json"))) {
+        keys.push(key);
+      }
+    }
+    return [...new Set(keys)].sort();
   }
 
   public async getReusablePageResults(
@@ -221,6 +247,103 @@ export class FigureResultStore {
         { ...manifest, translations },
         contextKey,
       );
+    } finally {
+      release();
+    }
+  }
+
+  public async updateComment(
+    item: Zotero.Item,
+    resultID: string,
+    comment: string,
+  ): Promise<StoredFigureResult | undefined> {
+    const normalizedComment = normalizeManualComment(comment);
+    const release = await this.acquireAttachmentLock(item);
+    try {
+      const manifest = await this.readManifest(item);
+      const existing = manifest.results.find(
+        (result) => result.id === resultID,
+      );
+      if (!existing) return undefined;
+      if (existing.comment === normalizedComment) {
+        return this.withImagePath(item, existing);
+      }
+
+      const detectedComment = existing.detectedComment ?? existing.comment;
+      const base = { ...existing };
+      delete base.detectedComment;
+      const updated: FigureResultRecord =
+        normalizedComment === detectedComment
+          ? { ...base, comment: normalizedComment }
+          : { ...base, comment: normalizedComment, detectedComment };
+      const results = manifest.results.map((result) =>
+        result.id === resultID ? updated : result,
+      );
+      const translations = pruneTranslationCache(
+        manifest.translations,
+        manifest.results,
+      );
+      delete translations[resultID];
+      await this.commit(item, results, translations, manifest.imageCache);
+      return this.withImagePath(item, updated);
+    } finally {
+      release();
+    }
+  }
+
+  public async updateRegion(
+    item: Zotero.Item,
+    resultID: string,
+    rect: readonly number[],
+    image: ArrayBuffer,
+  ): Promise<StoredFigureResult | undefined> {
+    const normalizedRect = normalizeResultRect(rect);
+    if (!(image instanceof ArrayBuffer) || image.byteLength === 0) {
+      throw new Error("Corrected figure result image is empty");
+    }
+    const sourceFingerprint = await this.getSourceFingerprint(item);
+    const release = await this.acquireAttachmentLock(item);
+    try {
+      const manifest = await this.readManifest(item);
+      const existing = manifest.results.find(({ id }) => id === resultID);
+      if (!existing) return undefined;
+      const detectedRect = existing.detectedRect ?? existing.rect;
+      const base = { ...existing, rect: normalizedRect };
+      delete base.detectedRect;
+      const updated: FigureResultRecord = resultRectsMatch(
+        normalizedRect,
+        detectedRect,
+      )
+        ? base
+        : { ...base, detectedRect: [...detectedRect] as Rect };
+      const previousImage = await readOptionalImage(
+        this.getResultPath(item, existing),
+      );
+      await this.writeImage(item, updated, image);
+      const results = manifest.results.map((result) =>
+        result.id === resultID ? updated : result,
+      );
+      const imageCache = {
+        ...manifest.imageCache,
+        [resultID]: this.createImageCacheEntry(updated, sourceFingerprint),
+      };
+      try {
+        await this.commit(
+          item,
+          results,
+          manifest.translations,
+          imageCache,
+          true,
+        );
+      } catch (error) {
+        if (previousImage) {
+          await this.writeImage(item, existing, previousImage);
+        } else {
+          await this.removeImage(item, existing);
+        }
+        throw error;
+      }
+      return this.withImagePath(item, updated);
     } finally {
       release();
     }
@@ -434,9 +557,12 @@ export class FigureResultStore {
     try {
       for (const entry of entries) {
         throwIfAborted(signal);
-        const record = this.createRecord(entry.candidate);
-        assertResultIDAvailable(record, entry.fingerprint, existingByID);
         const matchingExisting = existingByFingerprint.get(entry.fingerprint);
+        const detectedRecord = this.createRecord(entry.candidate);
+        const record = matchingExisting
+          ? preserveManualOverrides(detectedRecord, matchingExisting)
+          : detectedRecord;
+        assertResultIDAvailable(record, entry.fingerprint, existingByID);
         if (
           !matchingExisting ||
           !(await this.isReusableImage(
@@ -551,6 +677,8 @@ export class FigureResultStore {
     if (
       (value.schemaVersion !== LEGACY_SCHEMA_VERSION &&
         value.schemaVersion !== TRANSLATION_SCHEMA_VERSION &&
+        value.schemaVersion !== IMAGE_CACHE_SCHEMA_VERSION &&
+        value.schemaVersion !== PREVIOUS_SCHEMA_VERSION &&
         value.schemaVersion !== SCHEMA_VERSION) ||
       value.attachmentKey !== item.key ||
       value.libraryID !== item.libraryID ||
@@ -569,12 +697,12 @@ export class FigureResultStore {
     }
     return {
       analysisIdentity:
-        value.schemaVersion === SCHEMA_VERSION
+        value.schemaVersion >= IMAGE_CACHE_SCHEMA_VERSION
           ? parseAnalysisIdentity(value.analysisIdentity)
           : undefined,
       attachmentKey: item.key,
       imageCache:
-        value.schemaVersion === SCHEMA_VERSION
+        value.schemaVersion >= IMAGE_CACHE_SCHEMA_VERSION
           ? parseImageCache(value.imageCache, results)
           : {},
       libraryID: item.libraryID,
@@ -691,7 +819,7 @@ export class FigureResultStore {
   ): FigureResultImageCacheEntry {
     return {
       ...this.analysisIdentity,
-      fingerprint: getFigureResultFingerprint(result),
+      fingerprint: getFigureResultImageFingerprint(result),
       sourceFingerprint,
     };
   }
@@ -704,7 +832,7 @@ export class FigureResultStore {
   ): Promise<boolean> {
     const cached = imageCache[result.id];
     return (
-      cached?.fingerprint === getFigureResultFingerprint(result) &&
+      cached?.fingerprint === getFigureResultImageFingerprint(result) &&
       cached.sourceFingerprint === sourceFingerprint &&
       analysisIdentitiesMatch(cached, this.analysisIdentity) &&
       (await IOUtils.exists(this.getResultPath(item, result)))
@@ -946,7 +1074,7 @@ function pruneImageCache(
       isAnalysisIdentity(entry) &&
       typeof entry.sourceFingerprint === "string" &&
       entry.sourceFingerprint.length > 0 &&
-      entry.fingerprint === getFigureResultFingerprint(result)
+      entry.fingerprint === getFigureResultImageFingerprint(result)
     ) {
       pruned[resultID] = {
         ...normalizeAnalysisIdentity(entry),
@@ -963,10 +1091,15 @@ function isFigureResultRecord(value: unknown): value is FigureResultRecord {
   const result = value as Partial<FigureResultRecord>;
   return (
     typeof result.comment === "string" &&
+    (result.detectedComment === undefined ||
+      typeof result.detectedComment === "string") &&
+    (result.detectedRect === undefined || isResultRect(result.detectedRect)) &&
     typeof result.id === "string" &&
     /^[a-z0-9-]+$/.test(result.id) &&
     result.imageFile === `images/${result.id}.png` &&
-    (result.kind === "figure" || result.kind === "table") &&
+    (result.kind === "figure" ||
+      result.kind === "formula" ||
+      result.kind === "table") &&
     typeof result.pageIndex === "number" &&
     Number.isInteger(result.pageIndex) &&
     result.pageIndex >= 0 &&
@@ -983,12 +1116,77 @@ function isFigureResultRecord(value: unknown): value is FigureResultRecord {
     result.kind === getFigureResultKind(result.tag) &&
     result.id ===
       getFigureResultID({
-        comment: result.comment,
+        comment: result.detectedComment ?? result.comment,
         pageIndex: result.pageIndex,
-        rect: result.rect,
+        rect: result.detectedRect ?? result.rect,
         tag: result.tag,
       })
   );
+}
+
+function preserveManualOverrides(
+  detected: FigureResultRecord,
+  existing: FigureResultRecord,
+): FigureResultRecord {
+  return {
+    ...detected,
+    ...(existing.detectedComment === undefined
+      ? {}
+      : {
+          comment: existing.comment,
+          detectedComment: detected.comment,
+        }),
+    ...(existing.detectedRect === undefined
+      ? {}
+      : {
+          detectedRect: detected.rect,
+          rect: existing.rect,
+        }),
+  };
+}
+
+function normalizeResultRect(value: readonly number[]): Rect {
+  if (!isResultRect(value)) {
+    throw new Error("Corrected figure result rectangle is invalid");
+  }
+  return value.map((coordinate) => Math.round(coordinate * 100) / 100) as Rect;
+}
+
+function isResultRect(value: unknown): value is Rect {
+  return (
+    Array.isArray(value) &&
+    value.length === 4 &&
+    value.every(Number.isFinite) &&
+    value[2] > value[0] &&
+    value[3] > value[1]
+  );
+}
+
+function resultRectsMatch(first: Rect, second: Rect): boolean {
+  return first.every(
+    (coordinate, index) => Math.abs(coordinate - second[index]) < 0.005,
+  );
+}
+
+async function readOptionalImage(
+  path: string,
+): Promise<ArrayBuffer | undefined> {
+  try {
+    return await IOUtils.read(path);
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeManualComment(comment: string): string {
+  if (typeof comment !== "string") {
+    throw new TypeError("Figure result comment must be a string");
+  }
+  const normalized = comment.trim();
+  if (normalized.length > 10_000) {
+    throw new RangeError("Figure result comment exceeds 10,000 characters");
+  }
+  return normalized;
 }
 
 function parseTranslationCache(

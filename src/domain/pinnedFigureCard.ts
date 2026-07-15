@@ -51,6 +51,28 @@ export function zoomPinnedCardAtPoint(
   };
 }
 
+export function interpolatePinnedCardTransform(
+  current: PinnedCardTransform,
+  target: PinnedCardTransform,
+  progress: number,
+): PinnedCardTransform {
+  const amount = Math.min(1, Math.max(0, progress));
+  return {
+    scale: current.scale + (target.scale - current.scale) * amount,
+    x: current.x + (target.x - current.x) * amount,
+    y: current.y + (target.y - current.y) * amount,
+  };
+}
+
+export function getPinnedCardSmoothingProgress(
+  elapsedMilliseconds: number,
+  timeConstantMilliseconds: number,
+): number {
+  if (elapsedMilliseconds <= 0) return 0;
+  if (timeConstantMilliseconds <= 0) return 1;
+  return 1 - Math.exp(-elapsedMilliseconds / timeConstantMilliseconds);
+}
+
 function clampPinnedCardAxis(
   position: number,
   scaledCardSize: number,

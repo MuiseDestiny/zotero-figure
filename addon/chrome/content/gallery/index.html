@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-l10n-id="gallery-title">PDF Figure Library</title>
+    <link rel="localization" href="__addonRef__-addon.ftl" />
+    <link rel="stylesheet" href="gallery.css?v=__buildTimestamp__" />
+    <script>
+      Services.scriptloader.loadSubScript(
+        "chrome://zotero/content/include.js",
+        this,
+      );
+    </script>
+    <script defer src="gallery.js?v=__buildTimestamp__"></script>
+  </head>
+  <body>
+    <header id="filter-toolbar" class="gallery-toolbar">
+      <div id="gallery-filter-controls" class="gallery-filters">
+        <label class="gallery-field gallery-field-library">
+          <span data-l10n-id="gallery-filter-library">Library</span>
+          <select id="library-filter"></select>
+        </label>
+        <label class="gallery-field gallery-field-document">
+          <span data-l10n-id="gallery-filter-document">Document</span>
+          <select id="document-filter"></select>
+        </label>
+        <label class="gallery-field gallery-field-year">
+          <span data-l10n-id="gallery-filter-year">Year</span>
+          <select id="year-filter"></select>
+        </label>
+        <label class="gallery-field gallery-field-collection">
+          <span data-l10n-id="gallery-filter-collection">Collection</span>
+          <select id="collection-filter"></select>
+        </label>
+        <label class="gallery-field gallery-field-type">
+          <span data-l10n-id="gallery-filter-type">Type</span>
+          <select id="type-filter">
+            <option value="" data-l10n-id="gallery-filter-all-types">
+              All types
+            </option>
+            <option value="figure" data-l10n-id="gallery-kind-figure">
+              Figure
+            </option>
+            <option value="table" data-l10n-id="gallery-kind-table">
+              Table
+            </option>
+            <option value="formula" data-l10n-id="gallery-kind-formula">
+              Formula
+            </option>
+          </select>
+        </label>
+        <label class="gallery-field gallery-field-search">
+          <span data-l10n-id="gallery-filter-keyword">Caption keyword</span>
+          <input
+            id="keyword-filter"
+            type="search"
+            autocomplete="off"
+            data-l10n-id="gallery-filter-keyword-placeholder"
+          />
+        </label>
+        <div class="gallery-summary">
+          <span id="result-count" aria-live="polite"></span>
+          <button
+            id="refresh"
+            class="gallery-icon-button"
+            type="button"
+            data-l10n-id="gallery-refresh"
+          >
+            <span aria-hidden="true">&#x21bb;</span>
+          </button>
+        </div>
+        <button
+          id="toolbar-toggle"
+          class="gallery-icon-button gallery-toolbar-toggle"
+          type="button"
+          aria-expanded="true"
+          aria-controls="gallery-filter-controls"
+          data-l10n-id="gallery-toolbar-collapse"
+        >
+          <svg
+            class="gallery-toolbar-toggle-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <div id="error-banner" class="gallery-error" hidden role="alert"></div>
+      <section id="state" class="gallery-state" aria-live="polite">
+        <div class="gallery-spinner" aria-hidden="true"></div>
+        <p id="state-message" data-l10n-id="gallery-loading">
+          Loading figure index...
+        </p>
+      </section>
+      <section id="gallery-grid" class="gallery-grid" hidden></section>
+    </main>
+  </body>
+</html>

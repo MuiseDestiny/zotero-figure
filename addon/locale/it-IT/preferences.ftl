@@ -1,21 +1,11 @@
-preferences-model-title = Modello di analisi del layout
-preferences-model-description = Il modello Q8 ottimizzato è incluso in Zotero Figure. Viene copiato nella directory dati di Zotero e verificato automaticamente prima dell'inferenza locale.
 preferences-restore-model =
     .label = Ripristina il modello integrato
 preferences-verify =
     .label = Verifica di nuovo
 preferences-reveal =
     .label = Mostra nella cartella
-preferences-managed-directory =
-    .value = Archivio gestito
-preferences-managed-directory-description = Il modello integrato viene estratto qui una sola volta e controllato per dimensione esatta e SHA-256 prima di ogni analisi.
-
-preferences-analysis-title = Comportamento dell'analisi
-preferences-duplicate-mode =
-    .value = Risultati esistenti
-preferences-duplicate-replace = Sostituisci i risultati in ogni pagina analizzata
-preferences-duplicate-skip = Mantieni i risultati e aggiungi solo quelli mancanti
-preferences-duplicate-description = La sostituzione aggiorna i risultati locali in ogni pagina analizzata. Il mantenimento aggiunge solo le figure e le tabelle non ancora salvate localmente.
 preferences-sync-annotations =
     .label = Dopo l'analisi, sincronizza anche i risultati nelle annotazioni immagine Zotero
-preferences-sync-annotations-description = La barra laterale usa sempre i risultati locali. Se attivata, gli stessi risultati vengono copiati nelle annotazioni Zotero per la sincronizzazione e per gli altri plugin che leggono le annotazioni. È disattivata per impostazione predefinita.
+preferences-sync-annotations-help =
+    .tooltiptext = La barra laterale usa sempre i risultati locali. Se attivata, gli stessi risultati vengono anche copiati nelle annotazioni Zotero per la sincronizzazione e per gli altri plugin che leggono le annotazioni. È disattivata per impostazione predefinita.
+    .aria-label = Spiegazione della sincronizzazione delle annotazioni

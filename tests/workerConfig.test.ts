@@ -7,14 +7,10 @@ const workerSource = readFileSync(
   "utf8",
 );
 
-test("keeps detection input fixed while bounding inference CPU use", () => {
+test("keeps detection input fixed with one thread per pool worker", () => {
   assert.match(workerSource, /const MODEL_SIZE = 640/);
-  assert.match(workerSource, /const MAX_INFERENCE_THREADS = 4/);
-  assert.match(workerSource, /const RESERVED_UI_THREADS = 2/);
-  assert.match(
-    workerSource,
-    /Math\.min\(MAX_INFERENCE_THREADS, availableThreads - RESERVED_UI_THREADS\)/,
-  );
+  assert.match(workerSource, /const INFERENCE_THREADS = 1/);
+  assert.match(workerSource, /return INFERENCE_THREADS/);
 });
 
 test("requests only the output tensor consumed by detection", () => {
@@ -30,6 +26,17 @@ test("requests only the output tensor consumed by detection", () => {
 });
 
 test("filters unused classes before allocation-stable NMS", () => {
+  for (const type of [
+    "figure",
+    "figure_caption",
+    "table",
+    "table_caption",
+    "table_footnote",
+    "isolate_formula",
+    "formula_caption",
+  ]) {
+    assert.match(workerSource, new RegExp(`"${type}"`));
+  }
   const filterIndex = workerSource.indexOf("RELEVANT_LAYOUT_TYPES.has(type)");
   const allocationIndex = workerSource.indexOf("detections.push({");
   assert.ok(filterIndex >= 0 && filterIndex < allocationIndex);

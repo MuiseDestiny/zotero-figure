@@ -1,9 +1,9 @@
 import type { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { config } from "../../../package.json";
-import type { AnnotationCandidate } from "../../domain/layout";
 import {
-  reconcileGeneratedAnnotations,
   removeGeneratedAnnotationForCandidate,
+  updateGeneratedAnnotationCommentForCandidate,
+  updateGeneratedAnnotationPositionForCandidate,
   type DuplicateMode,
 } from "../../platform/zotero/annotations";
 import {
@@ -12,14 +12,15 @@ import {
   saveReaderAnnotationImage,
 } from "../../platform/zotero/readerAnnotations";
 import { getReaderImageCropDataURL } from "../../platform/zotero/readerImageRenderer";
-import { encodeNoteImageNavigation } from "../../platform/zotero/noteNavigation";
-import { getPdfReader, type PdfReader } from "../../platform/zotero/reader";
+import type { PdfReader } from "../../platform/zotero/reader";
+import { FigureOutputService } from "../../services/figureOutputService";
 import { LayoutAnalyzer } from "../../services/layout/layoutAnalyzer";
 import {
   FigureResultStore,
   type StoredFigureResult,
 } from "../../services/results/figureResultStore";
 import { isCancellationError } from "../../utils/cancellation";
+import { bytesToDataURL } from "../../utils/dataURL";
 import { getString } from "../../utils/locale";
 import { getPref } from "../../utils/prefs";
 import { FigureSidebarPanel } from "./figureSidebarPanel";
@@ -32,6 +33,7 @@ export class FigureReaderController {
   private prewarmTimeoutID?: number;
   private readonly resultStore: FigureResultStore;
   private readonly layoutAnalyzer: LayoutAnalyzer;
+  private readonly outputService: FigureOutputService;
   private readonly ownsLayoutAnalyzer: boolean;
   private readonly sidebarPanels = new Map<PdfReader, FigureSidebarPanel>();
   private started = false;
@@ -52,6 +54,7 @@ export class FigureReaderController {
     this.resultStore = dependencies?.resultStore ?? new FigureResultStore();
     this.layoutAnalyzer =
       dependencies?.layoutAnalyzer ?? new LayoutAnalyzer(this.resultStore);
+    this.outputService = new FigureOutputService(this.resultStore);
     this.ownsLayoutAnalyzer = dependencies === undefined;
   }
 
@@ -97,53 +100,61 @@ export class FigureReaderController {
     const controller = new this.win.AbortController();
     this.activeAnalyses.set(reader, controller);
     this.refreshSidebarControls(reader);
-    const popup = this.createProgress(getString("progress-initializing"));
+    const panel = this.sidebarPanels.get(reader);
+    let latestProgress = 0;
+    panel?.updateAnalysisProgress(
+      getString("progress-initializing"),
+      latestProgress,
+    );
     const startedAt = Date.now();
     try {
-      const pdfReader = await getPdfReader(reader._item.id);
-      const summary = await this.layoutAnalyzer.analyze(
-        pdfReader,
+      const summary = await this.layoutAnalyzer.analyzeAttachment(
+        reader._item,
         {
-          update: (text, progress) => popup.changeLine({ progress, text }),
+          update: (text, progress) => {
+            latestProgress = progress;
+            panel?.updateAnalysisProgress(text, progress);
+          },
         },
         {
           signal: controller.signal,
+          annotationReader: reader,
           syncAnnotations: getPref("syncAnnotations") === true,
         },
       );
-      popup
-        .changeLine({
-          progress: 100,
-          text: getString("progress-done", {
-            args: {
-              annotations: summary.annotationsCreated,
-              count: summary.resultsCreated,
-              removed: summary.resultsRemoved,
-              seconds: Math.round((Date.now() - startedAt) / 1_000),
-              skipped: summary.resultsSkipped,
-            },
-          }),
-          type: "success",
-        })
-        .startCloseTimer(3_000);
+      panel?.updateAnalysisProgress(
+        getString("progress-done", {
+          args: {
+            annotations: summary.annotationsCreated,
+            count: summary.resultsCreated,
+            removed: summary.resultsRemoved,
+            seconds: Math.round((Date.now() - startedAt) / 1_000),
+            skipped: summary.resultsSkipped,
+          },
+        }),
+        100,
+        "success",
+        3_000,
+      );
     } catch (error) {
       if (isCancellationError(error)) {
-        popup
-          .changeLine({
-            text: getString("progress-cancelled"),
-            type: "default",
-          })
-          .startCloseTimer(1_500);
+        panel?.updateAnalysisProgress(
+          getString("progress-cancelled"),
+          latestProgress,
+          "cancelled",
+          1_500,
+        );
         return;
       }
       const resolvedError = toError(error);
       Zotero.logError(resolvedError);
-      popup.changeLine({
-        text: getString("progress-error", {
+      panel?.updateAnalysisProgress(
+        getString("progress-error", {
           args: { message: resolvedError.message },
         }),
-        type: "fail",
-      });
+        latestProgress,
+        "error",
+      );
     } finally {
       this.activeAnalyses.delete(reader);
       this.refreshSidebarControls(reader);
@@ -170,41 +181,17 @@ export class FigureReaderController {
   }
 
   private async syncResultsToAnnotations(reader: PdfReader): Promise<void> {
-    const results = await this.resultStore.list(reader._item);
-    if (results.length === 0) return;
     const popup = this.createProgress(getString("progress-sync-annotations"));
-    const candidatesByPage = new Map<number, AnnotationCandidate[]>();
-    for (const result of results) {
-      const candidates = candidatesByPage.get(result.pageIndex) ?? [];
-      candidates.push({
-        comment: result.comment,
-        pageIndex: result.pageIndex,
-        rect: result.rect,
-        tag: result.tag,
-      });
-      candidatesByPage.set(result.pageIndex, candidates);
-    }
     const mode: DuplicateMode =
       getPref("duplicateMode") === "skip-existing"
         ? "skip-existing"
         : "replace-page";
-    let created = 0;
-    let removed = 0;
-    let skipped = 0;
     try {
-      for (const [pageIndex, candidates] of [...candidatesByPage].sort(
-        ([first], [second]) => first - second,
-      )) {
-        const reconciled = await reconcileGeneratedAnnotations(
-          reader,
-          pageIndex,
-          candidates,
+      const { created, removed, skipped } =
+        await this.outputService.syncStoredResultsToAnnotations(
+          reader._item,
           mode,
         );
-        created += reconciled.created;
-        removed += reconciled.removed;
-        skipped += reconciled.skipped;
-      }
       popup
         .changeLine({
           text: getString("progress-sync-annotations-done", {
@@ -225,50 +212,11 @@ export class FigureReaderController {
   ): Promise<void> {
     if (results.length === 0) return;
     const popup = this.createProgress(getString("progress-add-note"));
-    let note: Zotero.Item | undefined;
-    let noteSaved = false;
     try {
-      note = new Zotero.Item("note");
-      note.libraryID = attachment.libraryID;
-      if (attachment.parentID) note.parentID = attachment.parentID;
-      await note.saveTx({ skipSelect: true });
-      const html: string[] = [
-        '<div class="zotero-figure-note" data-citation-items="%5B%5D" data-schema-version="9">',
-        `<h2>${escapeHTML(getString("note-title"))}</h2>`,
-      ];
-      const attachmentURI = String(Zotero.URI.getItemURI(attachment));
-      for (const result of results) {
-        const bytes = await IOUtils.read(result.imagePath);
-        const image = await Zotero.Attachments.importEmbeddedImage({
-          blob: new Blob([bytes], { type: "image/png" }),
-          parentItemID: note.id,
-          saveOptions: { skipSelect: true },
-        });
-        html.push(
-          `<p><strong>${escapeHTML(result.tag)}</strong> · ${escapeHTML(
-            getString("sidebar-page", { args: { page: result.pageLabel } }),
-          )}</p>`,
-          `<img data-attachment-key="${image.key}" data-annotation="${encodeNoteImageNavigation(
-            attachmentURI,
-            result,
-          )}" alt="${escapeHTML(result.comment)}" />`,
-          result.comment ? `<p>${escapeHTML(result.comment)}</p>` : "",
-        );
-      }
-      html.push("</div>");
-      note.setNote(html.join(""));
-      await note.saveTx({ skipSelect: true });
-      noteSaved = true;
+      await this.outputService.createNoteFromResults(attachment, results);
       popup.changeLine({ type: "success" }).startCloseTimer(1_000);
     } catch (error) {
       const resolvedError = toError(error);
-      if (note?.id && !noteSaved) {
-        try {
-          await note.eraseTx();
-        } catch (cleanupError) {
-          Zotero.logError(toError(cleanupError));
-        }
-      }
       popup.changeLine({ text: resolvedError.message, type: "fail" });
       throw error;
     }
@@ -286,6 +234,82 @@ export class FigureReaderController {
     await this.resultStore.remove(reader._item, result.id);
     await removeGeneratedAnnotationForCandidate(reader._item, result);
     this.reloadSidebarResults(reader);
+  }
+
+  private async editResultComment(
+    reader: PdfReader,
+    result: StoredFigureResult,
+    comment: string,
+  ): Promise<StoredFigureResult | undefined> {
+    const updated = await this.resultStore.updateComment(
+      reader._item,
+      result.id,
+      comment,
+    );
+    if (!updated) return undefined;
+    try {
+      await updateGeneratedAnnotationCommentForCandidate(reader._item, updated);
+    } catch (error) {
+      Zotero.logError(toError(error));
+    }
+    return updated;
+  }
+
+  private async prepareResultCorrection(
+    reader: PdfReader,
+    result: StoredFigureResult,
+  ): Promise<{
+    detectedRect: [number, number, number, number];
+    imageURL: string;
+    rect: [number, number, number, number];
+  }> {
+    const preview = await this.layoutAnalyzer.createResultCorrectionPreview(
+      reader._item,
+      result,
+    );
+    return {
+      detectedRect: preview.detectedRect,
+      imageURL: bytesToDataURL(new Uint8Array(preview.image), "image/jpeg"),
+      rect: preview.rect,
+    };
+  }
+
+  private async correctResultRegion(
+    reader: PdfReader,
+    result: StoredFigureResult,
+    rect: [number, number, number, number],
+  ): Promise<StoredFigureResult | undefined> {
+    const popup = this.createProgress(getString("progress-correct-region"));
+    try {
+      const updated = await this.layoutAnalyzer.correctResultRegion(
+        reader._item,
+        result,
+        rect,
+      );
+      if (!updated) {
+        popup.close();
+        return undefined;
+      }
+      try {
+        await updateGeneratedAnnotationPositionForCandidate(
+          reader._item,
+          result,
+          updated,
+        );
+      } catch (error) {
+        Zotero.logError(toError(error));
+      }
+      popup
+        .changeLine({
+          text: getString("progress-correct-region-done"),
+          type: "success",
+        })
+        .startCloseTimer(1_000);
+      return updated;
+    } catch (error) {
+      popup.changeLine({ text: toError(error).message, type: "fail" });
+      throw error;
+    }
   }
 
   private async copyResultImage(
@@ -358,8 +382,14 @@ export class FigureReaderController {
           this.resultStore.saveTranslations(reader._item, contextKey, updates),
         onClear: () => this.clearResults(reader),
         onCopyImage: (result) => this.copyResultImage(reader, result),
+        onCorrectRegion: (result, rect) =>
+          this.correctResultRegion(reader, result, rect),
+        onEditComment: (result, comment) =>
+          this.editResultComment(reader, result, comment),
         onGoToPage: (result) => this.navigateToResult(reader, result),
         onRemove: (result) => this.removeResult(reader, result),
+        onPrepareCorrection: (result) =>
+          this.prepareResultCorrection(reader, result),
         onSaveImage: (result) => this.saveResultImage(reader, result),
         onSyncAnnotations: () => this.syncResultsToAnnotations(reader),
         ownerWindow: this.win,
@@ -415,19 +445,6 @@ export class FigureReaderController {
   private ownsReader(reader: _ZoteroTypes.ReaderInstance): boolean {
     return !reader._window || reader._window === this.win;
   }
-}
-
-function escapeHTML(value: string): string {
-  return value.replace(/[&<>"']/g, (character) => {
-    const entities: Record<string, string> = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#39;",
-    };
-    return entities[character];
-  });
 }
 
 function toError(value: unknown): Error {

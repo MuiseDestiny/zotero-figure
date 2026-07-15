@@ -4,6 +4,8 @@ import type { AnnotationCandidate } from "../src/domain/layout";
 import {
   isGeneratedFigureAnnotation,
   reconcileGeneratedAnnotations,
+  updateGeneratedAnnotationCommentForCandidate,
+  updateGeneratedAnnotationPositionForCandidate,
 } from "../src/platform/zotero/annotations";
 import type { PdfReader } from "../src/platform/zotero/reader";
 
@@ -19,6 +21,10 @@ test("identifies generated annotations by both author and tag", () => {
   assert.equal(
     isGeneratedFigureAnnotation(annotation("zoterofigure", "Important")),
     false,
+  );
+  assert.equal(
+    isGeneratedFigureAnnotation(annotation("zoterofigure", "Formula 7")),
+    true,
   );
 });
 
@@ -48,6 +54,95 @@ test("replace-page is idempotent when generated annotations are unchanged", asyn
   } finally {
     harness.restore();
   }
+});
+
+test("annotation reconciliation accepts a PDF attachment without a Reader", async () => {
+  const candidate = makeCandidate("Figure 1", "Figure 1. Caption");
+  const existing = makeExistingAnnotation(candidate);
+  const attachment = {
+    getAnnotations: () => [existing.item],
+  } as unknown as Zotero.Item;
+  const harness = installZoteroHarness();
+  try {
+    const result = await reconcileGeneratedAnnotations(
+      attachment,
+      0,
+      [candidate],
+      "replace-page",
+    );
+
+    assert.deepEqual(result, { created: 0, removed: 0, skipped: 1 });
+    assert.equal(harness.created.length, 0);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("updates an existing generated annotation after a manual caption edit", async () => {
+  const candidate = makeCandidate("Figure 1", "Figure 1. Corrected caption");
+  let saves = 0;
+  const annotation = {
+    annotationAuthorName: "zoterofigure",
+    annotationComment: "Figure 1. Detected caption",
+    annotationPosition: JSON.stringify({
+      pageIndex: candidate.pageIndex,
+      rects: [candidate.rect],
+    }),
+    annotationType: "image",
+    getTags: () => [{ tag: candidate.tag }],
+    saveTx: async () => {
+      saves++;
+    },
+  } as unknown as Zotero.Item;
+  const attachment = {
+    getAnnotations: () => [annotation],
+  } as unknown as Zotero.Item;
+
+  assert.equal(
+    await updateGeneratedAnnotationCommentForCandidate(attachment, candidate),
+    true,
+  );
+  assert.equal(annotation.annotationComment, candidate.comment);
+  assert.equal(saves, 1);
+});
+
+test("updates an existing generated annotation after a region correction", async () => {
+  const previous = makeCandidate("Formula 3", "(3)");
+  const updated = {
+    ...previous,
+    rect: [2, 3, 12, 14] as [number, number, number, number],
+  };
+  let saves = 0;
+  const existing = {
+    annotationAuthorName: "zoterofigure",
+    annotationComment: previous.comment,
+    annotationPosition: JSON.stringify({
+      pageIndex: previous.pageIndex,
+      rects: [previous.rect],
+    }),
+    annotationType: "image",
+    getTags: () => [{ tag: previous.tag }],
+    saveTx: async () => {
+      saves++;
+    },
+  } as unknown as Zotero.Item;
+  const attachment = {
+    getAnnotations: () => [existing],
+  } as unknown as Zotero.Item;
+
+  assert.equal(
+    await updateGeneratedAnnotationPositionForCandidate(
+      attachment,
+      previous,
+      updated,
+    ),
+    true,
+  );
+  assert.deepEqual(JSON.parse(existing.annotationPosition), {
+    pageIndex: 0,
+    rects: [[2, 3, 12, 14]],
+  });
+  assert.equal(saves, 1);
 });
 
 test("skip-existing creates only missing generated annotations", async () => {

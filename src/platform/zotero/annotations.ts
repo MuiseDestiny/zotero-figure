@@ -2,7 +2,7 @@ import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import { throwIfAborted } from "../../utils/cancellation";
 import type { PdfReader } from "./reader";
 
-const GENERATED_TAG_PATTERN = /^(Figure|Table)(?:\s|$)/;
+const GENERATED_TAG_PATTERN = /^(Figure|Formula|Table)(?:\s|$)/;
 export const GENERATED_ANNOTATION_AUTHOR = "zoterofigure";
 
 export type DuplicateMode = "replace-page" | "skip-existing";
@@ -18,6 +18,8 @@ export interface AnnotationIdentity {
   tags?: Array<{ name?: string; tag?: string }>;
   type?: string;
 }
+
+export type AnnotationTarget = PdfReader | Zotero.Item;
 
 interface AnnotationJSON {
   authorName: string;
@@ -58,7 +60,7 @@ export function isGeneratedFigureAnnotationData(
 
 export function getGeneratedAnnotationKind(
   annotation: AnnotationIdentity,
-): "figure" | "table" | undefined {
+): "figure" | "formula" | "table" | undefined {
   let tag: string | undefined;
   for (const entry of Array.from(annotation.tags ?? [])) {
     const value = entry.name ?? entry.tag ?? "";
@@ -68,7 +70,8 @@ export function getGeneratedAnnotationKind(
     }
   }
   if (!tag) return undefined;
-  return /^Table(?:\s|$)/.test(tag) ? "table" : "figure";
+  if (/^Table(?:\s|$)/.test(tag)) return "table";
+  return /^Formula(?:\s|$)/.test(tag) ? "formula" : "figure";
 }
 
 export function hasGeneratedFigureAnnotations(item: Zotero.Item): boolean {
@@ -76,9 +79,10 @@ export function hasGeneratedFigureAnnotations(item: Zotero.Item): boolean {
 }
 
 export async function saveGeneratedAnnotation(
-  reader: PdfReader,
+  target: AnnotationTarget,
   candidate: AnnotationCandidate,
 ): Promise<Zotero.Item> {
+  const attachment = getAnnotationAttachment(target);
   const createdAt = new Date().toISOString();
   const key = Zotero.Utilities.generateObjectKey();
   const rect = candidate.rect.map((value) => Number(value.toFixed(3))) as Rect;
@@ -102,7 +106,7 @@ export async function saveGeneratedAnnotation(
   };
 
   const saved = await Zotero.Annotations.saveFromJSON(
-    reader._item,
+    attachment,
     annotation as unknown as _ZoteroTypes.Annotations.AnnotationJson,
   );
   saved.setTags([candidate.tag]);
@@ -111,15 +115,16 @@ export async function saveGeneratedAnnotation(
 }
 
 export async function reconcileGeneratedAnnotations(
-  reader: PdfReader,
+  target: AnnotationTarget,
   pageIndex: number,
   candidates: readonly AnnotationCandidate[],
   mode: DuplicateMode,
   signal?: AbortSignal,
 ): Promise<ReconcileResult> {
-  const existing = getGeneratedAnnotationsForPage(reader._item, pageIndex);
+  const attachment = getAnnotationAttachment(target);
+  const existing = getGeneratedAnnotationsForPage(attachment, pageIndex);
   if (mode === "skip-existing") {
-    return appendMissingAnnotations(reader, existing, candidates, signal);
+    return appendMissingAnnotations(target, existing, candidates, signal);
   }
 
   if (annotationSetsMatch(existing, candidates)) {
@@ -130,7 +135,7 @@ export async function reconcileGeneratedAnnotations(
   try {
     for (const candidate of candidates) {
       throwIfAborted(signal);
-      created.push(await saveGeneratedAnnotation(reader, candidate));
+      created.push(await saveGeneratedAnnotation(target, candidate));
     }
     throwIfAborted(signal);
   } catch (error) {
@@ -171,6 +176,48 @@ export async function removeGeneratedAnnotationForCandidate(
   return true;
 }
 
+export async function updateGeneratedAnnotationCommentForCandidate(
+  item: Zotero.Item,
+  candidate: AnnotationCandidate,
+): Promise<boolean> {
+  const fingerprint = getCandidateFingerprint(candidate, false);
+  const annotation = item
+    .getAnnotations(false)
+    .filter(isGeneratedFigureAnnotation)
+    .find(
+      (candidateAnnotation) =>
+        getAnnotationFingerprint(candidateAnnotation, false) === fingerprint,
+    );
+  if (!annotation) return false;
+  if (annotation.annotationComment === candidate.comment) return true;
+  annotation.annotationComment = candidate.comment;
+  await annotation.saveTx();
+  return true;
+}
+
+export async function updateGeneratedAnnotationPositionForCandidate(
+  item: Zotero.Item,
+  previous: AnnotationCandidate,
+  updated: AnnotationCandidate,
+): Promise<boolean> {
+  const fingerprint = getCandidateFingerprint(previous, false);
+  const annotation = item
+    .getAnnotations(false)
+    .filter(isGeneratedFigureAnnotation)
+    .find(
+      (candidateAnnotation) =>
+        getAnnotationFingerprint(candidateAnnotation, false) === fingerprint,
+    );
+  if (!annotation) return false;
+  const rect = updated.rect.map((value) => Number(value.toFixed(3))) as Rect;
+  annotation.annotationPosition = JSON.stringify({
+    pageIndex: updated.pageIndex,
+    rects: [rect],
+  });
+  await annotation.saveTx();
+  return true;
+}
+
 export async function removeAllAnnotations(item: Zotero.Item): Promise<number> {
   const annotations = item.getAnnotations();
   await eraseAnnotations(annotations);
@@ -194,7 +241,7 @@ function getGeneratedAnnotationsForPage(
 }
 
 async function appendMissingAnnotations(
-  reader: PdfReader,
+  target: AnnotationTarget,
   existing: readonly Zotero.Item[],
   candidates: readonly AnnotationCandidate[],
   signal?: AbortSignal,
@@ -216,7 +263,7 @@ async function appendMissingAnnotations(
         skipped++;
         continue;
       }
-      const annotation = await saveGeneratedAnnotation(reader, candidate);
+      const annotation = await saveGeneratedAnnotation(target, candidate);
       createdAnnotations.push(annotation);
       fingerprints.add(fingerprint);
       created++;
@@ -227,6 +274,11 @@ async function appendMissingAnnotations(
     throw error;
   }
   return { created, removed: 0, skipped };
+}
+
+function getAnnotationAttachment(target: AnnotationTarget): Zotero.Item {
+  const readerItem = (target as Partial<PdfReader>)._item;
+  return readerItem ?? (target as Zotero.Item);
 }
 
 function annotationSetsMatch(

@@ -2,15 +2,15 @@
   "schemaVersion": 1,
   "modelName": "darknoah99/DocLayout-YOLO-DocStructBench-onnx",
   "managedDirectory": "zotero-figure/models",
-  "recommendedVariant": "optimized-q8-d5d1e664",
+  "recommendedVariant": "optimized-q8-6c25a56c",
   "variants": [
     {
-      "id": "optimized-q8-d5d1e664",
+      "id": "optimized-q8-6c25a56c",
       "labelKey": "model-variant-optimized",
-      "fileName": "doclayout-yolo-docstructbench-q8-d5d1e664.onnx",
-      "embeddedPath": "models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/doclayout-yolo-docstructbench-q8-d5d1e664.onnx",
-      "sha256": "d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf",
-      "size": 20552482,
+      "fileName": "doclayout-yolo-docstructbench-q8-6c25a56c.onnx",
+      "embeddedPath": "models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/doclayout-yolo-docstructbench-q8-6c25a56c.onnx",
+      "sha256": "6c25a56caf796a074e26def15eea9018686836155fd9e15e5e0950e9c08a4cac",
+      "size": 19505323,
       "quantized": true
     }
   ]

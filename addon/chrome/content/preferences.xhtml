@@ -1,18 +1,104 @@
 <linkset>
   <html:link rel="localization" href="__addonRef__-preferences.ftl" />
-  <html:link rel="stylesheet" href="preferences.css" />
 </linkset>
 <vbox
   id="zotero-prefpane-__addonRef__"
   onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
 >
-  <groupbox class="preferences-section">
-    <html:h1 data-l10n-id="preferences-model-title" />
-    <description
-      class="section-description section-introduction"
-      data-l10n-id="preferences-model-description"
-    />
+  <!-- prettier-ignore -->
+  <html:style>
+    #zotero-prefpane-__addonRef__ {
+      max-width: 720px;
+      padding-bottom: 36px;
+    }
 
+    #zotero-prefpane-__addonRef__ .preferences-section {
+      margin: 0;
+      padding: 0;
+    }
+
+    #zotero-prefpane-__addonRef__ .help-icon {
+      color: var(--fill-secondary, #666);
+      cursor: help;
+      height: 16px;
+      margin-inline-start: 8px;
+      opacity: 0.65;
+      width: 16px;
+    }
+
+    #zotero-prefpane-__addonRef__ .help-icon > svg {
+      display: block;
+      height: 16px;
+      pointer-events: none;
+      width: 16px;
+    }
+
+    #zotero-prefpane-__addonRef__ .status-row {
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      padding: 0 2px;
+    }
+
+    #zotero-prefpane-__addonRef__ .status-dot {
+      background: #8b8b8b;
+      border-radius: 50%;
+      display: block;
+      flex: 0 0 9px;
+      height: 9px;
+      width: 9px;
+    }
+
+    #zotero-prefpane-__addonRef__ .status-row[data-state="valid"] .status-dot {
+      background: #2e7d32;
+    }
+
+    #zotero-prefpane-__addonRef__ .status-row[data-state="invalid"] .status-dot {
+      background: #c62828;
+    }
+
+    #zotero-prefpane-__addonRef__ .status-row[data-state="missing"] .status-dot {
+      background: #b26a00;
+    }
+
+    #zotero-prefpane-__addonRef__ #model-status {
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    #zotero-prefpane-__addonRef__ .field-row {
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      min-height: 30px;
+    }
+
+    #zotero-prefpane-__addonRef__ .button-row {
+      align-items: center;
+      display: flex;
+      margin-top: 10px;
+      min-height: 30px;
+    }
+
+    #zotero-prefpane-__addonRef__ .button-row > .model-action-button + .model-action-button {
+      margin-inline-start: 8px;
+    }
+
+    @media (max-width: 620px) {
+      #zotero-prefpane-__addonRef__ .field-row {
+        align-items: stretch;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      #zotero-prefpane-__addonRef__ .help-icon {
+        align-self: flex-start;
+      }
+    }
+  </html:style>
+
+  <groupbox class="preferences-section">
     <hbox
       id="model-status-row"
       class="status-row"
@@ -22,64 +108,56 @@
       <html:span class="status-dot" />
       <vbox flex="1">
         <html:span id="model-status" />
-        <html:span id="model-metadata" />
       </vbox>
     </hbox>
 
-    <hbox class="button-row">
-      <button id="restore-model" data-l10n-id="preferences-restore-model" />
-      <button id="verify-model" data-l10n-id="preferences-verify" />
-      <button id="reveal-model" data-l10n-id="preferences-reveal" />
+    <hbox class="button-row" align="center">
+      <button
+        id="restore-model"
+        class="model-action-button"
+        data-l10n-id="preferences-restore-model"
+      />
+      <button
+        id="verify-model"
+        class="model-action-button"
+        data-l10n-id="preferences-verify"
+      />
+      <button
+        id="reveal-model"
+        class="model-action-button"
+        data-l10n-id="preferences-reveal"
+      />
     </hbox>
 
-    <hbox class="storage-row">
-      <label class="field-label" data-l10n-id="preferences-managed-directory" />
-      <html:code id="managed-model-path" />
+    <hbox class="field-row" align="center">
+      <checkbox
+        id="sync-annotations"
+        native="true"
+        data-l10n-id="preferences-sync-annotations"
+      />
+      <hbox
+        class="help-icon"
+        role="img"
+        align="center"
+        data-l10n-id="preferences-sync-annotations-help"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <path d="M12 17h.01" />
+        </svg>
+      </hbox>
     </hbox>
-    <description
-      class="section-description"
-      data-l10n-id="preferences-managed-directory-description"
-    />
-  </groupbox>
-
-  <groupbox class="preferences-section">
-    <html:h1 data-l10n-id="preferences-analysis-title" />
-    <vbox class="setting-block">
-      <hbox class="field-row" align="center">
-        <label
-          class="field-label"
-          control="duplicate-mode"
-          data-l10n-id="preferences-duplicate-mode"
-        />
-        <html:select id="duplicate-mode" native="true">
-          <html:option
-            value="replace-page"
-            data-l10n-id="preferences-duplicate-replace"
-          />
-          <html:option
-            value="skip-existing"
-            data-l10n-id="preferences-duplicate-skip"
-          />
-        </html:select>
-      </hbox>
-      <description
-        class="section-description"
-        data-l10n-id="preferences-duplicate-description"
-      />
-    </vbox>
-
-    <vbox class="setting-block">
-      <hbox class="field-row" align="center">
-        <checkbox
-          id="sync-annotations"
-          native="true"
-          data-l10n-id="preferences-sync-annotations"
-        />
-      </hbox>
-      <description
-        class="section-description"
-        data-l10n-id="preferences-sync-annotations-description"
-      />
-    </vbox>
   </groupbox>
 </vbox>

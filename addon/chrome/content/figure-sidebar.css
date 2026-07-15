@@ -148,6 +148,13 @@
   position: relative;
 }
 
+.zoterofigure-sidebar-filter-slot {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+
 .zoterofigure-sidebar-filter {
   appearance: none;
   background: transparent;
@@ -156,7 +163,7 @@
   box-sizing: border-box;
   color: var(--fill-primary);
   cursor: pointer;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   font: inherit;
   height: 25px;
   min-width: 0;
@@ -165,6 +172,7 @@
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
 }
 
 .zoterofigure-sidebar-filter.selected {
@@ -237,6 +245,53 @@
   text-align: center;
 }
 
+.zoterofigure-analysis-progress {
+  box-sizing: border-box;
+  color: var(--fill-primary);
+  padding: 24px 18px 18px;
+}
+
+.zoterofigure-analysis-progress-heading {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.zoterofigure-analysis-progress-percentage,
+.zoterofigure-analysis-progress-detail {
+  color: var(--fill-secondary);
+  font-weight: 400;
+}
+
+.zoterofigure-analysis-progress-track {
+  background: var(--fill-quinary);
+  border-radius: 3px;
+  height: 5px;
+  overflow: hidden;
+}
+
+.zoterofigure-analysis-progress-fill {
+  background: var(--accent-blue, #3b82f6);
+  border-radius: inherit;
+  height: 100%;
+  min-width: 1px;
+  transition: width 160ms ease-out;
+}
+
+.zoterofigure-analysis-progress-detail {
+  font-size: 11px;
+  line-height: 1.4;
+  margin-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+.zoterofigure-analysis-progress.is-error .zoterofigure-analysis-progress-fill {
+  background: var(--accent-red, #b3261e);
+}
+
 .zoterofigure-sidebar-card {
   background: var(--material-background);
   border-radius: 5px;
@@ -249,10 +304,43 @@
   box-shadow: 0 0 0 1px var(--fill-tertiary);
 }
 
+.zoterofigure-sidebar-card.zoterofigure-pinned-card {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  box-sizing: border-box;
+  contain: none;
+  cursor: grab;
+  margin: 0;
+  position: fixed;
+  touch-action: none;
+  transform-origin: top left;
+  user-select: none;
+  will-change: transform;
+}
+
+.zoterofigure-sidebar-card.zoterofigure-pinned-card:hover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+.zoterofigure-pinned-card:focus {
+  outline: none;
+}
+
+.zoterofigure-pinned-card > header,
+.zoterofigure-pinned-card .zoterofigure-card-image {
+  cursor: grab;
+}
+
+.zoterofigure-pinned-card.is-dragging,
+.zoterofigure-pinned-card.is-dragging > header,
+.zoterofigure-pinned-card.is-dragging .zoterofigure-card-image {
+  cursor: grabbing;
+}
+
 .zoterofigure-sidebar-card > header {
   align-items: center;
   border-bottom: 1px solid var(--fill-quinary);
   cursor: pointer;
+  color: var(--fill-secondary);
   display: flex;
   justify-content: space-between;
   min-height: 28px;
@@ -271,25 +359,31 @@
 }
 
 .zoterofigure-card-page {
+  color: var(--fill-secondary);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .zoterofigure-card-image {
-  background: var(--material-mix-quinary);
+  background: var(--material-background);
   box-sizing: border-box;
   cursor: pointer;
   min-height: 34px;
-  padding: 4px;
+  overflow: hidden;
+  padding: 0;
 }
 
 .zoterofigure-card-image img {
+  box-sizing: border-box;
   display: block;
-  height: auto;
+  height: auto !important;
   image-rendering: auto;
-  max-width: 100%;
-  width: 100%;
+  max-height: none !important;
+  max-width: 100% !important;
+  min-width: 0;
+  object-fit: fill;
+  width: 100% !important;
 }
 
 .zoterofigure-card-image > span {

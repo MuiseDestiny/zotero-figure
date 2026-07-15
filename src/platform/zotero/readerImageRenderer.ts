@@ -56,24 +56,20 @@ export async function renderReaderImageCropBytes(
   return decodePNGDataURL(await renderReaderImageCrop(reader, crop));
 }
 
-/**
- * Prefer a fresh, coordinate-based PDF crop. The persisted analysis preview
- * remains a compatibility fallback when the reader has not initialized its
- * private renderer yet.
- */
+/** Use the shared local MuPDF result; retain the Reader renderer for recovery. */
 export async function getReaderImageCropDataURL(
   reader: PdfReader,
   crop: ReaderImageCrop,
   fallbackImagePath: string,
 ): Promise<string> {
   try {
-    return await renderReaderImageCrop(reader, crop);
-  } catch (renderError) {
+    return await readLocalImageDataURL(fallbackImagePath);
+  } catch (localError) {
     try {
-      return await readLocalImageDataURL(fallbackImagePath);
-    } catch (fallbackError) {
+      return await renderReaderImageCrop(reader, crop);
+    } catch (renderError) {
       throw new Error(
-        `Unable to prepare the figure image: ${toError(renderError).message}; local fallback: ${toError(fallbackError).message}`,
+        `Unable to prepare the figure image: ${toError(localError).message}; Reader fallback: ${toError(renderError).message}`,
       );
     }
   }

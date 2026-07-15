@@ -18,6 +18,7 @@ export interface MemoryIOHarness {
 export function installMemoryIO(): MemoryIOHarness {
   const previousIOUtils = globalThis.IOUtils;
   const previousPathUtils = globalThis.PathUtils;
+  const directories = new Set<string>();
   const files = new Map<string, MemoryFile>();
   const operations: MemoryIOHarness["operations"] = {
     directories: [],
@@ -26,12 +27,31 @@ export function installMemoryIO(): MemoryIOHarness {
   };
 
   globalThis.PathUtils = {
+    filename: (path: string) => path.split("/").filter(Boolean).at(-1) ?? "",
     join: (...parts: string[]) => parts.join("/").replace(/\/+/g, "/"),
   } as unknown as typeof PathUtils;
   globalThis.IOUtils = {
-    exists: async (path: string) => files.has(path),
+    exists: async (path: string) =>
+      files.has(path) ||
+      directories.has(path) ||
+      [...files.keys(), ...directories].some((entry) =>
+        entry.startsWith(`${path}/`),
+      ),
+    getChildren: async (path: string) => {
+      const prefix = `${path}/`;
+      return [
+        ...new Set(
+          [...files.keys(), ...directories]
+            .filter((entry) => entry.startsWith(prefix))
+            .map(
+              (entry) => `${path}/${entry.slice(prefix.length).split("/")[0]}`,
+            ),
+        ),
+      ];
+    },
     makeDirectory: async (path: string) => {
       operations.directories.push(path);
+      directories.add(path);
     },
     move: async (source: string, destination: string) => {
       const value = files.get(source);
@@ -53,9 +73,13 @@ export function installMemoryIO(): MemoryIOHarness {
     },
     remove: async (path: string, options?: { recursive?: boolean }) => {
       files.delete(path);
+      directories.delete(path);
       if (options?.recursive) {
         for (const candidate of files.keys()) {
           if (candidate.startsWith(`${path}/`)) files.delete(candidate);
+        }
+        for (const candidate of directories) {
+          if (candidate.startsWith(`${path}/`)) directories.delete(candidate);
         }
       }
     },
