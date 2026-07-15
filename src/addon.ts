@@ -1,31 +1,28 @@
-import { ColumnOptions } from "zotero-plugin-toolkit/dist/helpers/virtualizedTable";
-import { DialogHelper } from "zotero-plugin-toolkit/dist/helpers/dialog";
+import type { DialogHelper } from "zotero-plugin-toolkit";
 import hooks from "./hooks";
 import { createZToolkit } from "./utils/ztoolkit";
 
+interface LocaleFormatter {
+  formatMessagesSync(
+    messages: Array<{ args?: Record<string, unknown>; id: string }>,
+  ): Array<{
+    attributes?: Record<string, string>;
+    value?: string;
+  }>;
+}
+
+export interface AddonData {
+  alive: boolean;
+  dialog?: DialogHelper;
+  env: "development" | "production";
+  locale?: { current: LocaleFormatter };
+  ztoolkit: ZToolkit;
+}
+
 class Addon {
-  public data: {
-    alive: boolean;
-    // Env type, see build.js
-    env: "development" | "production";
-    ztoolkit: ZToolkit;
-    locale?: {
-      current: any;
-    };
-    prefs?: {
-      window: Window;
-      columns: Array<ColumnOptions>;
-      rows: Array<{ [dataKey: string]: string }>;
-    };
-    dialog?: DialogHelper;
-  };
-  // Lifecycle hooks
-  public hooks: typeof hooks;
-  // APIs
-  public api: {
-    [key: string]: any;
-    
-  };
+  public readonly api: Record<string, unknown> = {};
+  public readonly data: AddonData;
+  public readonly hooks = hooks;
 
   constructor() {
     this.data = {
@@ -33,8 +30,6 @@ class Addon {
       env: __env__,
       ztoolkit: createZToolkit(),
     };
-    this.hooks = hooks;
-    this.api = {};
   }
 }
 

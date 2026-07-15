@@ -9,7 +9,15 @@
     "plugin:@typescript-eslint/recommended",
     "prettier"
   ],
-  "overrides": [],
+  "overrides": [
+    {
+      "files": ["tests/**/*.ts"],
+      "env": {
+        "browser": false,
+        "node": true
+      }
+    }
+  ],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": "latest",
@@ -17,23 +25,23 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
-    "@typescript-eslint/ban-ts-comment": ["warn", "allow-with-description"],
-    "@typescript-eslint/no-unused-vars": "off",
-    "@typescript-eslint/no-explicit-any": ["off", { "ignoreRestArgs": true }],
-    "@typescript-eslint/no-non-null-withion": "off"
+    "@typescript-eslint/ban-ts-comment": [
+      "warn",
+      {
+        "ts-expect-error": "allow-with-description",
+        "ts-ignore": "allow-with-description",
+        "ts-nocheck": "allow-with-description",
+        "ts-check": "allow-with-description"
+      }
+    ],
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-non-null-assertion": "off"
   },
   "ignorePatterns": [
+    "**/build/**",
     "**/dist/**",
+    "**/logs/**",
     "**/node_modules/**",
-    "**/abbrevIso*",
-    "**/example*",
-    "**/*.bak",
-    "coverage/**",
-    "docs-shared/lib/**",
-    "packages/*/assets/**",
-    "packages/*/lib/**",
-    "!.vuepress/**",
-    "**/.vuepress/.cache/**",
-    "**/.vuepress/.temp/**"
+    "**/*.bak"
   ]
 }

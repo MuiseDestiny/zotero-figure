@@ -1,0 +1,395 @@
+#zoterofigure-sidebar-panel {
+  display: block;
+  min-width: 0;
+}
+
+.zoterofigure-sidebar-panel {
+  color: var(--fill-primary);
+  min-width: 0;
+}
+
+.zoterofigure-sidebar-controls {
+  background: var(--material-sidepane, transparent);
+  display: flow-root;
+  isolation: isolate;
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+.zoterofigure-sidebar-actions {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  display: flex;
+  flex: 0 0 30px;
+  gap: 2px;
+  justify-content: space-around;
+  margin: 0.5em 1em;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-inline: 2px;
+  scrollbar-width: none;
+}
+
+.zoterofigure-sidebar-action,
+.zoterofigure-card-menu {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  box-sizing: border-box;
+  color: var(--fill-secondary);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 26px;
+  height: 26px;
+  justify-content: center;
+  line-height: 0;
+  max-height: 26px;
+  max-width: 26px;
+  min-height: 26px;
+  min-width: 26px;
+  padding: 5px;
+  width: 26px;
+}
+
+.zoterofigure-sidebar-action {
+  background: transparent;
+  border-radius: 6px;
+  color: var(--fill-secondary);
+}
+
+.zoterofigure-analysis-action {
+  overflow: visible;
+  position: relative;
+}
+
+.zoterofigure-analysis-plugin-icon {
+  display: block;
+  flex: 0 0 16px;
+  height: 16px;
+  object-fit: contain;
+  pointer-events: none;
+  width: 16px;
+}
+
+.zoterofigure-analysis-action .zoterofigure-analysis-magnifier {
+  animation: zoterofigure-inspect 2600ms ease-in-out infinite;
+  color: var(--fill-secondary);
+  flex: none;
+  height: 12px;
+  left: 8px;
+  margin: 0;
+  position: absolute;
+  stroke-width: 2.5;
+  top: 7px;
+  width: 12px;
+  z-index: 1;
+}
+
+@keyframes zoterofigure-inspect {
+  0% {
+    transform: translate(0, 0) rotate(-10deg);
+  }
+
+  17% {
+    transform: translate(3px, -2px) rotate(5deg);
+  }
+
+  39% {
+    transform: translate(1px, 2px) rotate(-5deg);
+  }
+
+  63% {
+    transform: translate(5px, 1px) rotate(10deg);
+  }
+
+  81% {
+    transform: translate(2px, -1px) rotate(-7deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(-10deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zoterofigure-analysis-action .zoterofigure-analysis-magnifier {
+    animation: none;
+    transform: translateX(2px);
+  }
+}
+
+.zoterofigure-sidebar-action:hover:not(:disabled),
+.zoterofigure-card-menu:hover:not(:disabled) {
+  background: var(--fill-quinary);
+  color: var(--fill-primary);
+}
+
+.zoterofigure-sidebar-action:disabled,
+.zoterofigure-card-menu:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
+.zoterofigure-sidebar-filters {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: row;
+  height: 25px;
+  justify-content: space-around;
+  margin: 0.5em 1em;
+  overflow: visible;
+  position: relative;
+}
+
+.zoterofigure-sidebar-filter {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 7px;
+  box-sizing: border-box;
+  color: var(--fill-primary);
+  cursor: pointer;
+  flex: 1 1 0;
+  font: inherit;
+  height: 25px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 6px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoterofigure-sidebar-filter.selected {
+  background: var(--material-button, #ffffff);
+  border: 0.5px solid var(--fill-senary, rgba(0, 0, 0, 0.0196078431));
+  box-shadow:
+    0 0 0 0.5px rgba(0, 0, 0, 0.05),
+    0 0.5px 2.5px 0 rgba(0, 0, 0, 0.3);
+  color: var(--fill-primary);
+}
+
+.zoterofigure-filter-results {
+  background: var(--material-background);
+  border: 1px solid var(--fill-quinary);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  inset-inline: 0;
+  max-height: min(320px, 45vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 4px;
+  position: absolute;
+  top: calc(100% + 3px);
+  z-index: 4;
+}
+
+.zoterofigure-filter-result {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  box-sizing: border-box;
+  color: var(--fill-primary);
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  font-size: 12px;
+  min-height: 26px;
+  min-width: 0;
+  padding: 5px 7px;
+  text-align: start;
+  width: 100%;
+}
+
+.zoterofigure-filter-result:hover,
+.zoterofigure-filter-result:focus-visible {
+  background: var(--fill-quinary);
+  outline: none;
+}
+
+.zoterofigure-filter-result-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.zoterofigure-sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 3px 7px 8px;
+}
+
+.zoterofigure-sidebar-empty {
+  color: var(--fill-secondary);
+  font-size: 12px;
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.zoterofigure-sidebar-card {
+  background: var(--material-background);
+  border-radius: 5px;
+  box-shadow: 0 0 0 1px var(--fill-quinary);
+  contain: content;
+  overflow: hidden;
+}
+
+.zoterofigure-sidebar-card:hover {
+  box-shadow: 0 0 0 1px var(--fill-tertiary);
+}
+
+.zoterofigure-sidebar-card > header {
+  align-items: center;
+  border-bottom: 1px solid var(--fill-quinary);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  min-height: 28px;
+  padding: 3px 6px;
+}
+
+.zoterofigure-card-start,
+.zoterofigure-card-end {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.zoterofigure-card-start {
+  gap: 5px;
+}
+
+.zoterofigure-card-page {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.zoterofigure-card-image {
+  background: var(--material-mix-quinary);
+  box-sizing: border-box;
+  cursor: pointer;
+  min-height: 34px;
+  padding: 4px;
+}
+
+.zoterofigure-card-image img {
+  display: block;
+  height: auto;
+  image-rendering: auto;
+  max-width: 100%;
+  width: 100%;
+}
+
+.zoterofigure-card-image > span {
+  color: var(--fill-secondary);
+  display: block;
+  font-size: 11px;
+  padding: 18px 8px;
+  text-align: center;
+}
+
+.zoterofigure-card-comment {
+  align-items: flex-start;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--fill-quinary);
+  box-sizing: border-box;
+  color: var(--fill-primary);
+  cursor: pointer;
+  display: flex;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  max-height: 3.85em;
+  overflow: hidden;
+  padding: 7px 8px;
+  text-align: left;
+  white-space: pre-wrap;
+  width: 100%;
+}
+
+.zoterofigure-card-comment:hover {
+  background: var(--fill-quinary);
+}
+
+.zoterofigure-card-comment.is-empty {
+  cursor: default;
+}
+
+.zoterofigure-card-comment.is-empty:hover {
+  background: transparent;
+}
+
+.zoterofigure-card-comment.expanded {
+  max-height: none;
+}
+
+.zoterofigure-card-comment-text {
+  display: -webkit-box;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.zoterofigure-card-comment.expanded .zoterofigure-card-comment-text {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.zoterofigure-sidebar-status {
+  color: var(--accent-red, #b3261e);
+  font-size: 11px;
+  padding: 2px 10px 5px;
+  text-align: center;
+}
+
+.zoterofigure-svg-icon {
+  display: block;
+  flex: 0 0 16px;
+  height: 16px;
+  margin: auto;
+  max-height: 100%;
+  max-width: 100%;
+  pointer-events: none;
+  width: 16px;
+}
+
+.zoterofigure-native-note-icon {
+  display: block;
+  flex: 0 0 16px;
+  height: 16px;
+  pointer-events: none;
+  width: 16px;
+}
+
+.zoterofigure-sidebar-tab .zoterofigure-svg-icon {
+  height: 18px;
+  width: 18px;
+}
+
+.zoterofigure-sidebar-tab > img {
+  display: block;
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
+}
+
+.zoterofigure-sidebar-error {
+  color: var(--accent-red, #b3261e);
+}

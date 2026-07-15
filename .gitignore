@@ -1,4 +1,9 @@
-**/builds
-node_modules
-package-lock.json
+.DS_Store
+build/
+builds/
+logs/
+node_modules/
 zotero-cmd.json
+
+# Generated from the pinned @huggingface/transformers dependency at build time.
+addon/chrome/content/transformers/

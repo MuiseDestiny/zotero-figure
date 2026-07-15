@@ -1,74 +1,88 @@
-import { execSync } from "child_process";
-import { exit } from "process";
-import { existsSync, writeFileSync, readFileSync, mkdirSync } from "fs";
+import { spawn } from "child_process";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import path from "path";
 import details from "../package.json" with { type: "json" };
 import cmd from "./zotero-cmd.json" with { type: "json" };
+import { Logger } from "./utils.mjs";
 
 const { addonID } = details.config;
-const { zoteroBinPath, profilePath, dataDir } = cmd.exec;
+const { dataDir, profilePath, zoteroBinPath } = cmd.exec;
+const readyMarker = `Plugin ${addonID} startup`;
+const logDirectory = "logs";
+const logFile = path.join(logDirectory, "zotero.log");
 
-if (!existsSync(zoteroBinPath)) {
-  throw new Error("Zotero binary does not exist.");
+export function main(onReady = () => {}) {
+  validateConfiguration();
+  prepareDevelopmentProfile();
+  mkdirSync(logDirectory, { recursive: true });
+  writeFileSync(logFile, "");
+
+  let ready = false;
+  const child = spawn(zoteroBinPath, [
+    "--jsdebugger",
+    "--purgecaches",
+    "-profile",
+    profilePath,
+  ]);
+  child.once("error", (error) => Logger.error("Failed to start Zotero", error));
+  child.stdout.on("data", (data) => {
+    appendLog(data);
+    if (!ready && data.toString().includes(readyMarker)) {
+      ready = true;
+      onReady();
+    }
+  });
+  child.stderr.on("data", appendLog);
+  return child;
 }
 
-if (existsSync(profilePath)) {
-  const addonProxyFilePath = path.join(profilePath, `extensions/${addonID}`);
+function validateConfiguration() {
+  const requiredPaths = [
+    ["Zotero binary", zoteroBinPath],
+    ["Zotero profile", profilePath],
+    ["development build", path.resolve("build/addon/manifest.json")],
+  ];
+  for (const [label, value] of requiredPaths) {
+    if (!existsSync(value))
+      throw new Error(`${label} does not exist: ${value}`);
+  }
+}
+
+function prepareDevelopmentProfile() {
+  const extensionsDirectory = path.join(profilePath, "extensions");
+  mkdirSync(extensionsDirectory, { recursive: true });
+  const proxyFile = path.join(extensionsDirectory, addonID);
   const buildPath = path.resolve("build/addon");
-
-  if (!existsSync(path.join(buildPath, "./manifest.json"))) {
-    throw new Error(
-      `The built file does not exist, maybe you need to build the addon first.`,
-    );
+  if (!existsSync(proxyFile) || readFileSync(proxyFile, "utf8") !== buildPath) {
+    writeFileSync(proxyFile, buildPath);
+    Logger.debug(`Updated add-on proxy: ${proxyFile} -> ${buildPath}`);
   }
 
-  function writeAddonProxyFile() {
-    writeFileSync(addonProxyFilePath, buildPath);
-    console.log(
-      `[info] Addon proxy file has been updated. 
-      File path: ${addonProxyFilePath} 
-      Addon path: ${buildPath} `,
-    );
-  }
+  const installedXPI = path.join(extensionsDirectory, `${addonID}.xpi`);
+  rmSync(installedXPI, { force: true });
+  updateProfilePreferences();
+}
 
-  if (existsSync(addonProxyFilePath)) {
-    if (readFileSync(addonProxyFilePath, "utf-8") !== buildPath) {
-      writeAddonProxyFile();
-    }
-  } else {
-    if (
-      existsSync(profilePath) &&
-      !existsSync(path.join(profilePath, "extensions"))
-    ) {
-      mkdirSync(path.join(profilePath, "extensions"));
-    }
-    writeAddonProxyFile();
-  }
+function updateProfilePreferences() {
+  const prefsFile = path.join(profilePath, "prefs.js");
+  if (!existsSync(prefsFile)) return;
 
-  const prefsPath = path.join(profilePath, "prefs.js");
-  if (existsSync(prefsPath)) {
-    const PrefsLines = readFileSync(prefsPath, "utf-8").split("\n");
-    const filteredLines = PrefsLines.map((line) => {
-      if (
-        line.includes("extensions.lastAppBuildId") ||
-        line.includes("extensions.lastAppVersion")
-      ) {
-        return;
-      }
-      if (line.includes("extensions.zotero.dataDir") && dataDir !== "") {
-        return `user_pref("extensions.zotero.dataDir", "${dataDir}");`;
+  const lines = readFileSync(prefsFile, "utf8")
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes("extensions.lastAppBuildId") &&
+        !line.includes("extensions.lastAppVersion"),
+    )
+    .map((line) => {
+      if (line.includes("extensions.zotero.dataDir") && dataDir) {
+        return `user_pref("extensions.zotero.dataDir", ${JSON.stringify(dataDir)});`;
       }
       return line;
     });
-    const updatedPrefs = filteredLines.join("\n");
-    writeFileSync(prefsPath, updatedPrefs, "utf-8");
-    console.log("[info] The <profile>/prefs.js has been modified.");
-  }
-} else {
-  throw new Error("The given Zotero profile does not exist.");
+  writeFileSync(prefsFile, lines.join("\n"), "utf8");
 }
 
-const startZotero = `"${zoteroBinPath}" --jsdebugger --purgecaches -profile "${profilePath}"`;
-
-execSync(startZotero);
-exit(0);
+function appendLog(data) {
+  writeFileSync(logFile, data, { flag: "a" });
+}

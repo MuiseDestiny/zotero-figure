@@ -1,0 +1,27 @@
+{
+    "id2label": {
+      "0": "title",
+      "1": "plain_text",
+      "2": "abandon",
+      "3": "figure",
+      "4": "figure_caption",
+      "5": "table",
+      "6": "table_caption",
+      "7": "table_footnote",
+      "8": "isolate_formula",
+      "9": "formula_caption"
+    },
+    "label2id": {
+      "title": 0,
+      "plain_text": 1,
+      "abandon": 2,
+      "figure": 3,
+      "figure_caption": 4,
+      "table": 5,
+      "table_caption": 6,
+      "table_footnote": 7,
+      "isolate_formula": 8,
+      "formula_caption": 9
+    },
+    "model_type": "yolos"
+  }

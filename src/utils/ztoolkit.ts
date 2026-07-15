@@ -1,4 +1,4 @@
-import {ZoteroToolkit} from "zotero-plugin-toolkit";
+import { ZoteroToolkit } from "zotero-plugin-toolkit";
 import { config } from "../../package.json";
 
 export { createZToolkit };
@@ -18,8 +18,8 @@ function initZToolkit(_ztoolkit: ReturnType<typeof createZToolkit>) {
   const env = __env__;
   _ztoolkit.basicOptions.log.prefix = `[${config.addonName}]`;
   _ztoolkit.basicOptions.log.disableConsole = env === "production";
-  _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = __env__ === "development";
-  _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = __env__ === "development";
+  _ztoolkit.UI.basicOptions.ui.enableElementJSONLog = false;
+  _ztoolkit.UI.basicOptions.ui.enableElementDOMLog = false;
   _ztoolkit.basicOptions.debug.disableDebugBridgePassword =
     __env__ === "development";
   _ztoolkit.ProgressWindow.setIconURI(
@@ -28,10 +28,10 @@ function initZToolkit(_ztoolkit: ReturnType<typeof createZToolkit>) {
   );
   _ztoolkit.ProgressWindow.setIconURI(
     "success",
-    `chrome://zotero/skin/tick@2x.png`,
+    `chrome://${config.addonRef}/content/icons/tick.png`,
   );
   _ztoolkit.ProgressWindow.setIconURI(
     "fail",
-    `chrome://zotero/skin/cross.png`,
+    `chrome://${config.addonRef}/content/icons/cross.png`,
   );
 }

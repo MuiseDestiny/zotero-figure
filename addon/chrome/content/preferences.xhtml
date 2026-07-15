@@ -1,0 +1,85 @@
+<linkset>
+  <html:link rel="localization" href="__addonRef__-preferences.ftl" />
+  <html:link rel="stylesheet" href="preferences.css" />
+</linkset>
+<vbox
+  id="zotero-prefpane-__addonRef__"
+  onload="Zotero.__addonInstance__.hooks.onPrefsEvent('load', { window })"
+>
+  <groupbox class="preferences-section">
+    <html:h1 data-l10n-id="preferences-model-title" />
+    <description
+      class="section-description section-introduction"
+      data-l10n-id="preferences-model-description"
+    />
+
+    <hbox
+      id="model-status-row"
+      class="status-row"
+      align="center"
+      data-state="checking"
+    >
+      <html:span class="status-dot" />
+      <vbox flex="1">
+        <html:span id="model-status" />
+        <html:span id="model-metadata" />
+      </vbox>
+    </hbox>
+
+    <hbox class="button-row">
+      <button id="restore-model" data-l10n-id="preferences-restore-model" />
+      <button id="verify-model" data-l10n-id="preferences-verify" />
+      <button id="reveal-model" data-l10n-id="preferences-reveal" />
+    </hbox>
+
+    <hbox class="storage-row">
+      <label class="field-label" data-l10n-id="preferences-managed-directory" />
+      <html:code id="managed-model-path" />
+    </hbox>
+    <description
+      class="section-description"
+      data-l10n-id="preferences-managed-directory-description"
+    />
+  </groupbox>
+
+  <groupbox class="preferences-section">
+    <html:h1 data-l10n-id="preferences-analysis-title" />
+    <vbox class="setting-block">
+      <hbox class="field-row" align="center">
+        <label
+          class="field-label"
+          control="duplicate-mode"
+          data-l10n-id="preferences-duplicate-mode"
+        />
+        <html:select id="duplicate-mode" native="true">
+          <html:option
+            value="replace-page"
+            data-l10n-id="preferences-duplicate-replace"
+          />
+          <html:option
+            value="skip-existing"
+            data-l10n-id="preferences-duplicate-skip"
+          />
+        </html:select>
+      </hbox>
+      <description
+        class="section-description"
+        data-l10n-id="preferences-duplicate-description"
+      />
+    </vbox>
+
+    <vbox class="setting-block">
+      <hbox class="field-row" align="center">
+        <checkbox
+          id="sync-annotations"
+          native="true"
+          data-l10n-id="preferences-sync-annotations"
+        />
+      </hbox>
+      <description
+        class="section-description"
+        data-l10n-id="preferences-sync-annotations-description"
+      />
+    </vbox>
+  </groupbox>
+</vbox>

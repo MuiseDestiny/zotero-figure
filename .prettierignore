@@ -1,0 +1,8 @@
+addon/chrome/content/models/
+addon/chrome/content/transformers/
+build/
+logs/
+node_modules/
+package-lock.json
+pdffigures2.jar
+.vscode/

@@ -1,0 +1,1649 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PDF 版面识别模型对比</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f5f2;
+        --surface: #ffffff;
+        --surface-muted: #ecefeb;
+        --line: #cbd0ca;
+        --text: #18201c;
+        --muted: #616963;
+        --doc: #d6473d;
+        --doc-soft: #fff0ed;
+        --zotero: #087d78;
+        --zotero-soft: #e5f6f3;
+        --table: #9b5b00;
+        --shadow: 0 10px 28px rgb(24 32 28 / 8%);
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      .topbar {
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .topbar-inner,
+      .summary-inner,
+      .workspace {
+        width: min(1560px, calc(100% - 32px));
+        margin: 0 auto;
+      }
+
+      .topbar-inner {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 22px 0 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 22px;
+        line-height: 1.25;
+        letter-spacing: 0;
+      }
+
+      .subtitle {
+        margin: 7px 0 0;
+        max-width: 920px;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+      }
+
+      .run-meta {
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-size: 12px;
+        line-height: 1.6;
+        text-align: right;
+      }
+
+      .summary-band {
+        border-bottom: 1px solid var(--line);
+        background: #e9ede8;
+      }
+
+      .summary-inner {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(120px, 1fr));
+        gap: 1px;
+        background: var(--line);
+      }
+
+      .metric {
+        min-height: 92px;
+        padding: 16px 18px;
+        background: var(--surface-muted);
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric-value {
+        display: block;
+        margin-top: 8px;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      .metric-detail {
+        display: block;
+        margin-top: 7px;
+        color: var(--muted);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .workspace {
+        display: grid;
+        grid-template-columns: 230px minmax(0, 1fr);
+        gap: 18px;
+        padding: 18px 0 32px;
+      }
+
+      .sidebar {
+        align-self: start;
+        position: sticky;
+        top: 12px;
+        max-height: calc(100vh - 24px);
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .sidebar-title {
+        padding: 13px 14px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .page-list {
+        max-height: calc(100vh - 70px);
+        overflow: auto;
+      }
+
+      .page-row {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 40px 1fr auto;
+        align-items: center;
+        gap: 8px;
+        min-height: 45px;
+        padding: 6px 10px;
+        border: 0;
+        border-bottom: 1px solid #ecefec;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        text-align: left;
+      }
+
+      .page-row:hover {
+        background: #f2f5f1;
+      }
+
+      .page-row[aria-current="page"] {
+        background: #dfe8e2;
+        box-shadow: inset 3px 0 0 var(--zotero);
+      }
+
+      .page-number {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .page-counts {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .agreement-badge {
+        min-width: 38px;
+        padding: 3px 5px;
+        border-radius: 4px;
+        background: #edf0ec;
+        color: var(--muted);
+        font-size: 10px;
+        text-align: center;
+      }
+
+      .content {
+        min-width: 0;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+
+      .toolbar-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .icon-button {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--surface);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 19px;
+        line-height: 1;
+      }
+
+      .icon-button:hover {
+        background: #eef2ee;
+      }
+      .icon-button:disabled {
+        cursor: default;
+        opacity: 0.4;
+      }
+
+      .page-status {
+        min-width: 96px;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      .toggle {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 8px;
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .toggle input {
+        accent-color: var(--zotero);
+      }
+
+      .threshold {
+        display: inline-grid;
+        grid-template-columns: auto 120px 42px;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .threshold input {
+        accent-color: var(--doc);
+      }
+
+      .model-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .model-panel {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 48px;
+        padding: 10px 13px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .model-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .doc-color {
+        color: var(--doc);
+      }
+      .zotero-color {
+        color: var(--zotero);
+      }
+
+      .panel-count {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .page-stage {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        background: #d8dcd8;
+      }
+
+      .page-stage img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .box {
+        position: absolute;
+        min-width: 2px;
+        min-height: 2px;
+        border: 2px solid currentColor;
+        background: color-mix(in srgb, currentColor 9%, transparent);
+        pointer-events: none;
+      }
+
+      .box.table {
+        color: var(--table);
+      }
+      .box.caption {
+        border-style: dashed;
+      }
+
+      .box-label {
+        position: absolute;
+        left: -2px;
+        bottom: 100%;
+        max-width: min(220px, 80vw);
+        padding: 2px 4px;
+        overflow: hidden;
+        background: currentColor;
+        color: #fff;
+        font-size: 9px;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .details {
+        margin-top: 14px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        background: var(--surface);
+      }
+
+      .details-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 12px 14px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .details-header h2 {
+        margin: 0;
+        font-size: 14px;
+        letter-spacing: 0;
+      }
+
+      .details-note {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      th,
+      td {
+        padding: 9px 12px;
+        border-bottom: 1px solid #e7eae7;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #f1f3f0;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .text-cell {
+        max-width: 520px;
+        overflow-wrap: anywhere;
+      }
+
+      .empty-row {
+        padding: 20px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .methodology {
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-left: 4px solid #747c76;
+        background: #e8ebe7;
+        color: #485049;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+
+      @media (max-width: 1100px) {
+        .summary-inner {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .workspace {
+          grid-template-columns: 190px minmax(0, 1fr);
+        }
+        .model-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .topbar-inner {
+          display: block;
+        }
+        .run-meta {
+          margin-top: 12px;
+          text-align: left;
+        }
+        .summary-inner {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .workspace {
+          display: block;
+          width: min(100% - 20px, 1560px);
+        }
+        .sidebar {
+          position: static;
+          max-height: none;
+          margin-bottom: 12px;
+        }
+        .page-list {
+          display: flex;
+          max-height: none;
+          overflow-x: auto;
+        }
+        .page-row {
+          min-width: 118px;
+          border-right: 1px solid #ecefec;
+        }
+        .toolbar {
+          align-items: flex-start;
+        }
+        .threshold {
+          grid-template-columns: auto 90px 36px;
+        }
+        .details {
+          overflow-x: auto;
+        }
+        table {
+          min-width: 720px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <h1>PDF 版面识别模型对比</h1>
+          <p class="subtitle" id="subtitle"></p>
+        </div>
+        <div class="run-meta" id="run-meta"></div>
+      </div>
+    </header>
+
+    <section class="summary-band">
+      <div class="summary-inner" id="summary"></div>
+    </section>
+
+    <main class="workspace">
+      <aside class="sidebar">
+        <div class="sidebar-title">逐页结果</div>
+        <div class="page-list" id="page-list"></div>
+      </aside>
+
+      <section class="content">
+        <div class="toolbar">
+          <div class="toolbar-group">
+            <button
+              class="icon-button"
+              id="previous"
+              title="上一页"
+              aria-label="上一页"
+            >
+              &#8592;
+            </button>
+            <span class="page-status" id="page-status"></span>
+            <button
+              class="icon-button"
+              id="next"
+              title="下一页"
+              aria-label="下一页"
+            >
+              &#8594;
+            </button>
+          </div>
+          <div class="toolbar-group">
+            <label class="toggle"
+              ><input type="checkbox" id="show-figures" checked />图像</label
+            >
+            <label class="toggle"
+              ><input type="checkbox" id="show-tables" checked />表格</label
+            >
+            <label class="toggle"
+              ><input type="checkbox" id="show-captions" checked />标题框</label
+            >
+            <label class="threshold">
+              <span>DocLayout 置信度</span>
+              <input
+                type="range"
+                id="threshold"
+                min="0"
+                max="1"
+                step="0.01"
+                value="0.10"
+              />
+              <output id="threshold-value">0.10</output>
+            </label>
+          </div>
+        </div>
+
+        <div class="model-grid">
+          <article class="model-panel">
+            <div class="panel-header">
+              <div class="panel-title doc-color">
+                <span class="model-dot"></span>DocLayout-YOLO
+              </div>
+              <span class="panel-count" id="doc-count"></span>
+            </div>
+            <div class="page-stage doc-color" id="doc-stage"></div>
+          </article>
+
+          <article class="model-panel">
+            <div class="panel-header">
+              <div class="panel-title zotero-color">
+                <span class="model-dot"></span>Zotero document-worker
+              </div>
+              <span class="panel-count" id="zotero-count"></span>
+            </div>
+            <div class="page-stage zotero-color" id="zotero-stage"></div>
+          </article>
+        </div>
+
+        <section class="details">
+          <div class="details-header">
+            <h2>当前页检测明细</h2>
+            <span class="details-note" id="agreement-note"></span>
+          </div>
+          <div id="details-table"></div>
+        </section>
+
+        <section class="methodology" id="methodology"></section>
+      </section>
+    </main>
+
+    <script>
+      const report = {
+        metadata: {
+          docLayoutModel: {
+            hash: "d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf",
+            id: "optimized-q8-d5d1e664",
+            path: "/Users/muisedestiny/Downloads/doclayout_yolo_docstructbench_imgsz1280_2501_quantized.onnx",
+            quantized: true,
+          },
+          dpi: 120,
+          generatedAt: "2026-07-14T12:06:56.984Z",
+          pdfPath:
+            "/Users/muisedestiny/Zotero/storage/53PSYCFH/Bilal和Nichol - 2015 - Evaluation of MODIS aerosol retrieval algorithms over the Beijing-Tianjin-Hebei region during low to.pdf",
+          pdfTitle:
+            "Evaluation of MODIS aerosol retrieval algorithms over the Beijing‐Tianjin‐Hebei region during low to very high pollution events",
+          sourceHash: "ba23b9f3dd955b85013341ddc7f75c26",
+          timings: { docLayoutMs: 3556, zoteroMs: 2363 },
+          zoteroVersion: "10.0-beta.9+55eceab3b",
+          matchIouThreshold: 0.3,
+        },
+        pages: [
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 1,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-01.jpg",
+            index: 0,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [370.205, 710.872, 575.433, 754.072],
+                score: null,
+                text: "",
+                type: "figure",
+                xyxy: [
+                  0.6049101307189543, 0.047888888888888884, 0.94025,
+                  0.10243434343434349,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0.8377955574598923,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 1,
+              matchedTables: 1,
+              matchedTableIou: 0.8377955574598923,
+              subjectAgreement: 1,
+              zoteroSubjects: 1,
+            },
+            docLayout: [
+              {
+                score: 0.9539247751235962,
+                text: "",
+                type: "table",
+                xyxy: [0.2823, 0.1133, 0.9438, 0.2932],
+              },
+              {
+                score: 0.24248582124710083,
+                text: "",
+                type: "table_caption",
+                xyxy: [0.2851, 0.1159, 0.7593, 0.1437],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-02.jpg",
+            index: 1,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [176.77, 689.31, 456.14, 697.31],
+                score: null,
+                text: "Table 1. Summary of Data Sets Used in the Current Study for the Years 2012–2013",
+                type: "table_caption",
+                xyxy: [
+                  0.28883986928104577, 0.11955808080808088, 0.7453267973856209,
+                  0.12965909090909097,
+                ],
+              },
+              {
+                flowClass: "auxiliary",
+                rect: [172.516, 564.12, 575.489, 684.18],
+                score: null,
+                text: "S/N Instrument/Product Parameter Resolution Original Used Purpose 1 AERONET AOD – – Input/validation 2 MYD02HKM Radiance 500 m 500 m Input 3 MYD03 Elevation and view angles 1000 m 500 m Input 4 MYD09 Surface reflectance 500 m 500 m Input 5 MYD04 C6 Cloud maska 500 m 500 m Input DTb and DBc AOD 10 km 10 km Comparison Combined DT/DBd AOD 10 km 10 km Comparison 6 MYD04 C5 DTb and DBc AOD 10 km 10 km Comparison 7 MYD04_3 K C6 DTb AOD 3 km 3 km Comparison",
+                type: "table",
+                xyxy: [
+                  0.28188888888888886, 0.1361363636363637, 0.9403415032679739,
+                  0.2877272727272727,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-03.jpg",
+            index: 2,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9606085419654846,
+                text: "",
+                type: "figure",
+                xyxy: [0.1507, 0.1133, 0.8477, 0.6284],
+              },
+              {
+                score: 0.869744598865509,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.0567, 0.6405, 0.4834, 0.6556],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-04.jpg",
+            index: 3,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [36, 273.7, 293.87, 281.7],
+                score: null,
+                text: "Figure 1. Block diagram of the Simplified Aerosol Retrieval Algorithm (SARA).",
+                type: "figure_caption",
+                xyxy: [
+                  0.058823529411764705, 0.6443181818181818, 0.4801797385620915,
+                  0.6544191919191918,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-05.jpg",
+            index: 4,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.957131028175354,
+                text: "",
+                type: "figure",
+                xyxy: [0.32, 0.1136, 0.9013, 0.5724],
+              },
+              {
+                score: 0.9194808006286621,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.2788, 0.5785, 0.9427, 0.6446],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-06.jpg",
+            index: 5,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 282.81, 575.57, 329.9],
+                score: null,
+                text: "Figure 2. Validation of Aqua-MODIS DB (a and c) C5 and (b and d) C6 AOD observations at 10 km resolution against Beijing_RADI (Figures 2a and 2b) and Beijing_CAMS (Figures 2c and 2d) AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 DB AOD at 10 km) centered on the AERONET site.",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.583459595959596, 0.9404738562091504,
+                  0.6429166666666667,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9573961496353149,
+                text: "",
+                type: "figure",
+                xyxy: [0.3191, 0.1128, 0.902, 0.5705],
+              },
+              {
+                score: 0.9261009693145752,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.277, 0.5797, 0.9439, 0.6437],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-07.jpg",
+            index: 6,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 283.04, 575.52, 330.13],
+                score: null,
+                text: "Figure 3. Validation of Aqua-MODIS DT (a and c) C5 and (b and d) C6 AOD observations at 10 km resolution against Beijing_RADI (Figures 3a and 3b) and Beijing_CAMS (Figures 3c and 3d) AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 DT AOD at 10 km) centered on the AERONET site.",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.5831691919191919, 0.940392156862745,
+                  0.6426262626262625,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 2,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9553929567337036,
+                text: "",
+                type: "figure",
+                xyxy: [0.3192, 0.6162, 0.9024, 0.8725],
+              },
+              {
+                score: 0.9536405801773071,
+                text: "",
+                type: "figure",
+                xyxy: [0.3177, 0.1138, 0.9023, 0.3692],
+              },
+              {
+                score: 0.9216982126235962,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.2791, 0.3798, 0.9469, 0.4327],
+              },
+              {
+                score: 0.9069454669952393,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.2753, 0.884, 0.9442, 0.9376],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-08.jpg",
+            index: 7,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 51.34, 575.52, 88.39],
+                score: null,
+                text: "Figure 5. Validation of Aqua-MODIS DT C6 AOD observations at 3 km resolution against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 81 km2 spatial region for the MYD04_3K AOD at 3 km) centered on the AERONET site.",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.8883964646464647, 0.940392156862745,
+                  0.9351767676767676,
+                ],
+              },
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 450.11, 575.58, 487.22],
+                score: null,
+                text: "Figure 4. Validation of Aqua-MODIS combined DT/DB C6 AOD observations at 10 km resolution against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 combined DT/DB AOD at 10 km) centered on the AERONET site.",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.3848232323232323, 0.9404901960784314,
+                  0.4316792929292929,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9574952125549316,
+                text: "",
+                type: "figure",
+                xyxy: [0.317, 0.109, 0.9029, 0.6828],
+              },
+              {
+                score: 0.9361104965209961,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.273, 0.6943, 0.9453, 0.7729],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-09.jpg",
+            index: 8,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 181.33, 575.6, 238.4],
+                score: null,
+                text: "Figure 6. Validation of Aqua-SARA AOD observations at (i) 500 m, (ii) 3 km, and (iii) 10 km resolutions against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. (iv): (a) Validation of Aqua-SARA AOD observations at 500 m with XiangHe AERONET AOD measurements; (b) comparison between Beijing and XiangHe AERONET AOD measurements. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using s sampling window of 3 × 3 pixels (average of 2.25 km2 spatial region for the SARA AOD at 500 m, average of 81 km2 spatial region for SARA AOD at 3 km and average of 900 km2 spatial region for SARA AOD at 10 km) centered on the AERONET site.",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.698989898989899, 0.9405228758169935,
+                  0.7710479797979798,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9536600708961487,
+                text: "",
+                type: "figure",
+                xyxy: [0.3197, 0.1142, 0.9033, 0.673],
+              },
+              {
+                score: 0.8339743614196777,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.5644, 0.6866, 0.6861, 0.7015],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-10.jpg",
+            index: 9,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [346.51, 237.74, 418.48, 244.81],
+                score: null,
+                text: "Figure 6. (continued)",
+                type: "figure_caption",
+                xyxy: [
+                  0.5661928104575163, 0.6908964646464647, 0.6837908496732027,
+                  0.6998232323232323,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0.9681412464216643,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 1,
+              matchedTables: 1,
+              matchedTableIou: 0.9681412464216643,
+              subjectAgreement: 1,
+              zoteroSubjects: 1,
+            },
+            docLayout: [
+              {
+                score: 0.9646042585372925,
+                text: "",
+                type: "table",
+                xyxy: [0.2796, 0.1372, 0.9432, 0.7498],
+              },
+              {
+                score: 0.8321846723556519,
+                text: "",
+                type: "table_caption",
+                xyxy: [0.28, 0.1159, 0.9449, 0.1411],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-11.jpg",
+            index: 10,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [176.77, 679.61, 575.51, 696.71],
+                score: null,
+                text: "Table 2. Validation Summary of DT (C5 and C6), DB (C5 and C6), Combined DT/DB (C6), DT_3 K (C6), and SARA (500 m, 3 km, and 10 km) Collocations",
+                type: "table_caption",
+                xyxy: [
+                  0.28883986928104577, 0.12031565656565651, 0.9403758169934641,
+                  0.14190656565656565,
+                ],
+              },
+              {
+                flowClass: "auxiliary",
+                rect: [172.516, 200.806, 575.489, 674.2],
+                score: null,
+                text: "N Mean StDev RMSE % within EE % Above EE % Below EE DB-Beijing_RADI Collocations (10 km) AERONET 83 0.53 0.47 DB C5 0.58 0.67 0.32 46 27 28 AERONET 210 0.44 0.45 DB C6 0.42 0.48 0.16 80 8 12 DB-Beijing_CAMS Collocations (10 km) AERONET 34 0.76 0.55 DB C5 1.11 0.89 0.59 35 50 15 AERONET 90 0.52 0.48 DB C6 0.55 0.57 0.21 75 13 12 DT-Beijing_RADI Collocations (10 km) AERONET 129 0.46 0.44 DT C5 0.70 0.55 0.32 23 75 2 AERONET 118 0.42 0.36 DT C6 0.63 0.42 0.28 27 70 3 DT-Beijing_CAMS Collocations (10 km) AERONET 77 0.52 0.42 DT C5 0.85 56 0.40 10 90 0 AERONET 65 0.52 0.47 DT C6 0.79 0.51 0.32 18 82 0 DT/DB-Beijing_RADI Collocations (10 km) AERONET 199 0.43 0.43 DT/DB C6 0.52 0.47 0.32 60 37 3 DT/DB-Beijing_CAMS Collocations (10 km) AERONET 88 0.53 0.49 DT/DB C6 0.66 0.55 0.29 40 56 4 DT_3K-Beijing_RADI Collocations (3 km) AERONET 119 0.40 0.36 DT 3 K C6 0.66 0.44 0.30 13 87 0 DT_3K-Beijing_CAMS Collocations (3 km) AERONET 55 0.37 0.36 DT 3 K C6 0.67 0.45 0.35 11 89 0 SARA-Beijing_RADI Collocations (500 m, 3 km and 10 km) AERONET 164 0.52 0.57 SARA (500 m) 0.53 0.55 0.07 95 5 0 SARA (3 km) 0.51 0.55 0.06 96 3 1 SARA (10 km) 0.51 0.55 0.07 96 3 1 SARA-Beijing_CAMS Collocations (500 m, 3 km and 10 km) AERONET 89 0.65 0.62 SARA (500 m) 0.67 0.62 0.10 92 6 2 SARA (3 km) 0.66 0.62 0.08 96 3 1 SARA (10 km) 0.69 0.62 0.11 90 9 1",
+                type: "table",
+                xyxy: [
+                  0.28188888888888886, 0.14873737373737367, 0.9403415032679739,
+                  0.7464570707070707,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-12.jpg",
+            index: 11,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [
+              {
+                score: 0.9564279317855835,
+                text: "",
+                type: "figure",
+                xyxy: [0.3129, 0.109, 0.9178, 0.7599],
+              },
+              {
+                score: 0.8910635709762573,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.284, 0.7692, 0.9321, 0.81],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-13.jpg",
+            index: 12,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 151.64, 575.49, 179.04],
+                score: null,
+                text: "Figure 7. High aerosol concentrations over the Beijing-Tianjin-Hebei region on 28 September 2013, 5 October 2013, and 9 October 2013: (i–iii) Band 1 pseudo color image, (iv–vi) MYD04 DB C6 AOD (10 km), (vii–ix) MYD04 DT C6 (10 km), (x–xii) MYD04 DT C6 AOD (3 km), and (xiii–xv) SARA AOD (500 m).",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.773939393939394, 0.9403431372549019,
+                  0.8085353535353536,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0.7824982960597368,
+              docLayoutSubjects: 2,
+              matchedFigures: 0,
+              matchedSubjects: 1,
+              matchedTables: 1,
+              matchedTableIou: 0.7824982960597368,
+              subjectAgreement: 0.5,
+              zoteroSubjects: 1,
+            },
+            docLayout: [
+              {
+                score: 0.944548487663269,
+                text: "",
+                type: "figure",
+                xyxy: [0.2937, 0.6898, 0.928, 0.8877],
+              },
+              {
+                score: 0.8967366814613342,
+                text: "",
+                type: "figure_caption",
+                xyxy: [0.2771, 0.8965, 0.9472, 0.9365],
+              },
+              {
+                score: 0.8770056366920471,
+                text: "",
+                type: "table",
+                xyxy: [0.0664, 0.1149, 0.9402, 0.2173],
+              },
+              {
+                score: 0.5220820307731628,
+                text: "",
+                type: "table_caption",
+                xyxy: [0.0553, 0.1152, 0.9384, 0.1461],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-14.jpg",
+            index: 13,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [40.25, 689.64, 544.13, 696.71],
+                score: null,
+                text: "Table 3. Validation of MODIS Aerosol Algorithms Using AERONET AOD During High Concentrations of Fine Particles Over Beijing-Tianjin-Hebei Region",
+                type: "table_caption",
+                xyxy: [
+                  0.06576797385620915, 0.12031565656565651, 0.8891013071895425,
+                  0.12924242424242427,
+                ],
+              },
+              {
+                flowClass: "auxiliary",
+                rect: [36, 620.277, 575.49, 684.18],
+                score: null,
+                text: "Pollution Events (2013) AERONET AOD Algorithms Expected Error XiangHe DB (10 km) DT (10 km) DT (3 km) SARA (500) Lower Limit Upper Limit 28 Sep 2.36 2.59 2.57 2.59 2.76 1.96 2.77 5 Oct 1.91 2.38 2.23 2.30 2.19 1.57 2.24 9 Oct 2.00 Missing Missing Missing 2.11 1.65 2.34",
+                type: "table",
+                xyxy: [
+                  0.058823529411764705, 0.1361363636363637, 0.9403431372549019,
+                  0.21682196969696965,
+                ],
+              },
+              {
+                flowClass: "auxiliary",
+                rect: [172.52, 51.34, 575.6, 78.41],
+                score: null,
+                text: "Figure 8. Spatial comparison between (a) DT and DB AOD, and between (b) SARA and DB AOD over Beijing-Tianjin-Hebei region for the years 2012–2013. Colors represent distance from Beijing AERONET site, where sites with blue color are close (minimum distance = 48 km) to the AERONET and sites with orange color are far from AERONET (maximum distance = 500 km).",
+                type: "figure_caption",
+                xyxy: [
+                  0.28189542483660135, 0.9009974747474748, 0.9405228758169935,
+                  0.9351767676767676,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0.9848815745016744,
+              docLayoutSubjects: 1,
+              matchedFigures: 0,
+              matchedSubjects: 1,
+              matchedTables: 1,
+              matchedTableIou: 0.9848815745016744,
+              subjectAgreement: 1,
+              zoteroSubjects: 1,
+            },
+            docLayout: [
+              {
+                score: 0.9688830375671387,
+                text: "",
+                type: "table",
+                xyxy: [0.2796, 0.114, 0.9421, 0.4434],
+              },
+            ],
+            height: 1320,
+            image: "pages/page-15.jpg",
+            index: 14,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [
+              {
+                flowClass: "auxiliary",
+                rect: [172.516, 442.7710000000001, 575.489, 701.291],
+                score: null,
+                text: "Table 4. Spatial Statistics of SARA and Aqua-MODIS L2 Products Over Beijing-Tianjin-Hebei Region for 2012–2013 Algorithm N R Slope Intercept Mean StDev RMSE MAE Distance From AERONET Deep Blue AOD Versus Dark Target AOD DB 466 0.86 1.18 0.01 0.33 0.42 0.27 0.11 48–104 km DT 0.40 0.50 DB 375 0.92 1.27 0.02 0.25 0.32 0.17 0.10 125–190 km DT 0.34 0.40 DB 323 0.90 1.12 0.02 0.21 0.29 0.15 0.08 195–300 km DT 0.26 0.32 DB 508 0.87 1.25 0.09 0.43 0.44 0.34 0.22 275–365 km DT 0.62 0.55 DB 348 0.89 1.29 0.06 0.48 0.43 0.33 0.22 375–500 km DT 0.69 0.56 Deep Blue AOD Versus SARA AOD DB 466 0.86 1.05 0.02 0.33 0.42 0.23 0.13 48–104 km SARA 0.37 0.44 DB 375 0.77 1.31 0.04 0.25 0.32 0.29 0.19 125–190 km SARA 0.38 0.42 DB 323 0.77 1.26 0.11 0.21 0.29 0.28 0.19 195–300 km SARA 0.38 0.36 DB 508 0.73 1.07 0.01 0.43 0.44 0.34 0.23 275–365 km SARA 0.47 0.48 DB 348 0.68 1.09 0.02 0.48 0.43 0.36 0.25 375–500 km SARA 0.51 0.47",
+                type: "table",
+                xyxy: [
+                  0.28188888888888886, 0.1145315656565656, 0.9403415032679739,
+                  0.44094570707070696,
+                ],
+              },
+            ],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-16.jpg",
+            index: 15,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [],
+          },
+          {
+            comparison: {
+              averageMatchedIou: 0,
+              docLayoutSubjects: 0,
+              matchedFigures: 0,
+              matchedSubjects: 0,
+              matchedTables: 0,
+              matchedTableIou: 0,
+              subjectAgreement: 0,
+              zoteroSubjects: 0,
+            },
+            docLayout: [],
+            height: 1320,
+            image: "pages/page-17.jpg",
+            index: 16,
+            viewRect: [0, 0, 612, 792],
+            width: 1020,
+            zotero: [],
+          },
+        ],
+        summary: {
+          averageMatchedIou: 0.893329168610742,
+          averageMatchedTableIou: 0.893329168610742,
+          docLayoutFigureCaptions: 9,
+          docLayoutFigures: 9,
+          docLayoutSubjects: 13,
+          docLayoutTables: 4,
+          matchedFigures: 0,
+          matchedSubjects: 4,
+          matchedTables: 4,
+          pageCount: 17,
+          subjectAgreement: 0.3076923076923077,
+          zoteroFigures: 1,
+          zoteroFigureCaptions: 9,
+          zoteroSubjects: 5,
+          zoteroTables: 4,
+        },
+      };
+      const state = {
+        pageIndex: 0,
+        showCaptions: true,
+        showFigures: true,
+        showTables: true,
+        threshold: 0.1,
+      };
+
+      const elements = Object.fromEntries(
+        [
+          "subtitle",
+          "run-meta",
+          "summary",
+          "page-list",
+          "previous",
+          "next",
+          "page-status",
+          "show-figures",
+          "show-tables",
+          "show-captions",
+          "threshold",
+          "threshold-value",
+          "doc-count",
+          "zotero-count",
+          "doc-stage",
+          "zotero-stage",
+          "details-table",
+          "agreement-note",
+          "methodology",
+        ].map((id) => [id, document.getElementById(id)]),
+      );
+
+      function formatSeconds(milliseconds) {
+        return (milliseconds / 1000).toFixed(1) + " s";
+      }
+
+      function formatPercent(value) {
+        return Math.round(value * 100) + "%";
+      }
+
+      function typeLabel(type) {
+        return (
+          {
+            figure: "图像",
+            table: "表格",
+            figure_caption: "图像标题",
+            table_caption: "表格标题",
+            caption: "标题",
+          }[type] || type
+        );
+      }
+
+      function visibleDetection(detection, model) {
+        if (model === "doc" && detection.score < state.threshold) return false;
+        if (detection.type === "figure") return state.showFigures;
+        if (detection.type === "table") return state.showTables;
+        return state.showCaptions;
+      }
+
+      function renderBox(detection) {
+        const [left, top, right, bottom] = detection.xyxy;
+        const box = document.createElement("div");
+        const caption =
+          detection.type.includes("caption") || detection.type === "caption";
+        box.className =
+          "box " +
+          (detection.type === "table" || detection.type === "table_caption"
+            ? "table "
+            : "") +
+          (caption ? "caption" : "");
+        box.style.left = left * 100 + "%";
+        box.style.top = top * 100 + "%";
+        box.style.width = Math.max(0, right - left) * 100 + "%";
+        box.style.height = Math.max(0, bottom - top) * 100 + "%";
+        const label = document.createElement("span");
+        label.className = "box-label";
+        label.textContent =
+          typeLabel(detection.type) +
+          (detection.score == null ? "" : " " + detection.score.toFixed(2));
+        box.append(label);
+        return box;
+      }
+
+      function renderStage(stage, page, detections, model) {
+        stage.replaceChildren();
+        stage.style.aspectRatio = page.width + " / " + page.height;
+        const image = document.createElement("img");
+        image.src = page.image;
+        image.alt = "PDF 第 " + (page.index + 1) + " 页";
+        stage.append(image);
+        for (const detection of detections.filter((d) =>
+          visibleDetection(d, model),
+        )) {
+          stage.append(renderBox(detection));
+        }
+      }
+
+      function renderPageList() {
+        elements["page-list"].replaceChildren();
+        report.pages.forEach((page) => {
+          const row = document.createElement("button");
+          row.className = "page-row";
+          row.setAttribute(
+            "aria-current",
+            page.index === state.pageIndex ? "page" : "false",
+          );
+          row.innerHTML =
+            '<span class="page-number">P' +
+            (page.index + 1) +
+            "</span>" +
+            '<span class="page-counts">D ' +
+            countSubjects(page.docLayout) +
+            " / Z " +
+            countSubjects(page.zotero) +
+            "</span>" +
+            '<span class="agreement-badge">F' +
+            page.comparison.matchedFigures +
+            "/T" +
+            page.comparison.matchedTables +
+            "</span>";
+          row.addEventListener("click", () => {
+            state.pageIndex = page.index;
+            render();
+          });
+          elements["page-list"].append(row);
+        });
+      }
+
+      function countSubjects(detections) {
+        return detections.filter(
+          (d) => d.type === "figure" || d.type === "table",
+        ).length;
+      }
+
+      function renderSummary() {
+        const summary = report.summary;
+        const metrics = [
+          ["页面", summary.pageCount, "同一 PDF 的完整页数"],
+          [
+            "DocLayout 图像",
+            summary.docLayoutFigures,
+            summary.docLayoutFigureCaptions + " 个图注",
+          ],
+          [
+            "Zotero SDT 图像",
+            summary.zoteroFigures,
+            summary.zoteroFigureCaptions + " 个图注",
+          ],
+          [
+            "科研图像匹配",
+            summary.matchedFigures,
+            "IoU >= " + report.metadata.matchIouThreshold,
+          ],
+          [
+            "表格框匹配",
+            summary.matchedTables +
+              " / " +
+              Math.max(summary.docLayoutTables, summary.zoteroTables),
+            "两侧均检测到 " + summary.docLayoutTables + " 个表格",
+          ],
+          [
+            "表格平均 IoU",
+            formatPercent(summary.averageMatchedTableIou),
+            "表格边界高度一致",
+          ],
+        ];
+        elements.summary.innerHTML = metrics
+          .map(
+            ([label, value, detail]) =>
+              '<div class="metric"><span class="metric-label">' +
+              label +
+              '</span><strong class="metric-value">' +
+              value +
+              '</strong><span class="metric-detail">' +
+              detail +
+              "</span></div>",
+          )
+          .join("");
+      }
+
+      function renderDetails(page) {
+        const rows = [
+          ...page.docLayout
+            .filter((d) => visibleDetection(d, "doc"))
+            .map((d) => ({ ...d, model: "DocLayout-YOLO" })),
+          ...page.zotero
+            .filter((d) => visibleDetection(d, "zotero"))
+            .map((d) => ({ ...d, model: "Zotero SDT" })),
+        ];
+        if (!rows.length) {
+          elements["details-table"].innerHTML =
+            '<div class="empty-row">当前筛选条件下没有检测框</div>';
+          return;
+        }
+        elements["details-table"].innerHTML =
+          "<table><thead><tr><th>模型</th><th>类型</th><th>置信度</th><th>归一化坐标</th><th>关联文本</th></tr></thead><tbody>" +
+          rows
+            .map(
+              (row) =>
+                "<tr><td>" +
+                row.model +
+                "</td><td>" +
+                typeLabel(row.type) +
+                "</td><td>" +
+                (row.score == null ? "n/a" : row.score.toFixed(3)) +
+                "</td><td>" +
+                row.xyxy.map((value) => value.toFixed(3)).join(", ") +
+                '</td><td class="text-cell">' +
+                escapeHtml(row.text || "") +
+                "</td></tr>",
+            )
+            .join("") +
+          "</tbody></table>";
+      }
+
+      function escapeHtml(value) {
+        return value.replace(
+          /[&<>"']/g,
+          (char) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#039;",
+            })[char],
+        );
+      }
+
+      function render() {
+        const page = report.pages[state.pageIndex];
+        const docVisible = page.docLayout.filter((d) =>
+          visibleDetection(d, "doc"),
+        );
+        const zoteroVisible = page.zotero.filter((d) =>
+          visibleDetection(d, "zotero"),
+        );
+        elements["page-status"].textContent =
+          "第 " + (page.index + 1) + " / " + report.pages.length + " 页";
+        elements.previous.disabled = page.index === 0;
+        elements.next.disabled = page.index === report.pages.length - 1;
+        elements["doc-count"].textContent = docVisible.length + " 个可见框";
+        elements["zotero-count"].textContent =
+          zoteroVisible.length + " 个可见框";
+        elements["agreement-note"].textContent =
+          "图像匹配 " +
+          page.comparison.matchedFigures +
+          "，表格匹配 " +
+          page.comparison.matchedTables;
+        renderStage(elements["doc-stage"], page, page.docLayout, "doc");
+        renderStage(elements["zotero-stage"], page, page.zotero, "zotero");
+        renderDetails(page);
+        renderPageList();
+      }
+
+      elements.previous.addEventListener("click", () => {
+        state.pageIndex = Math.max(0, state.pageIndex - 1);
+        render();
+      });
+      elements.next.addEventListener("click", () => {
+        state.pageIndex = Math.min(
+          report.pages.length - 1,
+          state.pageIndex + 1,
+        );
+        render();
+      });
+      elements["show-figures"].addEventListener("change", (event) => {
+        state.showFigures = event.target.checked;
+        render();
+      });
+      elements["show-tables"].addEventListener("change", (event) => {
+        state.showTables = event.target.checked;
+        render();
+      });
+      elements["show-captions"].addEventListener("change", (event) => {
+        state.showCaptions = event.target.checked;
+        render();
+      });
+      elements.threshold.addEventListener("input", (event) => {
+        state.threshold = Number(event.target.value);
+        elements["threshold-value"].textContent = state.threshold.toFixed(2);
+        render();
+      });
+
+      elements.subtitle.textContent =
+        report.metadata.pdfTitle + " | " + report.metadata.pdfPath;
+      elements["run-meta"].innerHTML =
+        "生成于 " +
+        report.metadata.generatedAt +
+        "<br>DocLayout " +
+        formatSeconds(report.metadata.timings.docLayoutMs) +
+        " / Zotero " +
+        formatSeconds(report.metadata.timings.zoteroMs);
+      elements.methodology.textContent =
+        "本次结果：DocLayout-YOLO 生成 " +
+        report.summary.docLayoutFigures +
+        " 个图像框并识别 " +
+        report.summary.docLayoutFigureCaptions +
+        " 个图注；Zotero SDT 生成 " +
+        report.summary.zoteroFigures +
+        " 个 image 节点并识别 " +
+        report.summary.zoteroFigureCaptions +
+        " 个图注。图像框跨模型匹配 " +
+        report.summary.matchedFigures +
+        " 个。表格两侧各检测到 " +
+        report.summary.docLayoutTables +
+        " 个，匹配 " +
+        report.summary.matchedTables +
+        " 个，平均边界 IoU 为 " +
+        formatPercent(report.summary.averageMatchedTableIou) +
+        "。SDT 模型使用 PDF 文字行与对象特征，不读取整页 RGB 像素；DocLayout-YOLO 使用渲染页图像。";
+      renderSummary();
+      render();
+    </script>
+  </body>
+</html>

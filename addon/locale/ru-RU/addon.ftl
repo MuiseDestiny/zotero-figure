@@ -1,0 +1,77 @@
+menu-analyze = Анализировать рисунки и таблицы PDF
+menu-cancel-analysis = Отменить анализ макета
+menu-view-figures = Показывать только созданные рисунки
+menu-view-annotations = Показывать только обычные аннотации
+menu-add-note = Добавить рисунки в заметку
+menu-remove-generated = Удалить созданные аннотации рисунков
+menu-remove-all = Удалить все аннотации
+
+sidebar-title = Zotero Figure
+sidebar-analyze = Анализировать рисунки и таблицы
+sidebar-cancel = Отменить анализ
+sidebar-translate = Перевести подписи
+sidebar-show-original = Показать оригинал
+sidebar-expand-caption = Развернуть подпись
+sidebar-collapse-caption = Свернуть подпись
+sidebar-translation-error = Не удалось перевести некоторые подписи; показан исходный текст
+sidebar-sync-annotations = Преобразовать локальные результаты в аннотации Zotero
+sidebar-add-all-to-note = Добавить все результаты в заметку
+sidebar-clear = Очистить локальные результаты
+sidebar-loading = Загрузка локальных результатов...
+sidebar-load-error = Не удалось загрузить локальные результаты
+sidebar-filter-figure = Рисунки ({ $count })
+sidebar-filter-table = Таблицы ({ $count })
+sidebar-filter-all = Все ({ $count })
+sidebar-refresh = Обновить рисунки и таблицы
+sidebar-empty = Нет созданных рисунков или таблиц
+sidebar-page = Страница { $page }
+sidebar-image-preparing = Подготовка изображения...
+sidebar-image-unavailable = Изображение недоступно
+sidebar-no-caption = Без подписи
+sidebar-untitled = Рисунок или таблица без названия
+sidebar-menu = Действия с рисунком или таблицей
+sidebar-copy-image = Копировать изображение
+sidebar-save-image = Сохранить изображение как...
+sidebar-go-to-page = Перейти к странице
+sidebar-add-to-note = Добавить в заметку
+sidebar-remove = Удалить локальный результат
+note-title = Результаты Zotero Figure
+
+confirm-remove-generated = Удалить из этого PDF все аннотации рисунков и таблиц, созданные Zotero Figure?
+confirm-remove-all = Удалить все аннотации из этого PDF? Будут удалены и аннотации, созданные не Zotero Figure.
+confirm-remove-one = Удалить этот локальный результат и его аннотацию?
+
+progress-initializing = Инициализация анализа макета...
+progress-exporting = [{ $current }/{ $total }] Экспорт страниц PDF
+progress-detecting = [{ $current }/{ $total }] Поиск рисунков и таблиц
+progress-done = Сохранено локально: { $count }, удалено: { $removed }, пропущено: { $skipped }, синхронизировано аннотаций: { $annotations }; время: { $seconds } с
+progress-cancelled = Анализ макета отменен
+progress-error = Ошибка: { $message }
+progress-add-note = Добавление рисунков в заметку...
+progress-sync-annotations = Преобразование локальных результатов в аннотации Zotero...
+progress-sync-annotations-done = Синхронизировано аннотаций: { $created }, удалено: { $removed }, пропущено: { $skipped }
+progress-remove-generated = Удаление созданных аннотаций рисунков...
+progress-remove-all = Удаление всех аннотаций...
+progress-switch-view = Переключение на представление { $view }...
+
+error-model-file-unavailable = Не удалось подготовить встроенную модель макета. Восстановите ее в настройках Zotero Figure.
+error-model-integrity = Установленная копия встроенной модели не прошла проверку размера или SHA-256. Восстановите ее в настройках Zotero Figure.
+error-analysis-failed = Не удалось распознать макет на страницах: { $count }. Проверьте файл модели и перезапустите Zotero.
+
+model-variant-optimized = Встроенная оптимизированная модель Q8
+
+preferences-restore-model = Восстановить встроенную модель
+preferences-cancel-install = Отменить подготовку
+preferences-status-preparing = Подготовка встроенной модели...
+preferences-status-install-progress = Подготовлено { $loaded } / { $total } ({ $percent }%)
+preferences-status-install-cancelled = Подготовка встроенной модели отменена
+preferences-status-install-failed = Не удалось подготовить встроенную модель: { $message }
+preferences-status-checking = Проверка целостности модели...
+preferences-status-check-failed = Не удалось проверить модель: { $message }
+preferences-status-missing = Копия встроенной модели еще не подготовлена
+preferences-status-invalid = Установленная копия модели не прошла проверку целостности
+preferences-status-valid = Проверено: { $name }
+preferences-model-expected = Ожидаемый файл: { $size }, SHA-256 { $hash }
+preferences-model-invalid-details = Найденный файл: { $size }, SHA-256 { $hash }
+preferences-model-valid-details = { $name }, { $size }, SHA-256 { $hash }
+preferences-hash-not-computed = не вычислено

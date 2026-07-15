@@ -7,6 +7,8 @@ declare const _globalThis: {
   document: Document;
   ztoolkit: ZToolkit;
   addon: typeof addon;
+  CustomEvent: typeof CustomEvent;
+  NodeFilter: typeof NodeFilter;
 };
 
 declare type ZToolkit = ReturnType<
@@ -21,4 +23,14 @@ declare const addon: import("../src/addon").default;
 
 declare const __env__: "production" | "development";
 
-declare class Localization { }
+declare const __pluginIconDataURL__: string;
+
+declare class Localization {
+  constructor(resourceIDs: string[], sync?: boolean);
+  formatMessagesSync(
+    messages: Array<{ args?: Record<string, unknown>; id: string }>,
+  ): Array<{
+    attributes?: Record<string, string>;
+    value?: string;
+  }>;
+}

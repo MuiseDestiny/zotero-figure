@@ -1,0 +1,723 @@
+{
+  "metadata": {
+    "docLayoutModel": {
+      "hash": "d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf",
+      "id": "optimized-q8-d5d1e664",
+      "path": "/Users/muisedestiny/Downloads/doclayout_yolo_docstructbench_imgsz1280_2501_quantized.onnx",
+      "quantized": true
+    },
+    "dpi": 120,
+    "generatedAt": "2026-07-14T12:06:56.984Z",
+    "pdfPath": "/Users/muisedestiny/Zotero/storage/53PSYCFH/Bilal和Nichol - 2015 - Evaluation of MODIS aerosol retrieval algorithms over the Beijing-Tianjin-Hebei region during low to.pdf",
+    "pdfTitle": "Evaluation of MODIS aerosol retrieval algorithms over the Beijing‐Tianjin‐Hebei region during low to very high pollution events",
+    "sourceHash": "ba23b9f3dd955b85013341ddc7f75c26",
+    "timings": {
+      "docLayoutMs": 3556,
+      "zoteroMs": 2363
+    },
+    "zoteroVersion": "10.0-beta.9+55eceab3b",
+    "matchIouThreshold": 0.3
+  },
+  "pages": [
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 1
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-01.jpg",
+      "index": 0,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [370.205, 710.872, 575.433, 754.072],
+          "score": null,
+          "text": "",
+          "type": "figure",
+          "xyxy": [
+            0.6049101307189543, 0.047888888888888884, 0.94025,
+            0.10243434343434349
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0.8377955574598923,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 1,
+        "matchedTables": 1,
+        "matchedTableIou": 0.8377955574598923,
+        "subjectAgreement": 1,
+        "zoteroSubjects": 1
+      },
+      "docLayout": [
+        {
+          "score": 0.9539247751235962,
+          "text": "",
+          "type": "table",
+          "xyxy": [0.2823, 0.1133, 0.9438, 0.2932]
+        },
+        {
+          "score": 0.24248582124710083,
+          "text": "",
+          "type": "table_caption",
+          "xyxy": [0.2851, 0.1159, 0.7593, 0.1437]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-02.jpg",
+      "index": 1,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [176.77, 689.31, 456.14, 697.31],
+          "score": null,
+          "text": "Table 1. Summary of Data Sets Used in the Current Study for the Years 2012–2013",
+          "type": "table_caption",
+          "xyxy": [
+            0.28883986928104577, 0.11955808080808088, 0.7453267973856209,
+            0.12965909090909097
+          ]
+        },
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.516, 564.12, 575.489, 684.18],
+          "score": null,
+          "text": "S/N Instrument/Product Parameter Resolution Original Used Purpose 1 AERONET AOD – – Input/validation 2 MYD02HKM Radiance 500 m 500 m Input 3 MYD03 Elevation and view angles 1000 m 500 m Input 4 MYD09 Surface reflectance 500 m 500 m Input 5 MYD04 C6 Cloud maska 500 m 500 m Input DTb and DBc AOD 10 km 10 km Comparison Combined DT/DBd AOD 10 km 10 km Comparison 6 MYD04 C5 DTb and DBc AOD 10 km 10 km Comparison 7 MYD04_3 K C6 DTb AOD 3 km 3 km Comparison",
+          "type": "table",
+          "xyxy": [
+            0.28188888888888886, 0.1361363636363637, 0.9403415032679739,
+            0.2877272727272727
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-03.jpg",
+      "index": 2,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": []
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9606085419654846,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.1507, 0.1133, 0.8477, 0.6284]
+        },
+        {
+          "score": 0.869744598865509,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.0567, 0.6405, 0.4834, 0.6556]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-04.jpg",
+      "index": 3,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [36, 273.7, 293.87, 281.7],
+          "score": null,
+          "text": "Figure 1. Block diagram of the Simplified Aerosol Retrieval Algorithm (SARA).",
+          "type": "figure_caption",
+          "xyxy": [
+            0.058823529411764705, 0.6443181818181818, 0.4801797385620915,
+            0.6544191919191918
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-05.jpg",
+      "index": 4,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": []
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.957131028175354,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.32, 0.1136, 0.9013, 0.5724]
+        },
+        {
+          "score": 0.9194808006286621,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.2788, 0.5785, 0.9427, 0.6446]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-06.jpg",
+      "index": 5,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 282.81, 575.57, 329.9],
+          "score": null,
+          "text": "Figure 2. Validation of Aqua-MODIS DB (a and c) C5 and (b and d) C6 AOD observations at 10 km resolution against Beijing_RADI (Figures 2a and 2b) and Beijing_CAMS (Figures 2c and 2d) AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 DB AOD at 10 km) centered on the AERONET site.",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.583459595959596, 0.9404738562091504,
+            0.6429166666666667
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9573961496353149,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.3191, 0.1128, 0.902, 0.5705]
+        },
+        {
+          "score": 0.9261009693145752,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.277, 0.5797, 0.9439, 0.6437]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-07.jpg",
+      "index": 6,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 283.04, 575.52, 330.13],
+          "score": null,
+          "text": "Figure 3. Validation of Aqua-MODIS DT (a and c) C5 and (b and d) C6 AOD observations at 10 km resolution against Beijing_RADI (Figures 3a and 3b) and Beijing_CAMS (Figures 3c and 3d) AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 DT AOD at 10 km) centered on the AERONET site.",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.5831691919191919, 0.940392156862745,
+            0.6426262626262625
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 2,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9553929567337036,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.3192, 0.6162, 0.9024, 0.8725]
+        },
+        {
+          "score": 0.9536405801773071,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.3177, 0.1138, 0.9023, 0.3692]
+        },
+        {
+          "score": 0.9216982126235962,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.2791, 0.3798, 0.9469, 0.4327]
+        },
+        {
+          "score": 0.9069454669952393,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.2753, 0.884, 0.9442, 0.9376]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-08.jpg",
+      "index": 7,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 51.34, 575.52, 88.39],
+          "score": null,
+          "text": "Figure 5. Validation of Aqua-MODIS DT C6 AOD observations at 3 km resolution against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 81 km2 spatial region for the MYD04_3K AOD at 3 km) centered on the AERONET site.",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.8883964646464647, 0.940392156862745,
+            0.9351767676767676
+          ]
+        },
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 450.11, 575.58, 487.22],
+          "score": null,
+          "text": "Figure 4. Validation of Aqua-MODIS combined DT/DB C6 AOD observations at 10 km resolution against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using a sampling window of 3 × 3 pixels (average of 900 km2 spatial region for the MYD04 combined DT/DB AOD at 10 km) centered on the AERONET site.",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.3848232323232323, 0.9404901960784314,
+            0.4316792929292929
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9574952125549316,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.317, 0.109, 0.9029, 0.6828]
+        },
+        {
+          "score": 0.9361104965209961,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.273, 0.6943, 0.9453, 0.7729]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-09.jpg",
+      "index": 8,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 181.33, 575.6, 238.4],
+          "score": null,
+          "text": "Figure 6. Validation of Aqua-SARA AOD observations at (i) 500 m, (ii) 3 km, and (iii) 10 km resolutions against (a) Beijing_RADI and (b) Beijing_CAMS AERONET measurements for the years 2012–2013. (iv): (a) Validation of Aqua-SARA AOD observations at 500 m with XiangHe AERONET AOD measurements; (b) comparison between Beijing and XiangHe AERONET AOD measurements. The dashed lines = EE lines, black solid line = 1:1 line, and red solid line = regression line. Retrievals are selected using s sampling window of 3 × 3 pixels (average of 2.25 km2 spatial region for the SARA AOD at 500 m, average of 81 km2 spatial region for SARA AOD at 3 km and average of 900 km2 spatial region for SARA AOD at 10 km) centered on the AERONET site.",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.698989898989899, 0.9405228758169935,
+            0.7710479797979798
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9536600708961487,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.3197, 0.1142, 0.9033, 0.673]
+        },
+        {
+          "score": 0.8339743614196777,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.5644, 0.6866, 0.6861, 0.7015]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-10.jpg",
+      "index": 9,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [346.51, 237.74, 418.48, 244.81],
+          "score": null,
+          "text": "Figure 6. (continued)",
+          "type": "figure_caption",
+          "xyxy": [
+            0.5661928104575163, 0.6908964646464647, 0.6837908496732027,
+            0.6998232323232323
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0.9681412464216643,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 1,
+        "matchedTables": 1,
+        "matchedTableIou": 0.9681412464216643,
+        "subjectAgreement": 1,
+        "zoteroSubjects": 1
+      },
+      "docLayout": [
+        {
+          "score": 0.9646042585372925,
+          "text": "",
+          "type": "table",
+          "xyxy": [0.2796, 0.1372, 0.9432, 0.7498]
+        },
+        {
+          "score": 0.8321846723556519,
+          "text": "",
+          "type": "table_caption",
+          "xyxy": [0.28, 0.1159, 0.9449, 0.1411]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-11.jpg",
+      "index": 10,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [176.77, 679.61, 575.51, 696.71],
+          "score": null,
+          "text": "Table 2. Validation Summary of DT (C5 and C6), DB (C5 and C6), Combined DT/DB (C6), DT_3 K (C6), and SARA (500 m, 3 km, and 10 km) Collocations",
+          "type": "table_caption",
+          "xyxy": [
+            0.28883986928104577, 0.12031565656565651, 0.9403758169934641,
+            0.14190656565656565
+          ]
+        },
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.516, 200.806, 575.489, 674.2],
+          "score": null,
+          "text": "N Mean StDev RMSE % within EE % Above EE % Below EE DB-Beijing_RADI Collocations (10 km) AERONET 83 0.53 0.47 DB C5 0.58 0.67 0.32 46 27 28 AERONET 210 0.44 0.45 DB C6 0.42 0.48 0.16 80 8 12 DB-Beijing_CAMS Collocations (10 km) AERONET 34 0.76 0.55 DB C5 1.11 0.89 0.59 35 50 15 AERONET 90 0.52 0.48 DB C6 0.55 0.57 0.21 75 13 12 DT-Beijing_RADI Collocations (10 km) AERONET 129 0.46 0.44 DT C5 0.70 0.55 0.32 23 75 2 AERONET 118 0.42 0.36 DT C6 0.63 0.42 0.28 27 70 3 DT-Beijing_CAMS Collocations (10 km) AERONET 77 0.52 0.42 DT C5 0.85 56 0.40 10 90 0 AERONET 65 0.52 0.47 DT C6 0.79 0.51 0.32 18 82 0 DT/DB-Beijing_RADI Collocations (10 km) AERONET 199 0.43 0.43 DT/DB C6 0.52 0.47 0.32 60 37 3 DT/DB-Beijing_CAMS Collocations (10 km) AERONET 88 0.53 0.49 DT/DB C6 0.66 0.55 0.29 40 56 4 DT_3K-Beijing_RADI Collocations (3 km) AERONET 119 0.40 0.36 DT 3 K C6 0.66 0.44 0.30 13 87 0 DT_3K-Beijing_CAMS Collocations (3 km) AERONET 55 0.37 0.36 DT 3 K C6 0.67 0.45 0.35 11 89 0 SARA-Beijing_RADI Collocations (500 m, 3 km and 10 km) AERONET 164 0.52 0.57 SARA (500 m) 0.53 0.55 0.07 95 5 0 SARA (3 km) 0.51 0.55 0.06 96 3 1 SARA (10 km) 0.51 0.55 0.07 96 3 1 SARA-Beijing_CAMS Collocations (500 m, 3 km and 10 km) AERONET 89 0.65 0.62 SARA (500 m) 0.67 0.62 0.10 92 6 2 SARA (3 km) 0.66 0.62 0.08 96 3 1 SARA (10 km) 0.69 0.62 0.11 90 9 1",
+          "type": "table",
+          "xyxy": [
+            0.28188888888888886, 0.14873737373737367, 0.9403415032679739,
+            0.7464570707070707
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-12.jpg",
+      "index": 11,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": []
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [
+        {
+          "score": 0.9564279317855835,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.3129, 0.109, 0.9178, 0.7599]
+        },
+        {
+          "score": 0.8910635709762573,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.284, 0.7692, 0.9321, 0.81]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-13.jpg",
+      "index": 12,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 151.64, 575.49, 179.04],
+          "score": null,
+          "text": "Figure 7. High aerosol concentrations over the Beijing-Tianjin-Hebei region on 28 September 2013, 5 October 2013, and 9 October 2013: (i–iii) Band 1 pseudo color image, (iv–vi) MYD04 DB C6 AOD (10 km), (vii–ix) MYD04 DT C6 (10 km), (x–xii) MYD04 DT C6 AOD (3 km), and (xiii–xv) SARA AOD (500 m).",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.773939393939394, 0.9403431372549019,
+            0.8085353535353536
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0.7824982960597368,
+        "docLayoutSubjects": 2,
+        "matchedFigures": 0,
+        "matchedSubjects": 1,
+        "matchedTables": 1,
+        "matchedTableIou": 0.7824982960597368,
+        "subjectAgreement": 0.5,
+        "zoteroSubjects": 1
+      },
+      "docLayout": [
+        {
+          "score": 0.944548487663269,
+          "text": "",
+          "type": "figure",
+          "xyxy": [0.2937, 0.6898, 0.928, 0.8877]
+        },
+        {
+          "score": 0.8967366814613342,
+          "text": "",
+          "type": "figure_caption",
+          "xyxy": [0.2771, 0.8965, 0.9472, 0.9365]
+        },
+        {
+          "score": 0.8770056366920471,
+          "text": "",
+          "type": "table",
+          "xyxy": [0.0664, 0.1149, 0.9402, 0.2173]
+        },
+        {
+          "score": 0.5220820307731628,
+          "text": "",
+          "type": "table_caption",
+          "xyxy": [0.0553, 0.1152, 0.9384, 0.1461]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-14.jpg",
+      "index": 13,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [40.25, 689.64, 544.13, 696.71],
+          "score": null,
+          "text": "Table 3. Validation of MODIS Aerosol Algorithms Using AERONET AOD During High Concentrations of Fine Particles Over Beijing-Tianjin-Hebei Region",
+          "type": "table_caption",
+          "xyxy": [
+            0.06576797385620915, 0.12031565656565651, 0.8891013071895425,
+            0.12924242424242427
+          ]
+        },
+        {
+          "flowClass": "auxiliary",
+          "rect": [36, 620.277, 575.49, 684.18],
+          "score": null,
+          "text": "Pollution Events (2013) AERONET AOD Algorithms Expected Error XiangHe DB (10 km) DT (10 km) DT (3 km) SARA (500) Lower Limit Upper Limit 28 Sep 2.36 2.59 2.57 2.59 2.76 1.96 2.77 5 Oct 1.91 2.38 2.23 2.30 2.19 1.57 2.24 9 Oct 2.00 Missing Missing Missing 2.11 1.65 2.34",
+          "type": "table",
+          "xyxy": [
+            0.058823529411764705, 0.1361363636363637, 0.9403431372549019,
+            0.21682196969696965
+          ]
+        },
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.52, 51.34, 575.6, 78.41],
+          "score": null,
+          "text": "Figure 8. Spatial comparison between (a) DT and DB AOD, and between (b) SARA and DB AOD over Beijing-Tianjin-Hebei region for the years 2012–2013. Colors represent distance from Beijing AERONET site, where sites with blue color are close (minimum distance = 48 km) to the AERONET and sites with orange color are far from AERONET (maximum distance = 500 km).",
+          "type": "figure_caption",
+          "xyxy": [
+            0.28189542483660135, 0.9009974747474748, 0.9405228758169935,
+            0.9351767676767676
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0.9848815745016744,
+        "docLayoutSubjects": 1,
+        "matchedFigures": 0,
+        "matchedSubjects": 1,
+        "matchedTables": 1,
+        "matchedTableIou": 0.9848815745016744,
+        "subjectAgreement": 1,
+        "zoteroSubjects": 1
+      },
+      "docLayout": [
+        {
+          "score": 0.9688830375671387,
+          "text": "",
+          "type": "table",
+          "xyxy": [0.2796, 0.114, 0.9421, 0.4434]
+        }
+      ],
+      "height": 1320,
+      "image": "pages/page-15.jpg",
+      "index": 14,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": [
+        {
+          "flowClass": "auxiliary",
+          "rect": [172.516, 442.7710000000001, 575.489, 701.291],
+          "score": null,
+          "text": "Table 4. Spatial Statistics of SARA and Aqua-MODIS L2 Products Over Beijing-Tianjin-Hebei Region for 2012–2013 Algorithm N R Slope Intercept Mean StDev RMSE MAE Distance From AERONET Deep Blue AOD Versus Dark Target AOD DB 466 0.86 1.18 0.01 0.33 0.42 0.27 0.11 48–104 km DT 0.40 0.50 DB 375 0.92 1.27 0.02 0.25 0.32 0.17 0.10 125–190 km DT 0.34 0.40 DB 323 0.90 1.12 0.02 0.21 0.29 0.15 0.08 195–300 km DT 0.26 0.32 DB 508 0.87 1.25 0.09 0.43 0.44 0.34 0.22 275–365 km DT 0.62 0.55 DB 348 0.89 1.29 0.06 0.48 0.43 0.33 0.22 375–500 km DT 0.69 0.56 Deep Blue AOD Versus SARA AOD DB 466 0.86 1.05 0.02 0.33 0.42 0.23 0.13 48–104 km SARA 0.37 0.44 DB 375 0.77 1.31 0.04 0.25 0.32 0.29 0.19 125–190 km SARA 0.38 0.42 DB 323 0.77 1.26 0.11 0.21 0.29 0.28 0.19 195–300 km SARA 0.38 0.36 DB 508 0.73 1.07 0.01 0.43 0.44 0.34 0.23 275–365 km SARA 0.47 0.48 DB 348 0.68 1.09 0.02 0.48 0.43 0.36 0.25 375–500 km SARA 0.51 0.47",
+          "type": "table",
+          "xyxy": [
+            0.28188888888888886, 0.1145315656565656, 0.9403415032679739,
+            0.44094570707070696
+          ]
+        }
+      ]
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-16.jpg",
+      "index": 15,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": []
+    },
+    {
+      "comparison": {
+        "averageMatchedIou": 0,
+        "docLayoutSubjects": 0,
+        "matchedFigures": 0,
+        "matchedSubjects": 0,
+        "matchedTables": 0,
+        "matchedTableIou": 0,
+        "subjectAgreement": 0,
+        "zoteroSubjects": 0
+      },
+      "docLayout": [],
+      "height": 1320,
+      "image": "pages/page-17.jpg",
+      "index": 16,
+      "viewRect": [0, 0, 612, 792],
+      "width": 1020,
+      "zotero": []
+    }
+  ],
+  "summary": {
+    "averageMatchedIou": 0.893329168610742,
+    "averageMatchedTableIou": 0.893329168610742,
+    "docLayoutFigureCaptions": 9,
+    "docLayoutFigures": 9,
+    "docLayoutSubjects": 13,
+    "docLayoutTables": 4,
+    "matchedFigures": 0,
+    "matchedSubjects": 4,
+    "matchedTables": 4,
+    "pageCount": 17,
+    "subjectAgreement": 0.3076923076923077,
+    "zoteroFigures": 1,
+    "zoteroFigureCaptions": 9,
+    "zoteroSubjects": 5,
+    "zoteroTables": 4
+  }
+}

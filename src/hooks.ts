@@ -1,81 +1,74 @@
-/* eslint-disable no-empty */
 import { config } from "../package.json";
-import Views from "./modules/views";
+import {
+  registerPrefs,
+  registerPrefsScripts,
+} from "./features/preferences/preferenceScript";
+import { FigureReaderController } from "./features/reader/figureReaderController";
+import { LayoutAnalyzer } from "./services/layout/layoutAnalyzer";
+import { FigureResultStore } from "./services/results/figureResultStore";
+import { initLocale } from "./utils/locale";
 
-async function onStartup() {
+const controllers = new Map<Window, FigureReaderController>();
+const resultStore = new FigureResultStore();
+const layoutAnalyzer = new LayoutAnalyzer(resultStore);
+
+async function onStartup(): Promise<void> {
+  await waitForZotero();
+  initLocale();
+  await registerPrefs();
+  await onMainWindowLoad(window);
+}
+
+async function onMainWindowLoad(win: Window): Promise<void> {
+  if (controllers.has(win)) return;
+  const controller = new FigureReaderController(win, {
+    layoutAnalyzer,
+    resultStore,
+  });
+  controllers.set(win, controller);
+  controller.start();
+}
+
+async function onMainWindowUnload(win: Window): Promise<void> {
+  const controller = controllers.get(win);
+  if (!controller) return;
+  controllers.delete(win);
+  controller.dispose();
+}
+
+async function onShutdown(): Promise<void> {
+  for (const controller of [...controllers.values()].reverse()) {
+    controller.dispose();
+  }
+  controllers.clear();
+  layoutAnalyzer.dispose();
+  ztoolkit.unregisterAll();
+  addon.data.dialog?.window?.close();
+  addon.data.alive = false;
+  delete (Zotero as typeof Zotero & Record<string, unknown>)[
+    config.addonInstance
+  ];
+}
+
+async function onPrefsEvent(
+  type: string,
+  data: { window: Window },
+): Promise<void> {
+  if (type === "load") registerPrefsScripts(data.window);
+}
+
+async function waitForZotero(): Promise<void> {
   await Promise.all([
     Zotero.initializationPromise,
     Zotero.unlockPromise,
     Zotero.uiReadyPromise,
   ]);
-  
-  await onMainWindowLoad(window)
 }
-
-async function onMainWindowLoad(win: Window): Promise < void>  {
-  const views = new Views()
-}
-
-async function onMainWindowUnload(win: Window): Promise<void> {
-  ztoolkit.unregisterAll();
-  addon.data.dialog?.window?.close();
-}
-
-
-function onShutdown(): void {
-  ztoolkit.unregisterAll();
-  addon.data.dialog?.window?.close();
-  // Remove addon object
-  addon.data.alive = false;
-  delete Zotero[config.addonInstance];
-}
-
-/**
- * This function is just an example of dispatcher for Notify events.
- * Any operations should be placed in a function to keep this funcion clear.
- */
-async function onNotify(
-  event: string,
-  type: string,
-  ids: Array<string | number>,
-  extraData: { [key: string]: any }
-) {
-  // You can add your code to the corresponding notify type
-  ztoolkit.log("notify", event, type, ids, extraData);
-  if (
-    event == "select" &&
-    type == "tab" &&
-    extraData[ids[0]].type == "reader"
-  ) {
-  } else {
-    return;
-  }
-}
-
-/**
- * This function is just an example of dispatcher for Preference UI events.
- * Any operations should be placed in a function to keep this funcion clear.
- * @param type event type
- * @param data event data
- */
-async function onPrefsEvent(type: string, data: { [key: string]: any }) {
-  switch (type) {
-    case "load":
-      // registerPrefsScripts(data.window);
-      break;
-    default:
-      return;
-  }
-}
-// Add your hooks here. For element click, etc.
-// Keep in mind hooks only do dispatch. Don't add code that does real jobs in hooks.
-// Otherwise the code would be hard to read and maintian.
 
 export default {
   onStartup,
   onShutdown,
   onMainWindowLoad,
   onMainWindowUnload,
-  onNotify,
   onPrefsEvent,
 };

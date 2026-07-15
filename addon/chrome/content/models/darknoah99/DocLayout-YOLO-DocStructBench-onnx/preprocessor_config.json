@@ -1,0 +1,11 @@
+{
+  "do_normalize": false,
+  "do_pad": true, 
+  "do_rescale": true,
+  "do_resize": true,
+  "feature_extractor_type": "ImageFeatureExtractor",
+  "image_mean": [0, 0, 0],
+  "image_std": [1, 1, 1],
+  "resample": 3,
+  "rescale_factor": 0.00392156862745098
+}

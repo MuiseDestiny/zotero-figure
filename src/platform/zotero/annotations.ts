@@ -1,0 +1,323 @@
+import type { AnnotationCandidate, Rect } from "../../domain/layout";
+import { throwIfAborted } from "../../utils/cancellation";
+import type { PdfReader } from "./reader";
+
+const GENERATED_TAG_PATTERN = /^(Figure|Table)(?:\s|$)/;
+export const GENERATED_ANNOTATION_AUTHOR = "zoterofigure";
+
+export type DuplicateMode = "replace-page" | "skip-existing";
+
+export interface ReconcileResult {
+  created: number;
+  removed: number;
+  skipped: number;
+}
+
+export interface AnnotationIdentity {
+  authorName?: string;
+  tags?: Array<{ name?: string; tag?: string }>;
+  type?: string;
+}
+
+interface AnnotationJSON {
+  authorName: string;
+  color: string;
+  comment: string;
+  dateCreated: string;
+  dateModified: string;
+  id: string;
+  key: string;
+  pageLabel: string;
+  position: {
+    pageIndex: number;
+    rects: Rect[];
+  };
+  sortIndex: string;
+  text: string;
+  type: "image";
+}
+
+export function isGeneratedFigureAnnotation(item: Zotero.Item): boolean {
+  return isGeneratedFigureAnnotationData({
+    authorName: item.annotationAuthorName,
+    tags: item.getTags(),
+    type: item.annotationType,
+  });
+}
+
+export function isGeneratedFigureAnnotationData(
+  annotation: AnnotationIdentity,
+): boolean {
+  const tags = Array.from(annotation.tags ?? []);
+  return (
+    annotation.type === "image" &&
+    annotation.authorName === GENERATED_ANNOTATION_AUTHOR &&
+    tags.some((tag) => GENERATED_TAG_PATTERN.test(tag.name ?? tag.tag ?? ""))
+  );
+}
+
+export function getGeneratedAnnotationKind(
+  annotation: AnnotationIdentity,
+): "figure" | "table" | undefined {
+  let tag: string | undefined;
+  for (const entry of Array.from(annotation.tags ?? [])) {
+    const value = entry.name ?? entry.tag ?? "";
+    if (GENERATED_TAG_PATTERN.test(value)) {
+      tag = value;
+      break;
+    }
+  }
+  if (!tag) return undefined;
+  return /^Table(?:\s|$)/.test(tag) ? "table" : "figure";
+}
+
+export function hasGeneratedFigureAnnotations(item: Zotero.Item): boolean {
+  return item.getAnnotations().some(isGeneratedFigureAnnotation);
+}
+
+export async function saveGeneratedAnnotation(
+  reader: PdfReader,
+  candidate: AnnotationCandidate,
+): Promise<Zotero.Item> {
+  const createdAt = new Date().toISOString();
+  const key = Zotero.Utilities.generateObjectKey();
+  const rect = candidate.rect.map((value) => Number(value.toFixed(3))) as Rect;
+  const annotation: AnnotationJSON = {
+    authorName: GENERATED_ANNOTATION_AUTHOR,
+    color: "#d2d8e2",
+    comment: candidate.comment,
+    dateCreated: createdAt,
+    dateModified: createdAt,
+    id: key,
+    key,
+    pageLabel: String(candidate.pageIndex + 1),
+    position: { pageIndex: candidate.pageIndex, rects: [rect] },
+    sortIndex: getSortIndex(
+      candidate.pageIndex,
+      Math.ceil(rect[0]),
+      1000 - Math.ceil(rect[1]),
+    ),
+    text: "",
+    type: "image",
+  };
+
+  const saved = await Zotero.Annotations.saveFromJSON(
+    reader._item,
+    annotation as unknown as _ZoteroTypes.Annotations.AnnotationJson,
+  );
+  saved.setTags([candidate.tag]);
+  await saved.saveTx();
+  return saved;
+}
+
+export async function reconcileGeneratedAnnotations(
+  reader: PdfReader,
+  pageIndex: number,
+  candidates: readonly AnnotationCandidate[],
+  mode: DuplicateMode,
+  signal?: AbortSignal,
+): Promise<ReconcileResult> {
+  const existing = getGeneratedAnnotationsForPage(reader._item, pageIndex);
+  if (mode === "skip-existing") {
+    return appendMissingAnnotations(reader, existing, candidates, signal);
+  }
+
+  if (annotationSetsMatch(existing, candidates)) {
+    return { created: 0, removed: 0, skipped: candidates.length };
+  }
+
+  const created: Zotero.Item[] = [];
+  try {
+    for (const candidate of candidates) {
+      throwIfAborted(signal);
+      created.push(await saveGeneratedAnnotation(reader, candidate));
+    }
+    throwIfAborted(signal);
+  } catch (error) {
+    await eraseAnnotations(created);
+    throw error;
+  }
+
+  await eraseAnnotations(existing);
+  return {
+    created: created.length,
+    removed: existing.length,
+    skipped: 0,
+  };
+}
+
+export async function removeGeneratedAnnotations(
+  item: Zotero.Item,
+): Promise<number> {
+  const annotations = item.getAnnotations().filter(isGeneratedFigureAnnotation);
+  await eraseAnnotations(annotations);
+  return annotations.length;
+}
+
+export async function removeGeneratedAnnotationForCandidate(
+  item: Zotero.Item,
+  candidate: AnnotationCandidate,
+): Promise<boolean> {
+  const fingerprint = getCandidateFingerprint(candidate, true);
+  const annotation = item
+    .getAnnotations(false)
+    .filter(isGeneratedFigureAnnotation)
+    .find(
+      (candidateAnnotation) =>
+        getAnnotationFingerprint(candidateAnnotation, true) === fingerprint,
+    );
+  if (!annotation) return false;
+  await annotation.eraseTx();
+  return true;
+}
+
+export async function removeAllAnnotations(item: Zotero.Item): Promise<number> {
+  const annotations = item.getAnnotations();
+  await eraseAnnotations(annotations);
+  return annotations.length;
+}
+
+async function eraseAnnotations(annotations: Zotero.Item[]): Promise<void> {
+  for (const annotation of annotations) {
+    await annotation.eraseTx();
+  }
+}
+
+function getGeneratedAnnotationsForPage(
+  item: Zotero.Item,
+  pageIndex: number,
+): Zotero.Item[] {
+  return item
+    .getAnnotations(false)
+    .filter(isGeneratedFigureAnnotation)
+    .filter((annotation) => getAnnotationPageIndex(annotation) === pageIndex);
+}
+
+async function appendMissingAnnotations(
+  reader: PdfReader,
+  existing: readonly Zotero.Item[],
+  candidates: readonly AnnotationCandidate[],
+  signal?: AbortSignal,
+): Promise<ReconcileResult> {
+  const fingerprints = new Set(
+    existing.flatMap((annotation) => {
+      const fingerprint = getAnnotationFingerprint(annotation, false);
+      return fingerprint ? [fingerprint] : [];
+    }),
+  );
+  const createdAnnotations: Zotero.Item[] = [];
+  let created = 0;
+  let skipped = 0;
+  try {
+    for (const candidate of candidates) {
+      throwIfAborted(signal);
+      const fingerprint = getCandidateFingerprint(candidate, false);
+      if (fingerprints.has(fingerprint)) {
+        skipped++;
+        continue;
+      }
+      const annotation = await saveGeneratedAnnotation(reader, candidate);
+      createdAnnotations.push(annotation);
+      fingerprints.add(fingerprint);
+      created++;
+    }
+    throwIfAborted(signal);
+  } catch (error) {
+    await eraseAnnotations(createdAnnotations);
+    throw error;
+  }
+  return { created, removed: 0, skipped };
+}
+
+function annotationSetsMatch(
+  existing: readonly Zotero.Item[],
+  candidates: readonly AnnotationCandidate[],
+): boolean {
+  if (existing.length !== candidates.length) return false;
+  const existingFingerprints = existing
+    .map((annotation) => getAnnotationFingerprint(annotation, true))
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  const candidateFingerprints = candidates
+    .map((candidate) => getCandidateFingerprint(candidate, true))
+    .sort();
+  return (
+    existingFingerprints.length === candidateFingerprints.length &&
+    existingFingerprints.every(
+      (fingerprint, index) => fingerprint === candidateFingerprints[index],
+    )
+  );
+}
+
+function getAnnotationFingerprint(
+  annotation: Zotero.Item,
+  includeComment: boolean,
+): string | undefined {
+  const position = parseAnnotationPosition(annotation.annotationPosition);
+  const rect = position?.rects?.[0];
+  const tag = annotation
+    .getTags()
+    .map(({ tag }) => tag)
+    .find((value) => GENERATED_TAG_PATTERN.test(value));
+  if (!position || !rect || !tag) return undefined;
+  return buildFingerprint(
+    position.pageIndex,
+    rect as Rect,
+    tag,
+    includeComment ? annotation.annotationComment : undefined,
+  );
+}
+
+function getCandidateFingerprint(
+  candidate: AnnotationCandidate,
+  includeComment: boolean,
+): string {
+  return buildFingerprint(
+    candidate.pageIndex,
+    candidate.rect,
+    candidate.tag,
+    includeComment ? candidate.comment : undefined,
+  );
+}
+
+function buildFingerprint(
+  pageIndex: number,
+  rect: Rect,
+  tag: string,
+  comment?: string,
+): string {
+  const normalizedRect = rect.map((value) => value.toFixed(1)).join(",");
+  return [pageIndex, normalizedRect, tag.trim(), comment?.trim() ?? ""].join(
+    "|",
+  );
+}
+
+function getAnnotationPageIndex(annotation: Zotero.Item): number | undefined {
+  return parseAnnotationPosition(annotation.annotationPosition)?.pageIndex;
+}
+
+function parseAnnotationPosition(
+  value: string,
+): { pageIndex: number; rects?: number[][] } | undefined {
+  try {
+    const position = JSON.parse(value) as {
+      pageIndex?: unknown;
+      rects?: number[][];
+    };
+    return typeof position.pageIndex === "number"
+      ? { pageIndex: position.pageIndex, rects: position.rects }
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function getSortIndex(pageIndex: number, offset: number, top: number): string {
+  return [
+    String(pageIndex).slice(0, 5).padStart(5, "0"),
+    String(offset).slice(0, 6).padStart(6, "0"),
+    String(Math.max(Math.floor(top), 0))
+      .slice(0, 5)
+      .padStart(5, "0"),
+  ].join("|");
+}

@@ -1,0 +1,77 @@
+menu-analyze = 解析 PDF 图表
+menu-cancel-analysis = 取消版面分析
+menu-view-figures = 仅显示生成的图表
+menu-view-annotations = 仅显示普通标注
+menu-add-note = 将图表添加到笔记
+menu-remove-generated = 删除生成的图表标注
+menu-remove-all = 删除全部标注
+
+sidebar-title = Zotero Figure
+sidebar-analyze = 解析图和表
+sidebar-cancel = 取消解析
+sidebar-translate = 翻译图表说明
+sidebar-show-original = 显示原文说明
+sidebar-expand-caption = 展开说明
+sidebar-collapse-caption = 折叠说明
+sidebar-translation-error = 部分说明翻译失败，当前显示原文
+sidebar-sync-annotations = 将本地结果转换为 Zotero 标注
+sidebar-add-all-to-note = 将全部结果保存到笔记
+sidebar-clear = 清空本地结果
+sidebar-loading = 正在加载本地结果...
+sidebar-load-error = 无法加载本地结果
+sidebar-filter-figure = 图（{ $count }）
+sidebar-filter-table = 表（{ $count }）
+sidebar-filter-all = 全部（{ $count }）
+sidebar-refresh = 刷新图表
+sidebar-empty = 暂无生成的图或表
+sidebar-page = 第 { $page } 页
+sidebar-image-preparing = 正在准备图片...
+sidebar-image-unavailable = 图片不可用
+sidebar-no-caption = 无标题
+sidebar-untitled = 未命名图表
+sidebar-menu = 图表操作
+sidebar-copy-image = 复制图片
+sidebar-save-image = 图片另存为...
+sidebar-go-to-page = 跳转到页面
+sidebar-add-to-note = 添加到笔记
+sidebar-remove = 删除本地结果
+note-title = Zotero Figure 结果
+
+confirm-remove-generated = 是否删除此 PDF 中由 Zotero Figure 生成的全部图表标注？
+confirm-remove-all = 是否删除此 PDF 中的全部标注？这也会删除并非由 Zotero Figure 创建的标注。
+confirm-remove-one = 是否删除这个本地结果及其标注镜像？
+
+progress-initializing = 正在初始化版面分析...
+progress-exporting = [{ $current }/{ $total }] 正在导出 PDF 页面
+progress-detecting = [{ $current }/{ $total }] 正在检测图表
+progress-done = 已保存 { $count } 个本地结果，删除 { $removed } 个，跳过 { $skipped } 个，同步 { $annotations } 个标注，用时 { $seconds } 秒
+progress-cancelled = 已取消版面分析
+progress-error = 错误：{ $message }
+progress-add-note = 正在将图表添加到笔记...
+progress-sync-annotations = 正在将本地结果转换为 Zotero 标注...
+progress-sync-annotations-done = 已同步 { $created } 个标注，删除 { $removed } 个，跳过 { $skipped } 个
+progress-remove-generated = 正在删除生成的图表标注...
+progress-remove-all = 正在删除全部标注...
+progress-switch-view = 正在切换到 { $view } 视图...
+
+error-model-file-unavailable = 无法准备内置版面模型。请在 Zotero Figure 设置中恢复内置模型。
+error-model-integrity = 内置模型的本地副本未通过大小或 SHA-256 校验。请在 Zotero Figure 设置中恢复内置模型。
+error-analysis-failed = { $count } 个页面的版面检测失败。请检查模型文件并重启 Zotero。
+
+model-variant-optimized = 内置优化版 Q8 模型
+
+preferences-restore-model = 恢复内置模型
+preferences-cancel-install = 取消准备
+preferences-status-preparing = 正在准备内置模型...
+preferences-status-install-progress = 正在准备 { $loaded } / { $total }（{ $percent }%）
+preferences-status-install-cancelled = 已取消准备内置模型
+preferences-status-install-failed = 无法准备内置模型：{ $message }
+preferences-status-checking = 正在校验模型完整性...
+preferences-status-check-failed = 模型校验失败：{ $message }
+preferences-status-missing = 尚未准备内置模型副本
+preferences-status-invalid = 内置模型副本完整性校验未通过
+preferences-status-valid = 已校验：{ $name }
+preferences-model-expected = 预期文件：{ $size }，SHA-256 { $hash }
+preferences-model-invalid-details = 实际文件：{ $size }，SHA-256 { $hash }
+preferences-model-valid-details = { $name }，{ $size }，SHA-256 { $hash }
+preferences-hash-not-computed = 未计算

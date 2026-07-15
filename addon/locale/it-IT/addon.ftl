@@ -1,0 +1,77 @@
+menu-analyze = Analizza figure e tabelle del PDF
+menu-cancel-analysis = Annulla l'analisi del layout
+menu-view-figures = Mostra solo le figure generate
+menu-view-annotations = Mostra solo le annotazioni normali
+menu-add-note = Aggiungi le figure a una nota
+menu-remove-generated = Rimuovi le annotazioni generate
+menu-remove-all = Rimuovi tutte le annotazioni
+
+sidebar-title = Zotero Figure
+sidebar-analyze = Analizza figure e tabelle
+sidebar-cancel = Annulla analisi
+sidebar-translate = Traduci le didascalie
+sidebar-show-original = Mostra le didascalie originali
+sidebar-expand-caption = Espandi la didascalia
+sidebar-collapse-caption = Comprimi la didascalia
+sidebar-translation-error = Alcune didascalie non sono state tradotte; viene mostrato il testo originale
+sidebar-sync-annotations = Converti i risultati locali in annotazioni Zotero
+sidebar-add-all-to-note = Aggiungi tutti i risultati a una nota
+sidebar-clear = Cancella i risultati locali
+sidebar-loading = Caricamento dei risultati locali...
+sidebar-load-error = Impossibile caricare i risultati locali
+sidebar-filter-figure = Figure ({ $count })
+sidebar-filter-table = Tabelle ({ $count })
+sidebar-filter-all = Tutto ({ $count })
+sidebar-refresh = Aggiorna figure e tabelle
+sidebar-empty = Nessuna figura o tabella generata
+sidebar-page = Pagina { $page }
+sidebar-image-preparing = Preparazione dell'immagine...
+sidebar-image-unavailable = Immagine non disponibile
+sidebar-no-caption = Nessuna didascalia
+sidebar-untitled = Figura o tabella senza titolo
+sidebar-menu = Azioni su figura o tabella
+sidebar-copy-image = Copia immagine
+sidebar-save-image = Salva immagine con nome...
+sidebar-go-to-page = Vai alla pagina
+sidebar-add-to-note = Aggiungi alla nota
+sidebar-remove = Rimuovi risultato locale
+note-title = Risultati di Zotero Figure
+
+confirm-remove-generated = Rimuovere da questo PDF tutte le annotazioni di figure e tabelle generate da Zotero Figure?
+confirm-remove-all = Rimuovere tutte le annotazioni da questo PDF? Verranno rimosse anche quelle non create da Zotero Figure.
+confirm-remove-one = Rimuovere questo risultato locale e la relativa annotazione?
+
+progress-initializing = Inizializzazione dell'analisi del layout...
+progress-exporting = [{ $current }/{ $total }] Esportazione delle pagine PDF
+progress-detecting = [{ $current }/{ $total }] Rilevamento di figure e tabelle
+progress-done = Salvati { $count } risultati locali, rimossi { $removed }, ignorati { $skipped } e sincronizzate { $annotations } annotazioni in { $seconds } s
+progress-cancelled = Analisi del layout annullata
+progress-error = Errore: { $message }
+progress-add-note = Aggiunta delle figure alla nota...
+progress-sync-annotations = Conversione dei risultati locali in annotazioni Zotero...
+progress-sync-annotations-done = Sincronizzate { $created } annotazioni, rimosse { $removed }, ignorate { $skipped }
+progress-remove-generated = Rimozione delle annotazioni generate...
+progress-remove-all = Rimozione di tutte le annotazioni...
+progress-switch-view = Passaggio alla vista { $view }...
+
+error-model-file-unavailable = Impossibile preparare il modello di layout integrato. Ripristinalo nelle preferenze di Zotero Figure.
+error-model-integrity = La copia installata del modello integrato non ha superato il controllo di dimensione o SHA-256. Ripristinala nelle preferenze di Zotero Figure.
+error-analysis-failed = Il rilevamento del layout non è riuscito su { $count } pagine. Controlla il file del modello e riavvia Zotero.
+
+model-variant-optimized = Modello Q8 ottimizzato integrato
+
+preferences-restore-model = Ripristina il modello integrato
+preferences-cancel-install = Annulla la preparazione
+preferences-status-preparing = Preparazione del modello integrato...
+preferences-status-install-progress = Preparazione di { $loaded } / { $total } ({ $percent }%)
+preferences-status-install-cancelled = Preparazione del modello integrato annullata
+preferences-status-install-failed = Impossibile preparare il modello integrato: { $message }
+preferences-status-checking = Verifica dell'integrità del modello...
+preferences-status-check-failed = Verifica del modello non riuscita: { $message }
+preferences-status-missing = La copia del modello integrato non è pronta
+preferences-status-invalid = Controllo di integrità della copia installata non riuscito
+preferences-status-valid = Verificato: { $name }
+preferences-model-expected = File previsto: { $size }, SHA-256 { $hash }
+preferences-model-invalid-details = File trovato: { $size }, SHA-256 { $hash }
+preferences-model-valid-details = { $name }, { $size }, SHA-256 { $hash }
+preferences-hash-not-computed = non calcolato

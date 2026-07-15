@@ -1,0 +1,21 @@
+preferences-model-title = Layout model
+preferences-model-description = The optimized Q8 model is included with Zotero Figure. It is copied to the Zotero data directory and verified automatically before local inference.
+preferences-restore-model =
+    .label = Restore built-in model
+preferences-verify =
+    .label = Verify again
+preferences-reveal =
+    .label = Show in folder
+preferences-managed-directory =
+    .value = Managed storage
+preferences-managed-directory-description = The bundled model is extracted here once and checked by exact size and SHA-256 before every analysis.
+
+preferences-analysis-title = Analysis behavior
+preferences-duplicate-mode =
+    .value = Existing results
+preferences-duplicate-replace = Replace results on each analyzed page
+preferences-duplicate-skip = Keep existing results and add only missing ones
+preferences-duplicate-description = Replacing updates the local results on each analyzed page. Keeping existing results adds only figures and tables that are not already stored locally.
+preferences-sync-annotations =
+    .label = After analysis, also synchronize results to Zotero image annotations
+preferences-sync-annotations-description = The sidebar always uses local results. When enabled, the same results are mirrored to Zotero annotations for sync and other annotation-aware plugins. This is off by default.
