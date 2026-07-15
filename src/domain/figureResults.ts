@@ -2,6 +2,8 @@ import type { AnnotationCandidate, Rect } from "./layout";
 
 export type FigureResultKind = "figure" | "formula" | "table";
 
+export type DuplicateMode = "replace-page" | "skip-existing";
+
 export interface FigureResultAnalysisIdentity {
   analysisVersion: number;
   modelHash: string;

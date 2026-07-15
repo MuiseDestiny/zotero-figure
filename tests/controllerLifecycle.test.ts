@@ -35,4 +35,17 @@ test("shares one analyzer across main windows and disposes it at shutdown", () =
     /galleryControllers\.set\(win, galleryController\)/,
   );
   assert.match(hooksSource, /galleryControllers\.clear\(\)/);
+  assert.match(
+    controllerSource,
+    /readerDocuments = new Map<[\s\S]*ReaderDocumentRegistration/,
+  );
+  assert.match(
+    controllerSource,
+    /addEventListener\("pagehide", handlePageHide, \{\s*once: true,/,
+  );
+  assert.match(
+    controllerSource,
+    /this\.activeAnalyses\.get\(reader\)\?\.abort/,
+  );
+  assert.match(controllerSource, /this\.sidebarPanels\.delete\(reader\)/);
 });

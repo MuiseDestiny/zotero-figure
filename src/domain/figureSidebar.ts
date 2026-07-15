@@ -11,6 +11,13 @@ export interface FigureSidebarItemMetadata {
 
 export type FigureSidebarCounts = Record<FigureSidebarFilter, number>;
 
+export function shouldShowFigureSidebarEmptyState(
+  visibleItemCount: number,
+  analysisProgressVisible: boolean,
+): boolean {
+  return visibleItemCount === 0 && !analysisProgressVisible;
+}
+
 export function getFigureSidebarNavigationLabel(value: {
   comment?: string;
   tag: string;

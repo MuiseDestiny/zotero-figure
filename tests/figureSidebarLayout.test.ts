@@ -7,6 +7,10 @@ const panelSource = readFileSync(
   "src/features/reader/figureSidebarPanel.ts",
   "utf8",
 );
+const iconSource = readFileSync(
+  "src/features/reader/figureSidebarIcons.ts",
+  "utf8",
+);
 const controllerSource = readFileSync(
   "src/features/reader/figureReaderController.ts",
   "utf8",
@@ -65,10 +69,10 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(noteIcon, /width\s*:\s*16px/);
   assert.doesNotMatch(noteIcon, /mask\s*:/);
   assert.match(panelSource, /iconKind === "note"/);
-  assert.match(panelSource, /icon\.setAttribute\("viewBox", "0 0 20 20"\)/);
-  assert.match(panelSource, /path\.setAttribute\("fill", "currentColor"\)/);
+  assert.match(iconSource, /icon\.setAttribute\("viewBox", "0 0 20 20"\)/);
+  assert.match(iconSource, /path\.setAttribute\("fill", "currentColor"\)/);
   assert.doesNotMatch(
-    panelSource,
+    iconSource,
     /chrome:\/\/zotero\/skin\/20\/universal\/note/,
   );
   assert.match(analysisAction, /position\s*:\s*relative/);
@@ -317,6 +321,9 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(bindPinnedCard, /addEventListener\("wheel"/);
   assert.match(bindPinnedCard, /passive: false/);
   assert.match(bindPinnedCard, /zoomPinnedCardAtPoint\(/);
+  assert.match(bindPinnedCard, /element\.offsetHeight/);
+  assert.match(bindPinnedCard, /element\.offsetWidth/);
+  assert.match(bindPinnedCard, /getCardSize\(\)/);
   assert.match(bindPinnedCard, /interpolatePinnedCardTransform\(/);
   assert.match(bindPinnedCard, /getPinnedCardSmoothingProgress\(/);
   assert.match(bindPinnedCard, /frameTime - previousTransformFrameTime/);
@@ -414,6 +421,17 @@ test("clears the sidebar before local files without touching annotation mirrors"
 });
 
 test("loads local previews lazily through revocable blob URLs", () => {
+  const loadLocalImage = getSourceSection(
+    panelSource,
+    "  private async loadLocalImage(",
+    "  private isCurrentImageEntry(",
+  );
+  const pinCard = getSourceSection(
+    panelSource,
+    "  private async pinCard(",
+    "  private preparePinnedCardElement(",
+  );
+
   assert.match(panelSource, /new BoundedAsyncTaskQueue\(/);
   assert.match(panelSource, /IMAGE_LOAD_CONCURRENCY = 3/);
   assert.match(panelSource, /IOUtils\.read\(entry\.result\.imagePath\)/);
@@ -426,6 +444,14 @@ test("loads local previews lazily through revocable blob URLs", () => {
   assert.doesNotMatch(panelSource, /readAsDataURL/);
   assert.doesNotMatch(panelSource, /bytesToDataURL/);
   assert.doesNotMatch(panelSource, /loading\s*=\s*["']eager["']/);
+  assert.match(
+    loadLocalImage,
+    /addEventListener\(\s*"load"[\s\S]*container\.style\.aspectRatio = ""/,
+  );
+  assert.match(
+    pinCard,
+    /addEventListener\(\s*"load"[\s\S]*imageContainer\.style\.aspectRatio = ""/,
+  );
 });
 
 test("analysis updates controls without rebuilding cards and reloads once", () => {

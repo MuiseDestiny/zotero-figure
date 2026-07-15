@@ -1,10 +1,10 @@
 import type { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { config } from "../../../package.json";
+import type { DuplicateMode } from "../../domain/figureResults";
 import {
   removeGeneratedAnnotationForCandidate,
   updateGeneratedAnnotationCommentForCandidate,
   updateGeneratedAnnotationPositionForCandidate,
-  type DuplicateMode,
 } from "../../platform/zotero/annotations";
 import {
   copyReaderAnnotationImage,
@@ -25,6 +25,11 @@ import { getString } from "../../utils/locale";
 import { getPref } from "../../utils/prefs";
 import { FigureSidebarPanel } from "./figureSidebarPanel";
 
+interface ReaderDocumentRegistration {
+  document: Document;
+  handlePageHide(): void;
+}
+
 export class FigureReaderController {
   private readonly activeAnalyses = new Map<PdfReader, AbortController>();
   private hydrateTimeoutID?: number;
@@ -35,6 +40,10 @@ export class FigureReaderController {
   private readonly layoutAnalyzer: LayoutAnalyzer;
   private readonly outputService: FigureOutputService;
   private readonly ownsLayoutAnalyzer: boolean;
+  private readonly readerDocuments = new Map<
+    PdfReader,
+    ReaderDocumentRegistration
+  >();
   private readonly sidebarPanels = new Map<PdfReader, FigureSidebarPanel>();
   private started = false;
 
@@ -91,6 +100,13 @@ export class FigureReaderController {
       this.win.clearTimeout(this.prewarmTimeoutID);
       this.prewarmTimeoutID = undefined;
     }
+    for (const registration of this.readerDocuments.values()) {
+      registration.document.defaultView?.removeEventListener(
+        "pagehide",
+        registration.handlePageHide,
+      );
+    }
+    this.readerDocuments.clear();
     for (const panel of this.sidebarPanels.values()) panel.dispose();
     this.sidebarPanels.clear();
   }
@@ -367,6 +383,7 @@ export class FigureReaderController {
   }
 
   private registerReader(reader: PdfReader, doc: Document): void {
+    this.registerReaderDocument(reader, doc);
     let panel = this.sidebarPanels.get(reader);
     if (!panel) {
       panel = new FigureSidebarPanel({
@@ -399,6 +416,30 @@ export class FigureReaderController {
     }
     panel.attach(doc);
     this.schedulePrewarm();
+  }
+
+  private registerReaderDocument(reader: PdfReader, document: Document): void {
+    const current = this.readerDocuments.get(reader);
+    if (current?.document === document) return;
+    current?.document.defaultView?.removeEventListener(
+      "pagehide",
+      current.handlePageHide,
+    );
+    const handlePageHide = () => {
+      const registered = this.readerDocuments.get(reader);
+      if (registered?.document !== document) return;
+      this.readerDocuments.delete(reader);
+      this.activeAnalyses.get(reader)?.abort();
+      const panel = this.sidebarPanels.get(reader);
+      if (panel) {
+        this.sidebarPanels.delete(reader);
+        panel.dispose();
+      }
+    };
+    this.readerDocuments.set(reader, { document, handlePageHide });
+    document.defaultView?.addEventListener("pagehide", handlePageHide, {
+      once: true,
+    });
   }
 
   private hydrateExistingReaders(attempt = 0): void {

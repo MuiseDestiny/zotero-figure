@@ -7,7 +7,10 @@ import type {
 } from "../src/domain/layout";
 import type { PdfReader } from "../src/platform/zotero/reader";
 import { LayoutAnalyzer } from "../src/services/layout/layoutAnalyzer";
-import { FigureResultStore } from "../src/services/results/figureResultStore";
+import {
+  DEFAULT_FIGURE_RESULT_ANALYSIS_IDENTITY,
+  FigureResultStore,
+} from "../src/services/results/figureResultStore";
 import type { PdfEngine } from "../src/services/pdf/pdfEngine";
 import { RECOMMENDED_MODEL } from "../src/services/model/modelCatalog";
 import { modelManager } from "../src/services/model/modelManager";
@@ -176,6 +179,65 @@ test("reuses versioned local previews on repeated analysis", async () => {
     assert.equal(repeatedLog.storageMs.imageWrite, 0);
   } finally {
     analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("rerenders a manual crop when the preview cache identity changes", async () => {
+  const harness = installAnalyzerHarness();
+  const originalStore = new FigureResultStore();
+  const originalAnalyzer = new LayoutAnalyzer(
+    originalStore,
+    harness.pdfEngine,
+    1,
+  );
+  const refreshedStore = new FigureResultStore({
+    analysisIdentity: {
+      ...DEFAULT_FIGURE_RESULT_ANALYSIS_IDENTITY,
+      previewVersion: "manual-crop-regression-v2",
+    },
+  });
+  const refreshedAnalyzer = new LayoutAnalyzer(
+    refreshedStore,
+    harness.pdfEngine,
+    1,
+  );
+  try {
+    await originalAnalyzer.analyze(harness.reader, { update() {} });
+    const [detected] = await originalStore.list(harness.reader._item);
+    const correctedRect: Rect = [
+      detected.rect[0] + 2,
+      detected.rect[1] + 3,
+      detected.rect[2] - 4,
+      detected.rect[3] - 5,
+    ];
+    const corrected = await originalStore.updateRegion(
+      harness.reader._item,
+      detected.id,
+      correctedRect,
+      Uint8Array.of(9, 8).buffer,
+    );
+    assert.deepEqual(corrected?.rect, correctedRect);
+
+    (harness.reader._item as Zotero.Item & { version: number }).version = 2;
+    const refreshed = await refreshedAnalyzer.analyze(harness.reader, {
+      update() {},
+    });
+
+    assert.equal(refreshed.resultsCreated, 0);
+    assert.equal(refreshed.resultsSkipped, 1);
+    assert.equal(harness.renderedPreviewPageCount(), 2);
+    assert.deepEqual(harness.renderedRegionRects.at(-1), [correctedRect]);
+    const [stored] = await refreshedStore.list(harness.reader._item);
+    assert.deepEqual(stored.rect, correctedRect);
+    assert.deepEqual(stored.detectedRect, detected.rect);
+    assert.deepEqual(
+      Array.from(await IOUtils.read(stored.imagePath)),
+      [137, 80, 78, 71],
+    );
+  } finally {
+    originalAnalyzer.dispose();
+    refreshedAnalyzer.dispose();
     harness.restore();
   }
 });

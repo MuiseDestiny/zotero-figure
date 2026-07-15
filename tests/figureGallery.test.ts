@@ -109,3 +109,183 @@ test("rejects unavailable libraries and stale result IDs", async () => {
   await assert.rejects(index.readImage("missing"), /no longer indexed/);
   await assert.rejects(index.openSource("missing"), /no longer indexed/);
 });
+
+test("atomically drops deleted results when a library is reloaded", async () => {
+  let results: StoredFigureResult[] = [
+    storedGalleryResult("old", "/images/old.png"),
+  ];
+  let notifyReloadStarted: (() => void) | undefined;
+  let waitForReload = Promise.resolve();
+  const attachment = galleryAttachment(1, "ATTACHMENT");
+  const index = new FigureGalleryIndex(
+    {
+      list: async () => {
+        notifyReloadStarted?.();
+        await waitForReload;
+        return results;
+      },
+      listIndexedAttachmentKeys: async () => ["ATTACHMENT"],
+    },
+    galleryPlatform([attachment]),
+  );
+
+  const first = await index.loadLibrary(1);
+  const oldID = first.entries[0].id;
+  assert.equal((await index.readImage(oldID)).base64, "L2ltYWdlcy9vbGQucG5n");
+
+  results = [storedGalleryResult("new", "/images/new.png")];
+  const reloadStarted = new Promise<void>((resolve) => {
+    notifyReloadStarted = resolve;
+  });
+  let releaseReload!: () => void;
+  waitForReload = new Promise<void>((resolve) => {
+    releaseReload = resolve;
+  });
+  const pendingReload = index.loadLibrary(1);
+  await reloadStarted;
+
+  assert.equal((await index.readImage(oldID)).base64, "L2ltYWdlcy9vbGQucG5n");
+  releaseReload();
+  const second = await pendingReload;
+  const newID = second.entries[0].id;
+
+  await assert.rejects(index.readImage(oldID), /no longer indexed/);
+  assert.equal((await index.readImage(newID)).base64, "L2ltYWdlcy9uZXcucG5n");
+});
+
+test("resolves out-of-order same-library loads to the indexed snapshot", async () => {
+  const first = createDeferred<StoredFigureResult[]>();
+  const second = createDeferred<StoredFigureResult[]>();
+  let requestCount = 0;
+  const index = new FigureGalleryIndex(
+    {
+      list: async () =>
+        requestCount++ === 0 ? await first.promise : await second.promise,
+      listIndexedAttachmentKeys: async () => ["ATTACHMENT"],
+    },
+    galleryPlatform([galleryAttachment(1, "ATTACHMENT")]),
+  );
+
+  const olderLoad = index.loadLibrary(1);
+  const newerLoad = index.loadLibrary(1);
+  second.resolve([storedGalleryResult("new", "/images/new.png")]);
+  const newerSnapshot = await newerLoad;
+  first.resolve([storedGalleryResult("old", "/images/old.png")]);
+  const olderSnapshot = await olderLoad;
+
+  assert.deepEqual(
+    olderSnapshot.entries.map(({ id }) => id),
+    newerSnapshot.entries.map(({ id }) => id),
+  );
+  assert.equal(
+    (await index.readImage(olderSnapshot.entries[0].id)).base64,
+    "L2ltYWdlcy9uZXcucG5n",
+  );
+});
+
+test("bounds retained sources to the latest snapshot of each loaded library", async () => {
+  const resultsByLibrary = new Map<number, StoredFigureResult[]>([
+    [1, [storedGalleryResult("one-0", "/images/one-0.png")]],
+    [2, [storedGalleryResult("two", "/images/two.png")]],
+  ]);
+  const attachments = [
+    galleryAttachment(1, "ONE"),
+    galleryAttachment(2, "TWO"),
+  ];
+  const index = new FigureGalleryIndex(
+    {
+      list: async (attachment) => resultsByLibrary.get(attachment.libraryID)!,
+      listIndexedAttachmentKeys: async (libraryID) => [
+        libraryID === 1 ? "ONE" : "TWO",
+      ],
+    },
+    galleryPlatform(attachments),
+  );
+
+  const firstLibrary = await index.loadLibrary(1);
+  const secondLibrary = await index.loadLibrary(2);
+  const staleIDs = [firstLibrary.entries[0].id];
+
+  for (let version = 1; version <= 4; version++) {
+    resultsByLibrary.set(1, [
+      storedGalleryResult(`one-${version}`, `/images/one-${version}.png`),
+    ]);
+    const snapshot = await index.loadLibrary(1);
+    staleIDs.push(snapshot.entries[0].id);
+  }
+
+  for (const staleID of staleIDs.slice(0, -1)) {
+    await assert.rejects(index.openSource(staleID), /no longer indexed/);
+  }
+  await index.openSource(staleIDs.at(-1)!);
+  assert.equal(
+    (await index.readImage(secondLibrary.entries[0].id)).base64,
+    "L2ltYWdlcy90d28ucG5n",
+  );
+});
+
+function storedGalleryResult(
+  id: string,
+  imagePath: string,
+): StoredFigureResult {
+  return {
+    comment: id,
+    id,
+    imageFile: `images/${id}.png`,
+    imagePath,
+    kind: "figure",
+    pageIndex: 0,
+    pageLabel: "1",
+    rect: [1, 2, 30, 40],
+    tag: `Figure ${id}`,
+  };
+}
+
+function galleryAttachment(libraryID: number, key: string): Zotero.Item {
+  const documentItem = {
+    getCollections: () => [],
+    getDisplayTitle: () => `Document ${libraryID}`,
+    getField: () => "2026",
+    id: libraryID * 10,
+  } as unknown as Zotero.Item;
+  return {
+    getDisplayTitle: () => key,
+    id: libraryID * 100,
+    isPDFAttachment: () => true,
+    key,
+    libraryID,
+    topLevelItem: documentItem,
+  } as unknown as Zotero.Item;
+}
+
+function galleryPlatform(
+  attachments: readonly Zotero.Item[],
+): FigureGalleryPlatform {
+  return {
+    getAttachment: async (libraryID, key) =>
+      attachments.find(
+        (attachment) =>
+          attachment.libraryID === libraryID && attachment.key === key,
+      ) ?? false,
+    getCollectionName: () => undefined,
+    getDefaultLibraryID: () => 1,
+    listLibraries: () => [
+      { id: 1, name: "One" },
+      { id: 2, name: "Two" },
+    ],
+    logError: () => undefined,
+    openPdf: async () => undefined,
+    readFile: async (path) => new TextEncoder().encode(path),
+  };
+}
+
+function createDeferred<T>(): {
+  promise: Promise<T>;
+  resolve(value: T): void;
+} {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}

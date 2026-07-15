@@ -182,6 +182,319 @@ test("replace-page reuses a versioned PNG when the fingerprint is unchanged", as
   }
 });
 
+test("plans corrected render rectangles without changing detected candidates", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const first = makeCandidate({ comment: "Figure 1. First" });
+  const second = makeCandidate({
+    comment: "Table 2. Second",
+    rect: [20, 2, 30, 12],
+    tag: "Table 2",
+  });
+  const correctedRect: [number, number, number, number] = [2, 3, 12, 14];
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [first, second],
+      [bytes(1), bytes(2)],
+      "replace-page",
+    );
+    await store.updateRegion(
+      harness.item,
+      seeded.results.find(({ id }) => id === getFigureResultID(first))!.id,
+      correctedRect,
+      bytes(9),
+    );
+
+    const detected = [second, first];
+    const planned = await store.getPageRenderCandidates(
+      harness.item,
+      0,
+      detected,
+    );
+
+    assert.deepEqual(
+      planned.map(({ detectedCandidate }) => detectedCandidate),
+      detected,
+    );
+    assert.deepEqual(
+      planned.map(({ renderRect }) => renderRect),
+      [second.rect, correctedRect],
+    );
+    assert.deepEqual(first.rect, [1, 2, 10, 12]);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("does not overwrite a newer manual crop with a stale render plan", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+  const firstRect: [number, number, number, number] = [2, 3, 12, 14];
+  const latestRect: [number, number, number, number] = [3, 4, 13, 15];
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1)],
+      "replace-page",
+    );
+    await store.updateRegion(
+      harness.item,
+      seeded.results[0].id,
+      firstRect,
+      bytes(2),
+    );
+    const stalePlan = await store.getPageRenderCandidates(harness.item, 0, [
+      candidate,
+    ]);
+    await store.updateRegion(
+      harness.item,
+      seeded.results[0].id,
+      latestRect,
+      bytes(3),
+    );
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+
+    await store.reconcilePlannedPage(
+      harness.item,
+      0,
+      stalePlan,
+      [bytes(9)],
+      "replace-page",
+    );
+
+    const [preserved] = await store.list(harness.item);
+    assert.deepEqual(preserved.rect, latestRect);
+    assert.deepEqual(harness.io.readBytes(preserved.imagePath), [3]);
+    assert.equal(
+      await store.getReusablePageResults(harness.item, 0, [candidate]),
+      undefined,
+    );
+
+    const currentPlan = await store.getPageRenderCandidates(harness.item, 0, [
+      candidate,
+    ]);
+    await store.reconcilePlannedPage(
+      harness.item,
+      0,
+      currentPlan,
+      [bytes(8)],
+      "replace-page",
+    );
+    const [refreshed] = await store.list(harness.item);
+    assert.deepEqual(refreshed.rect, latestRect);
+    assert.deepEqual(harness.io.readBytes(refreshed.imagePath), [8]);
+    assert.ok(await store.getReusablePageResults(harness.item, 0, [candidate]));
+  } finally {
+    harness.restore();
+  }
+});
+
+test("does not apply detected-rect images to a persisted manual crop", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+  const correctedRect: [number, number, number, number] = [2, 3, 12, 14];
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1)],
+      "replace-page",
+    );
+    await store.updateRegion(
+      harness.item,
+      seeded.results[0].id,
+      correctedRect,
+      bytes(3),
+    );
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+
+    await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(9)],
+      "replace-page",
+    );
+
+    const [preserved] = await store.list(harness.item);
+    assert.deepEqual(preserved.rect, correctedRect);
+    assert.deepEqual(harness.io.readBytes(preserved.imagePath), [3]);
+    assert.equal(
+      await store.getReusablePageResults(harness.item, 0, [candidate]),
+      undefined,
+    );
+  } finally {
+    harness.restore();
+  }
+});
+
+test("does not replace corrupt or unreadable manifests with empty data", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+
+  try {
+    assert.deepEqual(await store.list(harness.item), []);
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    const imagePath = seeded.results[0].imagePath;
+    const corruptManifest = "{ definitely-not-json";
+    harness.io.writeText(getManifestPath(), corruptManifest);
+
+    await assert.rejects(store.list(harness.item), /contains invalid JSON/);
+    await assert.rejects(
+      store.reconcilePage(
+        harness.item,
+        0,
+        [candidate],
+        [bytes(9)],
+        "replace-page",
+      ),
+      /contains invalid JSON/,
+    );
+    assert.equal(harness.io.readText(getManifestPath()), corruptManifest);
+    assert.deepEqual(harness.io.readBytes(imagePath), [1, 2, 3]);
+
+    const originalReadUTF8 = IOUtils.readUTF8.bind(IOUtils);
+    IOUtils.readUTF8 = async () => {
+      throw new Error("simulated read failure");
+    };
+    await assert.rejects(
+      store.list(harness.item),
+      /could not be read: simulated read failure/,
+    );
+    IOUtils.readUTF8 = originalReadUTF8;
+    assert.equal(harness.io.readText(getManifestPath()), corruptManifest);
+  } finally {
+    harness.restore();
+  }
+});
+
+for (const scenario of [
+  { mode: "skip-existing", name: "skip-existing", withNewResult: true },
+  { mode: "replace-page", name: "matching replace-page", withNewResult: false },
+  { mode: "replace-page", name: "changed replace-page", withNewResult: true },
+] as const) {
+  test(`restores PNGs when ${scenario.name} manifest commit fails`, async () => {
+    const harness = installStoreHarness();
+    const store = new FigureResultStore();
+    const existing = makeCandidate();
+    const added = makeCandidate({
+      comment: "Table 2. Added",
+      rect: [20, 2, 30, 12],
+      tag: "Table 2",
+    });
+
+    try {
+      const seeded = await store.reconcilePage(
+        harness.item,
+        0,
+        [existing],
+        [bytes(1, 2, 3)],
+        "replace-page",
+      );
+      const originalManifest = harness.io.readText(getManifestPath());
+      const candidates = scenario.withNewResult
+        ? [existing, added]
+        : [existing];
+      const images = scenario.withNewResult ? [bytes(9), bytes(8)] : [bytes(9)];
+      (harness.item as Zotero.Item & { version: number }).version = 2;
+      const originalMove = IOUtils.move.bind(IOUtils);
+      IOUtils.move = async (source: string, destination: string, options) => {
+        if (destination === getManifestPath()) {
+          throw new Error("simulated manifest commit failure");
+        }
+        return originalMove(source, destination, options);
+      };
+
+      await assert.rejects(
+        store.reconcilePage(harness.item, 0, candidates, images, scenario.mode),
+        /simulated manifest commit failure/,
+      );
+
+      assert.equal(harness.io.readText(getManifestPath()), originalManifest);
+      assert.deepEqual(
+        harness.io.readBytes(seeded.results[0].imagePath),
+        [1, 2, 3],
+      );
+      assert.equal(
+        harness.io.exists(
+          `/data/zotero-figure/results/4/ATTACHMENT/images/${getFigureResultID(
+            added,
+          )}.png`,
+        ),
+        false,
+      );
+    } finally {
+      harness.restore();
+    }
+  });
+}
+
+test("restores an overwritten PNG when reconciliation is cancelled", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    const originalManifest = harness.io.readText(getManifestPath());
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+    const controller = new AbortController();
+    const originalMove = IOUtils.move.bind(IOUtils);
+    let cancelled = false;
+    IOUtils.move = async (source: string, destination: string, options) => {
+      const result = await originalMove(source, destination, options);
+      if (!cancelled && destination.endsWith(".png")) {
+        cancelled = true;
+        controller.abort();
+      }
+      return result;
+    };
+
+    await assert.rejects(
+      store.reconcilePage(
+        harness.item,
+        0,
+        [candidate],
+        [bytes(9)],
+        "replace-page",
+        controller.signal,
+      ),
+      OperationCancelledError,
+    );
+
+    assert.equal(harness.io.readText(getManifestPath()), originalManifest);
+    assert.deepEqual(
+      harness.io.readBytes(seeded.results[0].imagePath),
+      [1, 2, 3],
+    );
+  } finally {
+    harness.restore();
+  }
+});
+
 test("exposes an exact page cache hit only while every versioned image exists", async () => {
   const harness = installStoreHarness();
   const store = new FigureResultStore();

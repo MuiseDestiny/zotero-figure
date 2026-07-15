@@ -1,8 +1,8 @@
 import { config } from "../../../package.json";
+import type { DuplicateMode } from "../../domain/figureResults";
 import {
   buildAnnotationCandidates,
   pageMayContainFigures,
-  type AnnotationCandidate,
   type PageLayoutData,
   type Rect,
 } from "../../domain/layout";
@@ -13,7 +13,6 @@ import {
 import {
   reconcileGeneratedAnnotations,
   type AnnotationTarget,
-  type DuplicateMode,
 } from "../../platform/zotero/annotations";
 import type { PdfReader } from "../../platform/zotero/reader";
 import {
@@ -23,6 +22,7 @@ import {
 } from "../../utils/cancellation";
 import { getString } from "../../utils/locale";
 import { getPref } from "../../utils/prefs";
+import { AsyncPermitPool } from "../concurrency/asyncPermitPool";
 import { MODEL_NAME, type ModelVariant } from "../model/modelCatalog";
 import { modelManager } from "../model/modelManager";
 import { LayoutWorkerPool } from "./workerPool";
@@ -34,6 +34,7 @@ import type {
 } from "../pdf/pdfEngine";
 import {
   FigureResultStore,
+  type FigureResultRenderCandidate,
   type FigureResultStoreReconcile,
   type StoredFigureResult,
 } from "../results/figureResultStore";
@@ -160,21 +161,15 @@ const NO_PAGE_TASK_ERROR = Symbol("no-page-task-error");
 const SCAN_PROGRESS_WEIGHT = 0.2;
 
 export class LayoutAnalyzer {
-  private readonly scheduledPages = new PagePipelineLimiter(
-    MAX_SCHEDULED_PAGES,
-  );
-  private readonly openPdfDocuments = new PagePipelineLimiter(
+  private readonly scheduledPages = new AsyncPermitPool(MAX_SCHEDULED_PAGES);
+  private readonly openPdfDocuments = new AsyncPermitPool(
     MAX_OPEN_PDF_DOCUMENTS,
   );
-  private readonly detectionPages = new PagePipelineLimiter(
-    MAX_DETECTION_PAGES,
-  );
-  private readonly pdfRenders = new PagePipelineLimiter(MAX_PDF_RENDERS);
-  private readonly previewPages = new PagePipelineLimiter(MAX_PREVIEW_PAGES);
-  private readonly storagePages = new PagePipelineLimiter(MAX_STORAGE_PAGES);
-  private readonly annotationPages = new PagePipelineLimiter(
-    MAX_ANNOTATION_PAGES,
-  );
+  private readonly detectionPages = new AsyncPermitPool(MAX_DETECTION_PAGES);
+  private readonly pdfRenders = new AsyncPermitPool(MAX_PDF_RENDERS);
+  private readonly previewPages = new AsyncPermitPool(MAX_PREVIEW_PAGES);
+  private readonly storagePages = new AsyncPermitPool(MAX_STORAGE_PAGES);
+  private readonly annotationPages = new AsyncPermitPool(MAX_ANNOTATION_PAGES);
   private workerPool?: LayoutWorkerPool;
   private workerPoolKey?: string;
 
@@ -622,7 +617,14 @@ export class LayoutAnalyzer {
       );
       cacheLookupMs = Date.now() - cacheLookupStartedAt;
       let resultImages: ArrayBuffer[] = [];
+      let renderCandidates: FigureResultRenderCandidate[] = [];
       if (!reusableResults) {
+        renderCandidates = await this.resultStore.getPageRenderCandidates(
+          attachment,
+          page.pageIndex,
+          candidates,
+          signal,
+        );
         const previewWaitStartedAt = Date.now();
         const releasePreview = await this.previewPages.acquire(signal);
         previewStageWaitMs = Date.now() - previewWaitStartedAt;
@@ -634,7 +636,7 @@ export class LayoutAnalyzer {
           previewPdfRenderWaitMs = Date.now() - pdfRenderWaitStartedAt;
           const rendered = await this.renderResultImages(
             pdfDocument,
-            candidates,
+            renderCandidates.map(({ renderRect }) => renderRect),
             page,
             signal,
           );
@@ -671,10 +673,10 @@ export class LayoutAnalyzer {
                 manifestWriteMs: 0,
               },
             }
-          : await this.resultStore.reconcilePage(
+          : await this.resultStore.reconcilePlannedPage(
               attachment,
               page.pageIndex,
-              candidates,
+              renderCandidates,
               resultImages,
               duplicateMode,
               signal,
@@ -810,7 +812,7 @@ export class LayoutAnalyzer {
 
   private async renderResultImages(
     pdfDocument: PdfAnalysisDocument,
-    candidates: readonly AnnotationCandidate[],
+    rects: readonly Rect[],
     page: Omit<PageLayoutData, "elements">,
     signal?: AbortSignal,
   ): Promise<{
@@ -821,7 +823,7 @@ export class LayoutAnalyzer {
     pixelCount: number;
     scale: number;
   }> {
-    if (candidates.length === 0) {
+    if (rects.length === 0) {
       return {
         cropEncodingMs: 0,
         fallbackMs: 0,
@@ -833,11 +835,11 @@ export class LayoutAnalyzer {
     }
     const rendered = await pdfDocument.renderRegions(
       page.pageIndex,
-      candidates.map(({ rect }) => rect),
+      rects,
       signal,
     );
     throwIfAborted(signal);
-    if (rendered.images.length !== candidates.length) {
+    if (rendered.images.length !== rects.length) {
       throw new Error("One or more figure previews could not be rendered");
     }
     return {
@@ -1022,61 +1024,6 @@ async function readModelBytes(path: string): Promise<ArrayBuffer> {
     return bytes.buffer;
   }
   return bytes.slice().buffer;
-}
-
-interface PagePipelineWaiter {
-  abort?: () => void;
-  reject(error: Error): void;
-  resolve(release: () => void): void;
-  signal?: AbortSignal;
-}
-
-class PagePipelineLimiter {
-  private activePages = 0;
-  private readonly waiters: PagePipelineWaiter[] = [];
-
-  constructor(private readonly maximum: number) {
-    if (!Number.isInteger(maximum) || maximum < 1) {
-      throw new Error("Page pipeline limit must be a positive integer");
-    }
-  }
-
-  public acquire(signal?: AbortSignal): Promise<() => void> {
-    throwIfAborted(signal);
-    return new Promise<() => void>((resolve, reject) => {
-      const waiter: PagePipelineWaiter = { reject, resolve, signal };
-      waiter.abort = () => {
-        const index = this.waiters.indexOf(waiter);
-        if (index >= 0) this.waiters.splice(index, 1);
-        signal?.removeEventListener("abort", waiter.abort as () => void);
-        reject(new OperationCancelledError());
-      };
-      signal?.addEventListener("abort", waiter.abort, { once: true });
-      this.waiters.push(waiter);
-      this.dispatch();
-    });
-  }
-
-  private dispatch(): void {
-    while (this.activePages < this.maximum && this.waiters.length > 0) {
-      const waiter = this.waiters.shift() as PagePipelineWaiter;
-      if (waiter.signal?.aborted) {
-        waiter.abort?.();
-        continue;
-      }
-      if (waiter.abort) {
-        waiter.signal?.removeEventListener("abort", waiter.abort);
-      }
-      this.activePages++;
-      let released = false;
-      waiter.resolve(() => {
-        if (released) return;
-        released = true;
-        this.activePages--;
-        this.dispatch();
-      });
-    }
-  }
 }
 
 function getDuplicateMode(): DuplicateMode {

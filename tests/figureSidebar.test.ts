@@ -4,6 +4,7 @@ import {
   countFigureSidebarItems,
   filterAndSortFigureSidebarItems,
   getFigureSidebarNavigationLabel,
+  shouldShowFigureSidebarEmptyState,
   type FigureSidebarFilter,
 } from "../src/domain/figureSidebar";
 
@@ -71,6 +72,12 @@ test("filters sidebar entries by kind and preserves the source array", () => {
     ),
     [],
   );
+});
+
+test("restores the empty state after analysis for an empty active filter", () => {
+  assert.equal(shouldShowFigureSidebarEmptyState(0, true), false);
+  assert.equal(shouldShowFigureSidebarEmptyState(0, false), true);
+  assert.equal(shouldShowFigureSidebarEmptyState(1, false), false);
 });
 
 test("sorts by page and visual position before using the tag", () => {

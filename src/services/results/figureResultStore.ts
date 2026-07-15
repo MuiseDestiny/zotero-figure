@@ -4,13 +4,14 @@ import {
   getFigureResultImageFingerprint,
   getFigureResultID,
   getFigureResultKind,
+  type DuplicateMode,
   type FigureResultAnalysisIdentity,
   type FigureResultRecord,
 } from "../../domain/figureResults";
 import type { AnnotationCandidate, Rect } from "../../domain/layout";
-import type { DuplicateMode } from "../../platform/zotero/annotations";
 import { OperationCancelledError } from "../../utils/cancellation";
 import { RECOMMENDED_MODEL } from "../model/modelCatalog";
+import { ImageWriteTransaction } from "./imageWriteTransaction";
 
 const SCHEMA_VERSION = 5;
 const PREVIOUS_SCHEMA_VERSION = 4;
@@ -81,6 +82,11 @@ export interface FigureResultStoreOptions {
 
 export interface StoredFigureResult extends FigureResultRecord {
   imagePath: string;
+}
+
+export interface FigureResultRenderCandidate {
+  detectedCandidate: AnnotationCandidate;
+  renderRect: Rect;
 }
 
 export interface FigureResultStoreReconcile {
@@ -183,6 +189,42 @@ export class FigureResultStore {
         }
       }
       return pageResults.map((result) => this.withImagePath(item, result));
+    } finally {
+      release();
+    }
+  }
+
+  public async getPageRenderCandidates(
+    item: Zotero.Item,
+    pageIndex: number,
+    candidates: readonly AnnotationCandidate[],
+    signal?: AbortSignal,
+  ): Promise<FigureResultRenderCandidate[]> {
+    assertPageCandidates(pageIndex, candidates);
+    const release = await this.acquireAttachmentLock(item, signal);
+    try {
+      const manifest = await this.readManifest(item);
+      throwIfAborted(signal);
+      const existingByFingerprint = new Map(
+        manifest.results
+          .filter((result) => result.pageIndex === pageIndex)
+          .map((result) => [getFigureResultFingerprint(result), result]),
+      );
+      return candidates.map((candidate) => {
+        const existing = existingByFingerprint.get(
+          getFigureResultFingerprint(candidate),
+        );
+        return {
+          detectedCandidate: {
+            ...candidate,
+            rect: [...candidate.rect] as Rect,
+          },
+          renderRect:
+            existing?.detectedRect === undefined
+              ? ([...candidate.rect] as Rect)
+              : ([...existing.rect] as Rect),
+        };
+      });
     } finally {
       release();
     }
@@ -358,8 +400,58 @@ export class FigureResultStore {
     signal?: AbortSignal,
     sourceFingerprint?: string,
   ): Promise<FigureResultStoreReconcile> {
+    return this.reconcilePageWithRenderPlan(
+      item,
+      pageIndex,
+      candidates,
+      images,
+      mode,
+      signal,
+      sourceFingerprint,
+      candidates.map(({ rect }) => rect),
+    );
+  }
+
+  public async reconcilePlannedPage(
+    item: Zotero.Item,
+    pageIndex: number,
+    renderCandidates: readonly FigureResultRenderCandidate[],
+    images: readonly ArrayBuffer[],
+    mode: DuplicateMode,
+    signal?: AbortSignal,
+    sourceFingerprint?: string,
+  ): Promise<FigureResultStoreReconcile> {
+    return this.reconcilePageWithRenderPlan(
+      item,
+      pageIndex,
+      renderCandidates.map(({ detectedCandidate }) => detectedCandidate),
+      images,
+      mode,
+      signal,
+      sourceFingerprint,
+      renderCandidates.map(({ renderRect }) => renderRect),
+    );
+  }
+
+  private async reconcilePageWithRenderPlan(
+    item: Zotero.Item,
+    pageIndex: number,
+    candidates: readonly AnnotationCandidate[],
+    images: readonly ArrayBuffer[],
+    mode: DuplicateMode,
+    signal?: AbortSignal,
+    sourceFingerprint?: string,
+    renderRects?: readonly Rect[],
+  ): Promise<FigureResultStoreReconcile> {
     if (candidates.length !== images.length) {
       throw new Error("Figure result images do not match detected candidates");
+    }
+    if (
+      renderRects !== undefined &&
+      (renderRects.length !== candidates.length ||
+        renderRects.some((rect) => !isResultRect(rect)))
+    ) {
+      throw new Error("Figure result render plan is invalid");
     }
     assertPageCandidates(pageIndex, candidates);
     throwIfAborted(signal);
@@ -383,6 +475,7 @@ export class FigureResultStore {
         timings,
         source,
         signal,
+        renderRects,
       );
       return { ...result, timings };
     } finally {
@@ -399,8 +492,9 @@ export class FigureResultStore {
     timings: FigureResultStoreTimings,
     sourceFingerprint: string,
     signal?: AbortSignal,
+    renderRects?: readonly Rect[],
   ): Promise<Omit<FigureResultStoreReconcile, "timings">> {
-    const entries = getUniqueCandidateEntries(candidates, images);
+    const entries = getUniqueCandidateEntries(candidates, images, renderRects);
     const duplicateCandidates = candidates.length - entries.length;
     const manifest = await this.readManifest(item);
     const imageCache = pruneImageCache(manifest.imageCache, manifest.results);
@@ -420,6 +514,12 @@ export class FigureResultStore {
       manifest.results.map((result) => [result.id, result]),
     );
     const createdRecords: FigureResultRecord[] = [];
+    const imageTransaction = new ImageWriteTransaction<FigureResultRecord>({
+      getKey: ({ id }) => id,
+      read: (result) => this.readImageIfPresent(item, result),
+      remove: (result) => this.removeImage(item, result),
+      write: (result, image) => this.writeImage(item, result, image),
+    });
     let directoryReady = false;
     let imageCacheChanged = false;
     let skipped = duplicateCandidates;
@@ -434,7 +534,13 @@ export class FigureResultStore {
     const writeCurrentImage = async (
       result: FigureResultRecord,
       image: ArrayBuffer,
+      previous?: FigureResultRecord,
     ) => {
+      if (previous) {
+        await imageTransaction.captureBeforeOverwrite(previous);
+      } else {
+        imageTransaction.trackCreated(result);
+      }
       const startedAt = Date.now();
       try {
         await ensureDirectory();
@@ -463,14 +569,18 @@ export class FigureResultStore {
                 imageCache,
                 existing,
                 sourceFingerprint,
-              ))
+              )) &&
+              renderedImageMatchesResult(entry, existing)
             ) {
-              await writeCurrentImage(existing, entry.image);
+              await writeCurrentImage(existing, entry.image, existing);
             }
             continue;
           }
           const record = this.createRecord(entry.candidate);
           assertResultIDAvailable(record, entry.fingerprint, existingByID);
+          if (!renderedImageMatchesResult(entry, record)) {
+            throw new Error("Figure result render plan became stale");
+          }
           await writeCurrentImage(record, entry.image);
           createdRecords.push(record);
           existingByID.set(record.id, record);
@@ -492,6 +602,7 @@ export class FigureResultStore {
           );
         }
         committed = true;
+        imageTransaction.commit();
         return {
           created: createdRecords.length,
           removed: 0,
@@ -499,7 +610,7 @@ export class FigureResultStore {
           skipped,
         };
       } catch (error) {
-        if (!committed) await this.removeImages(item, createdRecords);
+        if (!committed) await rollbackImageWrites(imageTransaction);
         throw error;
       }
     }
@@ -516,43 +627,52 @@ export class FigureResultStore {
         (fingerprint, index) => fingerprint === candidateFingerprints[index],
       );
     if (candidatesMatch) {
-      for (const entry of entries) {
-        throwIfAborted(signal);
-        const existing = existingByFingerprint.get(entry.fingerprint);
-        if (
-          existing &&
-          !(await this.isReusableImage(
-            item,
-            imageCache,
-            existing,
-            sourceFingerprint,
-          ))
-        ) {
-          await writeCurrentImage(existing, entry.image);
+      let committed = false;
+      try {
+        for (const entry of entries) {
+          throwIfAborted(signal);
+          const existing = existingByFingerprint.get(entry.fingerprint);
+          if (
+            existing &&
+            !(await this.isReusableImage(
+              item,
+              imageCache,
+              existing,
+              sourceFingerprint,
+            )) &&
+            renderedImageMatchesResult(entry, existing)
+          ) {
+            await writeCurrentImage(existing, entry.image, existing);
+          }
         }
+        throwIfAborted(signal);
+        if (imageCacheChanged || manifest.schemaVersion !== SCHEMA_VERSION) {
+          await this.commit(
+            item,
+            manifest.results,
+            manifest.translations,
+            pruneImageCache(imageCache, manifest.results),
+            directoryReady,
+            timings,
+          );
+        }
+        committed = true;
+        imageTransaction.commit();
+        skipped = candidates.length;
+        return {
+          created: 0,
+          removed: 0,
+          results: manifest.results.map((result) =>
+            this.withImagePath(item, result),
+          ),
+          skipped,
+        };
+      } catch (error) {
+        if (!committed) await rollbackImageWrites(imageTransaction);
+        throw error;
       }
-      if (imageCacheChanged || manifest.schemaVersion !== SCHEMA_VERSION) {
-        await this.commit(
-          item,
-          manifest.results,
-          manifest.translations,
-          pruneImageCache(imageCache, manifest.results),
-          directoryReady,
-          timings,
-        );
-      }
-      skipped = candidates.length;
-      return {
-        created: 0,
-        removed: 0,
-        results: manifest.results.map((result) =>
-          this.withImagePath(item, result),
-        ),
-        skipped,
-      };
     }
 
-    const newImageRecords: FigureResultRecord[] = [];
     let committed = false;
     try {
       for (const entry of entries) {
@@ -563,21 +683,22 @@ export class FigureResultStore {
           ? preserveManualOverrides(detectedRecord, matchingExisting)
           : detectedRecord;
         assertResultIDAvailable(record, entry.fingerprint, existingByID);
-        if (
+        const imageNeedsWrite =
           !matchingExisting ||
           !(await this.isReusableImage(
             item,
             imageCache,
             matchingExisting,
             sourceFingerprint,
-          ))
-        ) {
-          await writeCurrentImage(record, entry.image);
+          ));
+        if (imageNeedsWrite) {
+          if (renderedImageMatchesResult(entry, record)) {
+            await writeCurrentImage(record, entry.image, matchingExisting);
+          } else if (!matchingExisting) {
+            throw new Error("Figure result render plan became stale");
+          }
         }
         createdRecords.push(record);
-        if (!existingByID.has(record.id) && !matchingExisting) {
-          newImageRecords.push(record);
-        }
         existingByID.set(record.id, record);
       }
       throwIfAborted(signal);
@@ -591,6 +712,7 @@ export class FigureResultStore {
         timings,
       );
       committed = true;
+      imageTransaction.commit();
       await this.removeObsoleteImages(item, existingPage, results);
       return {
         created: createdRecords.length,
@@ -599,7 +721,7 @@ export class FigureResultStore {
         skipped: duplicateCandidates,
       };
     } catch (error) {
-      if (!committed) await this.removeImages(item, newImageRecords);
+      if (!committed) await rollbackImageWrites(imageTransaction);
       throw error;
     }
   }
@@ -658,14 +780,22 @@ export class FigureResultStore {
   private async readManifest(item: Zotero.Item): Promise<FigureResultManifest> {
     const path = this.getManifestPath(item);
     if (!(await IOUtils.exists(path))) return this.emptyManifest(item);
-    let value: Partial<FigureResultManifest>;
+    let source: string;
     try {
-      value = JSON.parse(
-        await IOUtils.readUTF8(path),
-      ) as Partial<FigureResultManifest>;
-    } catch {
-      return this.emptyManifest(item);
+      source = await IOUtils.readUTF8(path);
+    } catch (error) {
+      throw manifestReadError(item, "could not be read", error);
     }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(source) as unknown;
+    } catch (error) {
+      throw manifestReadError(item, "contains invalid JSON", error);
+    }
+    if (!isObjectRecord(parsed)) {
+      throw manifestReadError(item, "has an invalid structure");
+    }
+    const value = parsed as Partial<FigureResultManifest>;
     if (
       typeof value.schemaVersion === "number" &&
       value.schemaVersion > SCHEMA_VERSION
@@ -684,13 +814,16 @@ export class FigureResultStore {
       value.libraryID !== item.libraryID ||
       !Array.isArray(value.results)
     ) {
-      return this.emptyManifest(item);
+      throw manifestReadError(item, "has an invalid structure");
     }
     const results: FigureResultRecord[] = [];
     const resultIDs = new Set<string>();
     for (const candidate of value.results) {
-      if (!isFigureResultRecord(candidate) || resultIDs.has(candidate.id)) {
-        continue;
+      if (!isFigureResultRecord(candidate)) {
+        throw manifestReadError(item, "contains an invalid result record");
+      }
+      if (resultIDs.has(candidate.id)) {
+        throw manifestReadError(item, "contains duplicate result IDs");
       }
       resultIDs.add(candidate.id);
       results.push(candidate);
@@ -786,6 +919,19 @@ export class FigureResultStore {
         await IOUtils.remove(temporaryPath, { ignoreAbsent: true });
       }
     }
+  }
+
+  private async readImageIfPresent(
+    item: Zotero.Item,
+    result: FigureResultRecord,
+  ): Promise<ArrayBuffer | undefined> {
+    const path = this.getResultPath(item, result);
+    if (!(await IOUtils.exists(path))) return undefined;
+    const bytes = await IOUtils.read(path);
+    return bytes.byteOffset === 0 &&
+      bytes.byteLength === bytes.buffer.byteLength
+      ? (bytes.buffer as ArrayBuffer)
+      : (bytes.slice().buffer as ArrayBuffer);
   }
 
   private async removeObsoleteImages(
@@ -1292,11 +1438,13 @@ interface CandidateImageEntry {
   candidate: AnnotationCandidate;
   fingerprint: string;
   image: ArrayBuffer;
+  renderRect?: Rect;
 }
 
 function getUniqueCandidateEntries(
   candidates: readonly AnnotationCandidate[],
   images: readonly ArrayBuffer[],
+  renderRects?: readonly Rect[],
 ): CandidateImageEntry[] {
   const entries: CandidateImageEntry[] = [];
   const fingerprints = new Set<string>();
@@ -1312,9 +1460,27 @@ function getUniqueCandidateEntries(
     }
     fingerprints.add(fingerprint);
     fingerprintByID.set(id, fingerprint);
-    entries.push({ candidate, fingerprint, image: images[index] });
+    entries.push({
+      candidate,
+      fingerprint,
+      image: images[index],
+      renderRect:
+        renderRects === undefined
+          ? undefined
+          : ([...renderRects[index]] as Rect),
+    });
   }
   return entries;
+}
+
+function renderedImageMatchesResult(
+  entry: CandidateImageEntry,
+  result: FigureResultRecord,
+): boolean {
+  return (
+    entry.renderRect === undefined ||
+    resultRectsMatch(entry.renderRect, result.rect)
+  );
 }
 
 function assertResultIDAvailable(
@@ -1330,6 +1496,27 @@ function assertResultIDAvailable(
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) throw new OperationCancelledError();
+}
+
+async function rollbackImageWrites(
+  transaction: ImageWriteTransaction<FigureResultRecord>,
+): Promise<void> {
+  try {
+    await transaction.rollback();
+  } catch (error) {
+    Zotero.logError(toError(error));
+  }
+}
+
+function manifestReadError(
+  item: Zotero.Item,
+  reason: string,
+  cause?: unknown,
+): Error {
+  const detail = cause === undefined ? "" : `: ${toError(cause).message}`;
+  return new Error(
+    `Figure result manifest for ${item.libraryID}/${item.key} ${reason}${detail}`,
+  );
 }
 
 function toError(value: unknown): Error {

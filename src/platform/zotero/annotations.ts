@@ -1,11 +1,10 @@
+import type { DuplicateMode } from "../../domain/figureResults";
 import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import { throwIfAborted } from "../../utils/cancellation";
 import type { PdfReader } from "./reader";
 
 const GENERATED_TAG_PATTERN = /^(Figure|Formula|Table)(?:\s|$)/;
 export const GENERATED_ANNOTATION_AUTHOR = "zoterofigure";
-
-export type DuplicateMode = "replace-page" | "skip-existing";
 
 export interface ReconcileResult {
   created: number;

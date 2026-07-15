@@ -1,7 +1,7 @@
+import type { DuplicateMode } from "../domain/figureResults";
 import type { AnnotationCandidate } from "../domain/layout";
 import {
   reconcileGeneratedAnnotations,
-  type DuplicateMode,
   type ReconcileResult,
 } from "../platform/zotero/annotations";
 import { encodeNoteImageNavigation } from "../platform/zotero/noteNavigation";

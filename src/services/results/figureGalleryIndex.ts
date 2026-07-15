@@ -27,8 +27,21 @@ interface IndexedFigureSource {
   rect: Rect;
 }
 
+interface ActiveLibraryLoad {
+  promise: Promise<FigureGallerySnapshot>;
+  version: number;
+}
+
+interface BuiltLibrarySnapshot {
+  snapshot: FigureGallerySnapshot;
+  sources: Map<string, IndexedFigureSource>;
+}
+
 export class FigureGalleryIndex {
-  private readonly sources = new Map<string, IndexedFigureSource>();
+  private readonly activeLoads = new Map<number, ActiveLibraryLoad>();
+  private readonly snapshots = new Map<number, FigureGallerySnapshot>();
+  private nextLoadVersion = 1;
+  private sources = new Map<string, IndexedFigureSource>();
 
   constructor(
     private readonly resultStore: FigureGalleryResultStore,
@@ -50,28 +63,75 @@ export class FigureGalleryIndex {
   }
 
   public async loadLibrary(libraryID: number): Promise<FigureGallerySnapshot> {
-    if (!this.getBootstrap().libraries.some(({ id }) => id === libraryID)) {
+    const availableLibraryIDs = new Set(
+      this.getBootstrap().libraries.map(({ id }) => id),
+    );
+    if (!availableLibraryIDs.has(libraryID)) {
+      this.activeLoads.delete(libraryID);
+      this.snapshots.delete(libraryID);
+      this.replaceLibrarySources(libraryID, new Map(), availableLibraryIDs);
       throw new Error(`Figure gallery library ${libraryID} is unavailable`);
     }
+    const loadVersion = this.nextLoadVersion++;
+    const promise = this.buildLibrarySnapshot(libraryID).then(
+      async ({ snapshot, sources }) => {
+        if (this.activeLoads.get(libraryID)?.version !== loadVersion) {
+          return this.resolveSupersededLoad(libraryID, loadVersion);
+        }
+        this.replaceLibrarySources(libraryID, sources, availableLibraryIDs);
+        this.snapshots.set(libraryID, snapshot);
+        return snapshot;
+      },
+    );
+    this.activeLoads.set(libraryID, { promise, version: loadVersion });
+    try {
+      return await promise;
+    } finally {
+      if (this.activeLoads.get(libraryID)?.version === loadVersion) {
+        this.activeLoads.delete(libraryID);
+      }
+    }
+  }
 
+  private async buildLibrarySnapshot(
+    libraryID: number,
+  ): Promise<BuiltLibrarySnapshot> {
     const keys = await this.resultStore.listIndexedAttachmentKeys(libraryID);
     const groups = await mapConcurrent(
       keys,
       INDEX_CONCURRENCY,
       async (key) => await this.loadAttachment(libraryID, key),
     );
-    const entries = groups
-      .flat()
-      .sort(compareFigureGalleryEntries)
-      .map(({ entry, source }) => {
-        this.sources.set(entry.id, source);
-        return entry;
-      });
+    const indexedResults = groups.flat().sort(compareFigureGalleryEntries);
     return {
-      entries,
-      generatedAt: new Date().toISOString(),
-      libraryID,
+      snapshot: {
+        entries: indexedResults.map(({ entry }) => entry),
+        generatedAt: new Date().toISOString(),
+        libraryID,
+      },
+      sources: new Map(
+        indexedResults.map(({ entry, source }) => [entry.id, source]),
+      ),
     };
+  }
+
+  private async resolveSupersededLoad(
+    libraryID: number,
+    loadVersion: number,
+  ): Promise<FigureGallerySnapshot> {
+    const latest = this.activeLoads.get(libraryID);
+    if (latest && latest.version !== loadVersion) {
+      try {
+        return await latest.promise;
+      } catch (error) {
+        const snapshot = this.snapshots.get(libraryID);
+        if (snapshot) return snapshot;
+        throw error;
+      }
+    }
+    const snapshot = this.snapshots.get(libraryID);
+    if (snapshot) return snapshot;
+    throw new Error(`Figure gallery library ${libraryID} load was superseded`);
   }
 
   public async readImage(entryID: string): Promise<FigureGalleryImage> {
@@ -93,6 +153,31 @@ export class FigureGalleryIndex {
     const source = this.sources.get(entryID);
     if (!source) throw new Error("Figure gallery result is no longer indexed");
     return source;
+  }
+
+  private replaceLibrarySources(
+    libraryID: number,
+    replacements: ReadonlyMap<string, IndexedFigureSource>,
+    availableLibraryIDs: ReadonlySet<number>,
+  ): void {
+    for (const loadedLibraryID of this.snapshots.keys()) {
+      if (!availableLibraryIDs.has(loadedLibraryID)) {
+        this.snapshots.delete(loadedLibraryID);
+      }
+    }
+    const nextSources = new Map<string, IndexedFigureSource>();
+    for (const [entryID, source] of this.sources) {
+      if (
+        source.libraryID !== libraryID &&
+        availableLibraryIDs.has(source.libraryID)
+      ) {
+        nextSources.set(entryID, source);
+      }
+    }
+    for (const [entryID, source] of replacements) {
+      nextSources.set(entryID, source);
+    }
+    this.sources = nextSources;
   }
 
   private async loadAttachment(

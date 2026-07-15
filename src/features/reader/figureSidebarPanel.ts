@@ -1,14 +1,10 @@
 import type { DialogHelper } from "zotero-plugin-toolkit";
-import type { FigureResultKind } from "../../domain/figureResults";
 import type { Rect } from "../../domain/layout";
-import {
-  resizeNormalizedResultRegion,
-  type ResultRegionEditMode,
-} from "../../domain/resultRegion";
 import {
   countFigureSidebarItems,
   filterAndSortFigureSidebarItems,
   getFigureSidebarNavigationLabel,
+  shouldShowFigureSidebarEmptyState,
   type FigureSidebarFilter as DomainFigureSidebarFilter,
 } from "../../domain/figureSidebar";
 import {
@@ -32,8 +28,16 @@ import type {
   FigureResultTranslationUpdate,
   StoredFigureResult,
 } from "../../services/results/figureResultStore";
+import {
+  createFigureSidebarIcon,
+  createNativeNoteIcon,
+  createPluginIcon,
+} from "./figureSidebarIcons";
+import {
+  installResultRegionEditor,
+  type ResultCorrectionPreview,
+} from "./resultRegionEditor";
 
-const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 const PANEL_ID = "zoterofigure-sidebar-panel";
 const TAB_ID = "zoterofigure-sidebar-tab";
 const STYLE_ID = "zoterofigure-sidebar-style";
@@ -65,7 +69,7 @@ interface SidebarAnalysisProgress {
 
 export type FigureSidebarFilter = DomainFigureSidebarFilter;
 
-interface FigureSidebarPanelOptions {
+export interface FigureSidebarPanelOptions {
   getCachedTranslations(
     contextKey: string,
   ): Promise<ReadonlyMap<string, string>>;
@@ -98,12 +102,6 @@ interface FigureSidebarPanelOptions {
   onSyncAnnotations(): Promise<void>;
   ownerWindow: Window;
   reader: PdfReader;
-}
-
-export interface ResultCorrectionPreview {
-  detectedRect: Rect;
-  imageURL: string;
-  rect: Rect;
 }
 
 type MenuPopup = XUL.MenuPopup & {
@@ -265,6 +263,7 @@ export class FigureSidebarPanel {
   private menuAnchor?: Element;
   private commentEditor?: DialogHelper;
   private correctionEditor?: DialogHelper;
+  private correctionEditorRequestID = 0;
   private mountedSidebar?: Element;
   private panel?: HTMLDivElement;
   private panelContent?: HTMLDivElement;
@@ -428,6 +427,7 @@ export class FigureSidebarPanel {
   private detachDocument(): void {
     this.renderRevision++;
     this.pinGeneration++;
+    this.correctionEditorRequestID++;
     this.closeFilterPopover();
     this.cancelResultScroll();
     this.cancelImageNavigation();
@@ -619,6 +619,8 @@ export class FigureSidebarPanel {
     if (!document) return;
     this.cancelImageNavigation();
     this.closeFilterPopover();
+    this.closeMenu();
+    this.reconcilePinnedCards(results);
     this.resultCards.clear();
     this.resetImageLoads();
     const filtered = filterAndSortFigureSidebarItems(
@@ -629,7 +631,14 @@ export class FigureSidebarPanel {
     const list = document.createElement("div");
     list.className = "zoterofigure-sidebar-list";
     if (!filtered.length) {
-      if (!this.analysisProgress) list.append(this.createEmpty(document));
+      if (
+        shouldShowFigureSidebarEmptyState(
+          filtered.length,
+          Boolean(this.analysisProgress),
+        )
+      ) {
+        list.append(this.createEmpty(document));
+      }
     } else {
       for (const result of filtered) list.append(this.createCard(result));
     }
@@ -758,15 +767,26 @@ export class FigureSidebarPanel {
       current?.remove();
     }
 
-    if (this.results?.length === 0) {
+    if (this.results !== undefined) {
       const list = panelContent.querySelector<HTMLElement>(
         ".zoterofigure-sidebar-list",
       );
       const empty = list?.querySelector<HTMLElement>(
         ".zoterofigure-sidebar-empty",
       );
-      if (this.analysisProgress) empty?.remove();
-      else if (list && !empty) list.append(this.createEmpty(document));
+      const hasVisibleCards = Boolean(
+        list?.querySelector(".zoterofigure-sidebar-card"),
+      );
+      if (
+        shouldShowFigureSidebarEmptyState(
+          hasVisibleCards ? 1 : 0,
+          Boolean(this.analysisProgress),
+        )
+      ) {
+        if (list && !empty) list.append(this.createEmpty(document));
+      } else {
+        empty?.remove();
+      }
     }
   }
 
@@ -860,7 +880,7 @@ export class FigureSidebarPanel {
     button.classList.add("zoterofigure-analysis-action");
     if (analyzing) {
       button.setAttribute("aria-busy", "true");
-      const magnifier = createSvgIcon(document, "search");
+      const magnifier = createFigureSidebarIcon(document, "search");
       magnifier.classList.add("zoterofigure-analysis-magnifier");
       button.append(magnifier);
     }
@@ -891,7 +911,7 @@ export class FigureSidebarPanel {
         ? createNativeNoteIcon(document)
         : iconKind === "plugin"
           ? createPluginIcon(document, "zoterofigure-analysis-plugin-icon")
-          : createSvgIcon(document, iconKind),
+          : createFigureSidebarIcon(document, iconKind),
     );
     button.addEventListener("click", () => {
       void Promise.resolve(action()).catch((error) =>
@@ -1256,7 +1276,7 @@ export class FigureSidebarPanel {
     const header = document.createElement("header");
     const start = document.createElement("div");
     start.className = "zoterofigure-card-start";
-    start.append(createSvgIcon(document, result.kind));
+    start.append(createFigureSidebarIcon(document, result.kind));
     const page = document.createElement("span");
     page.className = "zoterofigure-card-page";
     page.textContent = getString("sidebar-page", {
@@ -1382,6 +1402,13 @@ export class FigureSidebarPanel {
       image.alt = this.getDisplayComment(result);
       image.decoding = "async";
       image.draggable = false;
+      image.addEventListener(
+        "load",
+        () => {
+          imageContainer.style.aspectRatio = "";
+        },
+        { once: true },
+      );
       image.src = blobURL.url;
       imageContainer.replaceChildren(image);
       this.restorePinnedCardInteractions(element, result);
@@ -1479,10 +1506,14 @@ export class FigureSidebarPanel {
     const document = element.ownerDocument;
     const root = document.documentElement;
     const baseBounds = element.getBoundingClientRect();
-    const cardSize: Size = {
+    const initialCardSize: Size = {
       height: baseBounds.height,
       width: baseBounds.width,
     };
+    const getCardSize = (): Size => ({
+      height: element.offsetHeight || initialCardSize.height,
+      width: element.offsetWidth || initialCardSize.width,
+    });
     const stagger = this.pinnedCards.size * 18;
     const initialPosition: Point = {
       x: sourceGeometry.right + PINNED_CARD_MARGIN + stagger,
@@ -1493,7 +1524,7 @@ export class FigureSidebarPanel {
         scale: 1,
         ...initialPosition,
       },
-      cardSize,
+      getCardSize(),
       getDocumentViewportSize(document),
       PINNED_CARD_MARGIN,
     );
@@ -1559,7 +1590,7 @@ export class FigureSidebarPanel {
     const updateClampedTransform = (): void => {
       transform = clampPinnedCardTransform(
         transform,
-        cardSize,
+        getCardSize(),
         getDocumentViewportSize(document),
         PINNED_CARD_MARGIN,
       );
@@ -1725,6 +1756,13 @@ export class FigureSidebarPanel {
     entry.dispose();
   }
 
+  private reconcilePinnedCards(results: readonly StoredFigureResult[]): void {
+    const validResultIDs = new Set(results.map((result) => result.id));
+    for (const resultID of [...this.pinnedCards.keys()]) {
+      if (!validResultIDs.has(resultID)) this.closePinnedCard(resultID);
+    }
+  }
+
   private disposePinnedCards(): void {
     this.pendingPinnedCards.clear();
     for (const entry of this.pinnedCards.values()) entry.dispose();
@@ -1745,6 +1783,14 @@ export class FigureSidebarPanel {
         return;
       }
       this.blobURLReleasers.add(releaseURL);
+      entry.image.addEventListener(
+        "load",
+        () => {
+          if (!this.isCurrentImageEntry(entry)) return;
+          entry.container.style.aspectRatio = "";
+        },
+        { once: true },
+      );
       entry.image.addEventListener(
         "error",
         () => {
@@ -1965,7 +2011,7 @@ export class FigureSidebarPanel {
     button.className = "zoterofigure-card-menu";
     button.title = getString("sidebar-menu");
     button.setAttribute("aria-label", getString("sidebar-menu"));
-    button.append(createSvgIcon(document, "menu"));
+    button.append(createFigureSidebarIcon(document, "menu"));
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       this.openMenu(button, result);
@@ -2137,8 +2183,18 @@ export class FigureSidebarPanel {
   }
 
   private async openRegionEditor(result: StoredFigureResult): Promise<void> {
+    const requestID = ++this.correctionEditorRequestID;
     this.correctionEditor?.window?.close();
+    this.correctionEditor = undefined;
+    const document = this.document;
     const preview = await this.options.onPrepareCorrection(result);
+    if (
+      this.disposed ||
+      requestID !== this.correctionEditorRequestID ||
+      this.document !== document
+    ) {
+      return;
+    }
     const dialogData: {
       _lastButtonId?: string;
       rect: Rect;
@@ -2163,11 +2219,18 @@ export class FigureSidebarPanel {
     dialog.window.addEventListener(
       "load",
       () => {
+        if (
+          this.disposed ||
+          requestID !== this.correctionEditorRequestID ||
+          this.correctionEditor !== dialog
+        ) {
+          return;
+        }
         const host = dialog.window.document.querySelector<HTMLElement>(
           "#zoterofigure-region-editor",
         );
         if (host) {
-          cleanup = installRegionEditor(
+          cleanup = installResultRegionEditor(
             dialog.window.document,
             host,
             preview,
@@ -2179,7 +2242,13 @@ export class FigureSidebarPanel {
     );
     try {
       await dialogData.unloadLock?.promise;
-      if (dialogData._lastButtonId !== "save") return;
+      if (
+        dialogData._lastButtonId !== "save" ||
+        this.disposed ||
+        requestID !== this.correctionEditorRequestID
+      ) {
+        return;
+      }
       const updated = await this.options.onCorrectRegion(
         result,
         dialogData.rect,
@@ -2379,310 +2448,6 @@ function normalizeWheelDelta(event: WheelEvent, pageHeight: number): number {
   if (event.deltaMode === 1) return event.deltaY * 16;
   if (event.deltaMode === 2) return event.deltaY * pageHeight;
   return event.deltaY;
-}
-
-function installRegionEditor(
-  document: Document,
-  host: HTMLElement,
-  preview: ResultCorrectionPreview,
-  dialogData: { rect: Rect },
-): () => void {
-  const style = document.createElement("style");
-  style.textContent = `
-    #zoterofigure-region-editor {
-      align-items: center;
-      display: flex;
-      flex-direction: column;
-      max-width: 80vw;
-      min-width: 420px;
-    }
-    #zoterofigure-region-stage {
-      background: var(--material-mix-quinary);
-      display: inline-block;
-      line-height: 0;
-      overflow: hidden;
-      position: relative;
-    }
-    #zoterofigure-region-page {
-      display: block;
-      height: auto;
-      max-height: 68vh;
-      max-width: min(720px, 78vw);
-      user-select: none;
-      width: auto;
-    }
-    #zoterofigure-region-selection {
-      background: color-mix(in srgb, var(--accent-blue, #3b82f6) 14%, transparent);
-      border: 2px solid var(--accent-blue, #3b82f6);
-      box-sizing: border-box;
-      cursor: move;
-      position: absolute;
-      touch-action: none;
-    }
-    .zoterofigure-region-handle {
-      background: var(--material-background);
-      border: 2px solid var(--accent-blue, #3b82f6);
-      box-sizing: border-box;
-      height: 12px;
-      position: absolute;
-      width: 12px;
-    }
-    .zoterofigure-region-handle[data-handle="nw"] { cursor: nwse-resize; left: 0; top: 0; transform: translate(-50%, -50%); }
-    .zoterofigure-region-handle[data-handle="ne"] { cursor: nesw-resize; right: 0; top: 0; transform: translate(50%, -50%); }
-    .zoterofigure-region-handle[data-handle="sw"] { bottom: 0; cursor: nesw-resize; left: 0; transform: translate(-50%, 50%); }
-    .zoterofigure-region-handle[data-handle="se"] { bottom: 0; cursor: nwse-resize; right: 0; transform: translate(50%, 50%); }
-    #zoterofigure-region-reset {
-      align-self: flex-start;
-      margin-top: 8px;
-    }
-  `;
-
-  const stage = document.createElement("div");
-  stage.id = "zoterofigure-region-stage";
-  const image = document.createElement("img");
-  image.id = "zoterofigure-region-page";
-  image.alt = "";
-  image.draggable = false;
-  image.src = preview.imageURL;
-  const selection = document.createElement("div");
-  selection.id = "zoterofigure-region-selection";
-  selection.setAttribute(
-    "aria-label",
-    getString("sidebar-correct-region-selection"),
-  );
-  for (const handle of ["nw", "ne", "sw", "se"] as const) {
-    const node = document.createElement("span");
-    node.className = "zoterofigure-region-handle";
-    node.dataset.handle = handle;
-    node.setAttribute("aria-hidden", "true");
-    selection.append(node);
-  }
-  stage.append(image, selection);
-  const reset = document.createElement("button");
-  reset.id = "zoterofigure-region-reset";
-  reset.type = "button";
-  reset.textContent = getString("sidebar-correct-region-reset");
-  host.replaceChildren(style, stage, reset);
-
-  const originalRect = [...preview.detectedRect] as Rect;
-  const render = () => {
-    const [left, top, right, bottom] = dialogData.rect;
-    selection.style.left = `${left * 100}%`;
-    selection.style.top = `${top * 100}%`;
-    selection.style.width = `${(right - left) * 100}%`;
-    selection.style.height = `${(bottom - top) * 100}%`;
-  };
-  render();
-
-  const view = document.defaultView;
-  let pointerID: number | undefined;
-  let pointerStartX = 0;
-  let pointerStartY = 0;
-  let startRect = [...dialogData.rect] as Rect;
-  let mode: ResultRegionEditMode = "move";
-  const handlePointerDown = (event: PointerEvent) => {
-    if (event.button !== 0 || pointerID !== undefined) return;
-    event.preventDefault();
-    pointerID = event.pointerId;
-    pointerStartX = event.clientX;
-    pointerStartY = event.clientY;
-    startRect = [...dialogData.rect];
-    const handle = (event.target as HTMLElement).dataset.handle;
-    mode =
-      handle === "ne" || handle === "nw" || handle === "se" || handle === "sw"
-        ? handle
-        : "move";
-    selection.setPointerCapture(event.pointerId);
-  };
-  const handlePointerMove = (event: PointerEvent) => {
-    if (event.pointerId !== pointerID) return;
-    const bounds = stage.getBoundingClientRect();
-    if (bounds.width <= 0 || bounds.height <= 0) return;
-    const deltaX = (event.clientX - pointerStartX) / bounds.width;
-    const deltaY = (event.clientY - pointerStartY) / bounds.height;
-    dialogData.rect = resizeNormalizedResultRegion(
-      startRect,
-      mode,
-      deltaX,
-      deltaY,
-    );
-    render();
-  };
-  const handlePointerUp = (event: PointerEvent) => {
-    if (event.pointerId !== pointerID) return;
-    if (selection.hasPointerCapture(event.pointerId)) {
-      selection.releasePointerCapture(event.pointerId);
-    }
-    pointerID = undefined;
-  };
-  const handleReset = () => {
-    dialogData.rect = [...originalRect];
-    render();
-  };
-  selection.addEventListener("pointerdown", handlePointerDown);
-  view?.addEventListener("pointermove", handlePointerMove);
-  view?.addEventListener("pointerup", handlePointerUp);
-  view?.addEventListener("pointercancel", handlePointerUp);
-  reset.addEventListener("click", handleReset);
-
-  return () => {
-    selection.removeEventListener("pointerdown", handlePointerDown);
-    view?.removeEventListener("pointermove", handlePointerMove);
-    view?.removeEventListener("pointerup", handlePointerUp);
-    view?.removeEventListener("pointercancel", handlePointerUp);
-    reset.removeEventListener("click", handleReset);
-  };
-}
-
-function createSvgIcon(
-  document: Document,
-  kind:
-    | FigureResultKind
-    | "annotation"
-    | "languages"
-    | "menu"
-    | "refresh"
-    | "search"
-    | "trash",
-): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NAMESPACE, "svg");
-  svg.setAttribute(
-    "viewBox",
-    kind === "annotation" ? "0 0 16 16" : "0 0 24 24",
-  );
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("zoterofigure-svg-icon", `zoterofigure-icon-${kind}`);
-  svg.setAttribute("fill", "none");
-  svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "2");
-  svg.setAttribute("stroke-linecap", "round");
-  svg.setAttribute("stroke-linejoin", "round");
-  for (const [tag, attributes] of iconParts(kind)) {
-    const node = document.createElementNS(SVG_NAMESPACE, tag);
-    for (const [name, value] of Object.entries(attributes)) {
-      node.setAttribute(name, value);
-    }
-    svg.append(node);
-  }
-  return svg;
-}
-
-function createPluginIcon(
-  document: Document,
-  className?: string,
-): HTMLImageElement {
-  const icon = document.createElement("img");
-  if (className) icon.classList.add(className);
-  icon.src = __pluginIconDataURL__;
-  icon.alt = "";
-  icon.setAttribute("aria-hidden", "true");
-  return icon;
-}
-
-function createNativeNoteIcon(document: Document): SVGSVGElement {
-  const icon = document.createElementNS(SVG_NAMESPACE, "svg");
-  icon.classList.add("zoterofigure-native-note-icon");
-  icon.setAttribute("viewBox", "0 0 20 20");
-  icon.setAttribute("fill", "none");
-  icon.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS(SVG_NAMESPACE, "path");
-  path.setAttribute("fill-rule", "evenodd");
-  path.setAttribute("clip-rule", "evenodd");
-  path.setAttribute(
-    "d",
-    "M3.625 1H3V1.625V3.75V5V18.375V19H3.625H12.375H12.6339L12.8169 18.8169L17.8169 13.8169L18 13.6339V13.375V1.625V1H17.375H3.625ZM4.25 5V17.75H11.75V13.375V12.75H12.375H16.75V5H4.25ZM16.75 3.75V2.25H4.25V3.75H16.75ZM13 14H15.8661L13 16.8661V14Z",
-  );
-  path.setAttribute("fill", "currentColor");
-  icon.append(path);
-  return icon;
-}
-
-function iconParts(
-  kind:
-    | FigureResultKind
-    | "annotation"
-    | "languages"
-    | "menu"
-    | "refresh"
-    | "search"
-    | "trash",
-): Array<[string, Record<string, string>]> {
-  switch (kind) {
-    case "annotation":
-      return [
-        [
-          "path",
-          {
-            d: "M10 1H6v1h4zm2 3H4v8h8zM3 3v10h10V3zm11 11v-2h1v3h-3v-1zm1-8h-1v4h1zM1 6h1v4H1zm5 8h4v1H6zm6-12h2v2h1V1h-3zM2 2v2H1V1h3v1zm2 12H2v-2H1v3h3z",
-            fill: "currentColor",
-            "fill-rule": "evenodd",
-            "clip-rule": "evenodd",
-            stroke: "none",
-          },
-        ],
-      ];
-    case "languages":
-      return [
-        ["path", { d: "m5 8 6 11" }],
-        ["path", { d: "m4 14 6.5-6.5" }],
-        ["path", { d: "M2 5h12" }],
-        ["path", { d: "M7 2h1" }],
-        ["path", { d: "m22 22-5-10-5 10" }],
-        ["path", { d: "M14 18h6" }],
-      ];
-    case "figure":
-      return [
-        [
-          "rect",
-          { x: "3", y: "3", width: "18", height: "18", rx: "2", ry: "2" },
-        ],
-        ["circle", { cx: "9", cy: "9", r: "2" }],
-        ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" }],
-      ];
-    case "formula":
-      return [
-        [
-          "path",
-          {
-            d: "M18 7V5a1 1 0 0 0-1-1H6.5a.5.5 0 0 0-.4.8l4.5 6a2 2 0 0 1 0 2.4l-4.5 6a.5.5 0 0 0 .4.8H17a1 1 0 0 0 1-1v-2",
-          },
-        ],
-      ];
-    case "table":
-      return [
-        ["path", { d: "M12 3v18" }],
-        ["rect", { x: "3", y: "3", width: "18", height: "18", rx: "2" }],
-        ["path", { d: "M3 9h18" }],
-        ["path", { d: "M3 15h18" }],
-      ];
-    case "menu":
-      return [
-        ["circle", { cx: "5", cy: "12", r: "1" }],
-        ["circle", { cx: "12", cy: "12", r: "1" }],
-        ["circle", { cx: "19", cy: "12", r: "1" }],
-      ];
-    case "refresh":
-      return [
-        [
-          "path",
-          {
-            d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",
-          },
-        ],
-        ["path", { d: "M3 3v5h5" }],
-      ];
-    case "search":
-      return [
-        ["circle", { cx: "11", cy: "11", r: "8" }],
-        ["path", { d: "m21 21-4.3-4.3" }],
-      ];
-    case "trash":
-      return [
-        ["path", { d: "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" }],
-        ["path", { d: "M3 6h18" }],
-        ["path", { d: "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" }],
-      ];
-  }
 }
 
 function toError(value: unknown): Error {
