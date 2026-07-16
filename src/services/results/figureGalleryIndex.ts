@@ -236,8 +236,9 @@ export class FigureGalleryIndex {
         };
       });
     } catch (error) {
-      this.platform.logError(toError(error));
-      return [];
+      const resolved = toError(error);
+      this.platform.logError(resolved);
+      throw resolved;
     }
   }
 }

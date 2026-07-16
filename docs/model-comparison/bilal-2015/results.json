@@ -3,12 +3,10 @@
     "docLayoutModel": {
       "hash": "d5d1e664fbe639e716be7011aa7493b40f4ab498374b2157988c2ea41bf70daf",
       "id": "optimized-q8-d5d1e664",
-      "path": "/Users/muisedestiny/Downloads/doclayout_yolo_docstructbench_imgsz1280_2501_quantized.onnx",
       "quantized": true
     },
     "dpi": 120,
     "generatedAt": "2026-07-14T12:06:56.984Z",
-    "pdfPath": "/Users/muisedestiny/Zotero/storage/53PSYCFH/Bilal和Nichol - 2015 - Evaluation of MODIS aerosol retrieval algorithms over the Beijing-Tianjin-Hebei region during low to.pdf",
     "pdfTitle": "Evaluation of MODIS aerosol retrieval algorithms over the Beijing‐Tianjin‐Hebei region during low to very high pollution events",
     "sourceHash": "ba23b9f3dd955b85013341ddc7f75c26",
     "timings": {

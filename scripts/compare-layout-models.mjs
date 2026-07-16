@@ -2,10 +2,9 @@ import { createHash } from "node:crypto";
 import { execFile, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import {
-  access,
   copyFile,
   mkdir,
   mkdtemp,
@@ -33,8 +32,6 @@ import {
 const execFileAsync = promisify(execFile);
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "..");
-const DEFAULT_PDF =
-  "/Users/muisedestiny/Zotero/storage/53PSYCFH/Bilal和Nichol - 2015 - Evaluation of MODIS aerosol retrieval algorithms over the Beijing-Tianjin-Hebei region during low to.pdf";
 const DEFAULT_ZOTERO_APP = "/Applications/Zotero.app";
 const DEFAULT_CHROME =
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -143,12 +140,10 @@ const report = buildComparisonReport({
     docLayoutModel: {
       hash: modelVariant.sha256,
       id: modelVariant.id,
-      path: modelPath,
       quantized: modelVariant.quantized,
     },
     dpi: options.dpi,
     generatedAt: new Date().toISOString(),
-    pdfPath,
     pdfTitle,
     sourceHash,
     timings: { docLayoutMs, zoteroMs },
@@ -647,21 +642,13 @@ async function resolveModelPath(explicitPath, manifest) {
     ({ id }) => id === manifest.recommendedVariant,
   );
   if (!recommended) throw new Error("Recommended model is missing");
-  for (const candidate of [
-    path.join(repositoryRoot, "addon/chrome/content", recommended.embeddedPath),
-    path.join(
-      homedir(),
-      "Downloads/doclayout_yolo_docstructbench_imgsz1280_2501_quantized.onnx",
-    ),
-  ]) {
-    try {
-      await access(candidate);
-      return candidate;
-    } catch {
-      // Try the next candidate.
-    }
-  }
-  throw new Error("Unable to locate a configured DocLayout ONNX model");
+  const embeddedPath = path.join(
+    repositoryRoot,
+    "addon/chrome/content",
+    recommended.embeddedPath,
+  );
+  await assertFile(embeddedPath, "embedded DocLayout model");
+  return embeddedPath;
 }
 
 function parseArguments(argumentsList) {
@@ -670,8 +657,8 @@ function parseArguments(argumentsList) {
     dpi: 120,
     maxPages: null,
     model: null,
-    output: "docs/model-comparison/bilal-2015",
-    pdf: DEFAULT_PDF,
+    output: "build/model-comparison",
+    pdf: null,
     zoteroApp: DEFAULT_ZOTERO_APP,
   };
   for (let index = 0; index < argumentsList.length; index++) {
@@ -694,9 +681,9 @@ function parseArguments(argumentsList) {
     else if (argument === "--help") {
       console.log(
         `Usage: npm run compare:models -- [options]\n\n` +
-          `  --pdf <path>         PDF to evaluate\n` +
-          `  --model <path>       DocLayout ONNX model (defaults to Zotero preference)\n` +
-          `  --output <path>      Report directory relative to the repository\n` +
+          `  --pdf <path>         PDF to evaluate (required)\n` +
+          `  --model <path>       DocLayout ONNX model (default: embedded model)\n` +
+          `  --output <path>      Report directory (default: build/model-comparison)\n` +
           `  --zotero-app <path>  Zotero.app path\n` +
           `  --chrome <path>      Chrome executable path\n` +
           `  --dpi <number>       Render DPI (default: 120)\n` +
@@ -710,6 +697,7 @@ function parseArguments(argumentsList) {
   if (!Number.isFinite(result.dpi) || result.dpi < 72 || result.dpi > 300) {
     throw new Error("--dpi must be between 72 and 300");
   }
+  if (!result.pdf) throw new Error("--pdf is required");
   if (
     result.maxPages !== null &&
     (!Number.isInteger(result.maxPages) || result.maxPages < 1)

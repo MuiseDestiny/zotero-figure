@@ -2,7 +2,7 @@ import * as assert from "node:assert/strict";
 import test from "node:test";
 import type { AnnotationCandidate } from "../src/domain/layout";
 import {
-  isGeneratedFigureAnnotation,
+  isGeneratedResultAnnotation,
   reconcileGeneratedAnnotations,
   updateGeneratedAnnotationCommentForCandidate,
   updateGeneratedAnnotationPositionForCandidate,
@@ -11,21 +11,39 @@ import type { PdfReader } from "../src/platform/zotero/reader";
 
 test("identifies generated annotations by both author and tag", () => {
   assert.equal(
-    isGeneratedFigureAnnotation(annotation("zoterofigure", "Figure 2")),
+    isGeneratedResultAnnotation(annotation("zoterofigure", "Figure 2")),
     true,
   );
   assert.equal(
-    isGeneratedFigureAnnotation(annotation("Researcher", "Figure 2")),
+    isGeneratedResultAnnotation(annotation("Researcher", "Figure 2")),
     false,
   );
   assert.equal(
-    isGeneratedFigureAnnotation(annotation("zoterofigure", "Important")),
+    isGeneratedResultAnnotation(annotation("zoterofigure", "Important")),
     false,
   );
   assert.equal(
-    isGeneratedFigureAnnotation(annotation("zoterofigure", "Formula 7")),
+    isGeneratedResultAnnotation(annotation("zoterofigure", "Formula 7")),
     true,
   );
+});
+
+test("rejects annotation candidates without a generated result tag", async () => {
+  const harness = installZoteroHarness();
+  try {
+    await assert.rejects(
+      reconcileGeneratedAnnotations(
+        makeReader([]),
+        0,
+        [makeCandidate("Important", "Not a generated result")],
+        "replace-page",
+      ),
+      /invalid result tag/,
+    );
+    assert.equal(harness.created.length, 0);
+  } finally {
+    harness.restore();
+  }
 });
 
 function annotation(author: string, tag: string): Zotero.Item {
@@ -191,6 +209,52 @@ test("cancellation rolls back annotations created by the current page", async ()
   }
 });
 
+test("replace-page rolls back new annotations when old annotation removal fails", async () => {
+  const previous = makeCandidate("Figure 1", "Figure 1. Old caption");
+  const replacement = makeCandidate("Figure 2", "Figure 2. New caption");
+  const existing = makeExistingAnnotation(previous);
+  existing.item.eraseTx = async () => {
+    throw new Error("simulated old annotation removal failure");
+  };
+  const harness = installZoteroHarness();
+  try {
+    await assert.rejects(
+      reconcileGeneratedAnnotations(
+        makeReader([existing.item]),
+        0,
+        [replacement],
+        "replace-page",
+      ),
+      /simulated old annotation removal failure/,
+    );
+
+    assert.equal(harness.created.length, 1);
+    assert.equal(harness.created[0].erased, true);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("rolls back an annotation when its tag save fails", async () => {
+  const harness = installZoteroHarness(undefined, true);
+  try {
+    await assert.rejects(
+      reconcileGeneratedAnnotations(
+        makeReader([]),
+        0,
+        [makeCandidate("Formula 1", "(1)")],
+        "skip-existing",
+      ),
+      /simulated annotation save failure/,
+    );
+
+    assert.equal(harness.created.length, 1);
+    assert.equal(harness.created[0].erased, true);
+  } finally {
+    harness.restore();
+  }
+});
+
 function makeCandidate(
   tag: string,
   comment: string,
@@ -236,7 +300,10 @@ function makeReader(annotations: Zotero.Item[]): PdfReader {
   } as unknown as PdfReader;
 }
 
-function installZoteroHarness(onSave?: () => void): {
+function installZoteroHarness(
+  onSave?: () => void,
+  failCreatedSave = false,
+): {
   created: Array<{ erased: boolean; item: Zotero.Item }>;
   restore: () => void;
 } {
@@ -254,7 +321,11 @@ function installZoteroHarness(onSave?: () => void): {
           eraseTx: async () => {
             state.erased = true;
           },
-          saveTx: async () => undefined,
+          saveTx: async () => {
+            if (failCreatedSave) {
+              throw new Error("simulated annotation save failure");
+            }
+          },
           setTags: () => undefined,
         } as unknown as Zotero.Item;
         created.push(state);
@@ -265,6 +336,7 @@ function installZoteroHarness(onSave?: () => void): {
     Utilities: {
       generateObjectKey: () => `KEY${nextKey++}`,
     },
+    logError: () => undefined,
   } as unknown as typeof Zotero;
   return {
     created,

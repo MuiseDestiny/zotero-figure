@@ -11,6 +11,23 @@ export interface FigureSidebarItemMetadata {
 
 export type FigureSidebarCounts = Record<FigureSidebarFilter, number>;
 
+export interface VerticalBounds {
+  bottom: number;
+  top: number;
+}
+
+export function isNearVerticalViewport(
+  element: VerticalBounds,
+  viewport: VerticalBounds,
+  preloadDistance: number,
+): boolean {
+  const distance = Math.max(0, preloadDistance);
+  return (
+    element.bottom >= viewport.top - distance &&
+    element.top <= viewport.bottom + distance
+  );
+}
+
 export function shouldShowFigureSidebarEmptyState(
   visibleItemCount: number,
   analysisProgressVisible: boolean,

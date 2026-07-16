@@ -12,10 +12,11 @@ Zotero Figure lee los adjuntos PDF localmente con MuPDF WASM, detecta figuras, t
 
 - Detección local de figuras, tablas y fórmulas aisladas.
 - La nota al pie de tabla más cercana se incluye en el recorte y la leyenda de la tabla.
-- Lectura directa del adjunto en un Worker MuPDF WASM, extracción de páginas y texto, imágenes de detección de 640 px y PNG de alta resolución renderizados directamente desde coordenadas PDF. El panel Reader y los futuros flujos por lotes comparten los mismos resultados locales.
+- Lectura directa del adjunto en un Worker MuPDF WASM, extracción de páginas y texto, imágenes de detección de 640 px y PNG de alta resolución renderizados directamente desde coordenadas PDF. El panel Reader y los flujos por lotes de la ventana principal comparten los mismos resultados locales.
 - Modelo Q8 optimizado incluido en el XPI: primero se verifica la copia instalada por su tamaño exacto y SHA-256; después, esos bytes ya verificados se transfieren al Worker, que vuelve a comprobar el SHA-256 antes de la inferencia.
 - Índice de resultados por adjunto guardado como JSON e imágenes extraídas guardadas como PNG en el directorio de datos de Zotero.
 - Reanálisis seguro, sustituyendo los resultados locales por página o añadiendo solo los que faltan.
+- Si se cancela el análisis o falla la escritura de una página, se revierten las nuevas anotaciones espejo creadas para esa página; se eliminan las escrituras PNG no confirmadas y se restauran los PNG sobrescritos.
 - Análisis cancelable; cancelar termina los Workers de inferencia afectados, que se reconstruyen para trabajos posteriores. La detección se mantiene a 640 px. Cada resultado no almacenado se renderiza directamente desde su rectángulo PDF, con lado largo objetivo de 2400 px, hasta 6x y 8 megapíxeles, sin un lienzo de página completa en alta resolución.
 - Las páginas sin texto extraíble también pasan por el detector en vez de omitirse. En las páginas con texto se emplean términos completos en inglés, chino, italiano y ruso para acotar la detección de figuras y tablas.
 - Icono de Zotero Figure en la barra lateral izquierda como única entrada principal; el plugin no añade botones a la barra superior del lector.

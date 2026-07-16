@@ -39,7 +39,13 @@ interface CacheEntry {
   validation: ModelValidation;
 }
 
+interface ModelInstallProgressSubscription {
+  notify(progress: ModelInstallProgress): void;
+}
+
 export class ModelManager {
+  private readonly installProgressSubscriptions =
+    new Set<ModelInstallProgressSubscription>();
   private installPromise?: Promise<ModelValidation>;
   private readonly validationCache = new Map<string, CacheEntry>();
 
@@ -130,26 +136,39 @@ export class ModelManager {
     signal?: AbortSignal;
   }): Promise<ModelValidation> {
     throwIfAborted(options.signal);
-    if (this.installPromise) return this.installPromise;
-    const operation = this.installRecommendedModel(options);
-    this.installPromise = operation;
+    const onProgress = options.onProgress;
+    const progressSubscription = onProgress
+      ? { notify: (progress: ModelInstallProgress) => onProgress(progress) }
+      : undefined;
+    if (progressSubscription) {
+      this.installProgressSubscriptions.add(progressSubscription);
+    }
     try {
-      return await operation;
+      return await waitForModelInstall(
+        this.getOrStartInstall(),
+        options.signal,
+      );
     } finally {
-      if (this.installPromise === operation) this.installPromise = undefined;
+      if (progressSubscription) {
+        this.installProgressSubscriptions.delete(progressSubscription);
+      }
     }
   }
 
-  private async installRecommendedModel(
-    options: {
-      onProgress?: (progress: ModelInstallProgress) => void;
-      signal?: AbortSignal;
-    } = {},
-  ): Promise<ModelValidation> {
-    const { onProgress, signal } = options;
+  private getOrStartInstall(): Promise<ModelValidation> {
+    if (this.installPromise) return this.installPromise;
+    const operation = this.installRecommendedModel();
+    this.installPromise = operation;
+    const finish = () => {
+      if (this.installPromise === operation) this.installPromise = undefined;
+    };
+    void operation.then(finish, finish);
+    return operation;
+  }
+
+  private async installRecommendedModel(): Promise<ModelValidation> {
     const sourceURL = `chrome://${config.addonRef}/content/${RECOMMENDED_MODEL.embeddedPath}`;
 
-    throwIfAborted(signal);
     const directory = this.getManagedDirectory();
     const destination = this.getRecommendedPath();
     const temporaryPath = `${destination}.part`;
@@ -160,19 +179,12 @@ export class ModelManager {
     if (await IOUtils.exists(temporaryPath))
       await IOUtils.remove(temporaryPath);
 
-    let cancelRequest: (() => void) | undefined;
-    const abort = () => cancelRequest?.();
-    signal?.addEventListener("abort", abort, { once: true });
     try {
       const response = await Zotero.HTTP.request("GET", sourceURL, {
-        cancellerReceiver: (cancel: () => void) => {
-          cancelRequest = cancel;
-          if (signal?.aborted) cancel();
-        },
         requestObserver: (request: XMLHttpRequest) => {
           request.addEventListener("progress", (event) => {
             const total = event.lengthComputable ? event.total : undefined;
-            onProgress?.({
+            this.reportInstallProgress({
               loaded: event.loaded,
               percent: total ? (event.loaded / total) * 100 : undefined,
               total,
@@ -182,7 +194,6 @@ export class ModelManager {
         responseType: "arraybuffer",
         timeout: 0,
       });
-      throwIfAborted(signal);
 
       const bytes = new Uint8Array(response.response as ArrayBuffer);
       await IOUtils.write(temporaryPath, bytes, { flush: true });
@@ -198,17 +209,23 @@ export class ModelManager {
       this.validationCache.delete(temporaryPath);
       this.validationCache.delete(destination);
       return this.validate(destination, true);
-    } catch (error) {
-      if (signal?.aborted) throw new OperationCancelledError();
-      throw error;
     } finally {
-      signal?.removeEventListener("abort", abort);
       try {
         if (await IOUtils.exists(temporaryPath)) {
           await IOUtils.remove(temporaryPath);
         }
       } catch (cleanupError) {
         Zotero.logError(toError(cleanupError));
+      }
+    }
+  }
+
+  private reportInstallProgress(progress: ModelInstallProgress): void {
+    for (const subscription of this.installProgressSubscriptions) {
+      try {
+        subscription.notify(progress);
+      } catch (error) {
+        Zotero.logError(toError(error));
       }
     }
   }
@@ -230,4 +247,33 @@ export const modelManager = new ModelManager();
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
+}
+
+function waitForModelInstall(
+  operation: Promise<ModelValidation>,
+  signal?: AbortSignal,
+): Promise<ModelValidation> {
+  throwIfAborted(signal);
+  if (!signal) return operation;
+  return new Promise<ModelValidation>((resolve, reject) => {
+    let settled = false;
+    const settle = (): boolean => {
+      if (settled) return false;
+      settled = true;
+      signal.removeEventListener("abort", abort);
+      return true;
+    };
+    const abort = () => {
+      if (settle()) reject(new OperationCancelledError());
+    };
+    signal.addEventListener("abort", abort, { once: true });
+    operation.then(
+      (validation) => {
+        if (settle()) resolve(validation);
+      },
+      (error) => {
+        if (settle()) reject(toError(error));
+      },
+    );
+  });
 }

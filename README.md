@@ -16,10 +16,11 @@ Zotero Figure reads PDF attachments locally with MuPDF WASM, detects figures, ta
 
 - Detect figures, tables, and display formulae without uploading the PDF.
 - Merge the nearest detected table footnote into the table crop and caption text.
-- Read the attachment directly in a MuPDF WASM worker, extract page text, render 640 px detection images, and render high-resolution PNGs directly from detected PDF coordinates. Reader and future main-window batch workflows use the same local results.
+- Read the attachment directly in a MuPDF WASM worker, extract page text, render 640 px detection images, and render high-resolution PNGs directly from detected PDF coordinates. Reader and main-window batch workflows use the same local results.
 - Ship the optimized Q8 model inside the XPI, verify the installed copy by exact file size and SHA-256, then transfer those verified bytes to the Worker for another SHA-256 check before inference.
 - Store each attachment's result index as JSON and its extracted images as PNG files under the Zotero data directory.
 - Reanalyze safely by replacing each page's local results or adding only missing results.
+- If analysis is cancelled or a page write fails, newly created annotation mirrors for that page are rolled back; uncommitted PNG writes are removed, and overwritten PNGs are restored.
 - Cancel long analyses; active inference Workers are terminated and rebuilt for later work. Detection stays at 640 px. Each uncached result is rendered directly from its PDF rectangle with a 2400 px target longest edge, up to 6x scale and 8 megapixels, without a high-resolution full-page canvas.
 - Send pages without extractable text through the detector instead of skipping them. Text-bearing pages use tightened complete figure/table hints for English, Chinese, Italian, and Russian.
 - Use the Zotero Figure icon in the PDF reader's left sidebar as the main and only entry point; the reader toolbar has no plugin button.

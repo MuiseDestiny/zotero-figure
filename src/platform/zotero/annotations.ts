@@ -1,9 +1,12 @@
-import type { DuplicateMode } from "../../domain/figureResults";
+import {
+  getFigureResultKind,
+  isFigureResultTag,
+  type DuplicateMode,
+} from "../../domain/figureResults";
 import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import { throwIfAborted } from "../../utils/cancellation";
 import type { PdfReader } from "./reader";
 
-const GENERATED_TAG_PATTERN = /^(Figure|Formula|Table)(?:\s|$)/;
 export const GENERATED_ANNOTATION_AUTHOR = "zoterofigure";
 
 export interface ReconcileResult {
@@ -38,22 +41,22 @@ interface AnnotationJSON {
   type: "image";
 }
 
-export function isGeneratedFigureAnnotation(item: Zotero.Item): boolean {
-  return isGeneratedFigureAnnotationData({
+export function isGeneratedResultAnnotation(item: Zotero.Item): boolean {
+  return isGeneratedResultAnnotationData({
     authorName: item.annotationAuthorName,
     tags: item.getTags(),
     type: item.annotationType,
   });
 }
 
-export function isGeneratedFigureAnnotationData(
+export function isGeneratedResultAnnotationData(
   annotation: AnnotationIdentity,
 ): boolean {
   const tags = Array.from(annotation.tags ?? []);
   return (
     annotation.type === "image" &&
     annotation.authorName === GENERATED_ANNOTATION_AUTHOR &&
-    tags.some((tag) => GENERATED_TAG_PATTERN.test(tag.name ?? tag.tag ?? ""))
+    tags.some((tag) => isFigureResultTag(tag.name ?? tag.tag ?? ""))
   );
 }
 
@@ -63,24 +66,26 @@ export function getGeneratedAnnotationKind(
   let tag: string | undefined;
   for (const entry of Array.from(annotation.tags ?? [])) {
     const value = entry.name ?? entry.tag ?? "";
-    if (GENERATED_TAG_PATTERN.test(value)) {
+    if (isFigureResultTag(value)) {
       tag = value;
       break;
     }
   }
   if (!tag) return undefined;
-  if (/^Table(?:\s|$)/.test(tag)) return "table";
-  return /^Formula(?:\s|$)/.test(tag) ? "formula" : "figure";
+  return getFigureResultKind(tag);
 }
 
-export function hasGeneratedFigureAnnotations(item: Zotero.Item): boolean {
-  return item.getAnnotations().some(isGeneratedFigureAnnotation);
+export function hasGeneratedResultAnnotations(item: Zotero.Item): boolean {
+  return item.getAnnotations().some(isGeneratedResultAnnotation);
 }
 
 export async function saveGeneratedAnnotation(
   target: AnnotationTarget,
   candidate: AnnotationCandidate,
 ): Promise<Zotero.Item> {
+  if (!isFigureResultTag(candidate.tag)) {
+    throw new Error("Generated annotation has an invalid result tag");
+  }
   const attachment = getAnnotationAttachment(target);
   const createdAt = new Date().toISOString();
   const key = Zotero.Utilities.generateObjectKey();
@@ -108,9 +113,14 @@ export async function saveGeneratedAnnotation(
     attachment,
     annotation as unknown as _ZoteroTypes.Annotations.AnnotationJson,
   );
-  saved.setTags([candidate.tag]);
-  await saved.saveTx();
-  return saved;
+  try {
+    saved.setTags([candidate.tag]);
+    await saved.saveTx();
+    return saved;
+  } catch (error) {
+    await rollbackCreatedAnnotations([saved]);
+    throw error;
+  }
 }
 
 export async function reconcileGeneratedAnnotations(
@@ -138,11 +148,16 @@ export async function reconcileGeneratedAnnotations(
     }
     throwIfAborted(signal);
   } catch (error) {
-    await eraseAnnotations(created);
+    await rollbackCreatedAnnotations(created);
     throw error;
   }
 
-  await eraseAnnotations(existing);
+  try {
+    await eraseAnnotations(existing);
+  } catch (error) {
+    await rollbackCreatedAnnotations(created);
+    throw error;
+  }
   return {
     created: created.length,
     removed: existing.length,
@@ -153,7 +168,7 @@ export async function reconcileGeneratedAnnotations(
 export async function removeGeneratedAnnotations(
   item: Zotero.Item,
 ): Promise<number> {
-  const annotations = item.getAnnotations().filter(isGeneratedFigureAnnotation);
+  const annotations = item.getAnnotations().filter(isGeneratedResultAnnotation);
   await eraseAnnotations(annotations);
   return annotations.length;
 }
@@ -165,7 +180,7 @@ export async function removeGeneratedAnnotationForCandidate(
   const fingerprint = getCandidateFingerprint(candidate, true);
   const annotation = item
     .getAnnotations(false)
-    .filter(isGeneratedFigureAnnotation)
+    .filter(isGeneratedResultAnnotation)
     .find(
       (candidateAnnotation) =>
         getAnnotationFingerprint(candidateAnnotation, true) === fingerprint,
@@ -182,7 +197,7 @@ export async function updateGeneratedAnnotationCommentForCandidate(
   const fingerprint = getCandidateFingerprint(candidate, false);
   const annotation = item
     .getAnnotations(false)
-    .filter(isGeneratedFigureAnnotation)
+    .filter(isGeneratedResultAnnotation)
     .find(
       (candidateAnnotation) =>
         getAnnotationFingerprint(candidateAnnotation, false) === fingerprint,
@@ -202,7 +217,7 @@ export async function updateGeneratedAnnotationPositionForCandidate(
   const fingerprint = getCandidateFingerprint(previous, false);
   const annotation = item
     .getAnnotations(false)
-    .filter(isGeneratedFigureAnnotation)
+    .filter(isGeneratedResultAnnotation)
     .find(
       (candidateAnnotation) =>
         getAnnotationFingerprint(candidateAnnotation, false) === fingerprint,
@@ -217,15 +232,21 @@ export async function updateGeneratedAnnotationPositionForCandidate(
   return true;
 }
 
-export async function removeAllAnnotations(item: Zotero.Item): Promise<number> {
-  const annotations = item.getAnnotations();
-  await eraseAnnotations(annotations);
-  return annotations.length;
-}
-
 async function eraseAnnotations(annotations: Zotero.Item[]): Promise<void> {
   for (const annotation of annotations) {
     await annotation.eraseTx();
+  }
+}
+
+async function rollbackCreatedAnnotations(
+  annotations: readonly Zotero.Item[],
+): Promise<void> {
+  for (const annotation of annotations) {
+    try {
+      await annotation.eraseTx();
+    } catch (error) {
+      Zotero.logError(toError(error));
+    }
   }
 }
 
@@ -235,7 +256,7 @@ function getGeneratedAnnotationsForPage(
 ): Zotero.Item[] {
   return item
     .getAnnotations(false)
-    .filter(isGeneratedFigureAnnotation)
+    .filter(isGeneratedResultAnnotation)
     .filter((annotation) => getAnnotationPageIndex(annotation) === pageIndex);
 }
 
@@ -269,7 +290,7 @@ async function appendMissingAnnotations(
     }
     throwIfAborted(signal);
   } catch (error) {
-    await eraseAnnotations(createdAnnotations);
+    await rollbackCreatedAnnotations(createdAnnotations);
     throw error;
   }
   return { created, removed: 0, skipped };
@@ -309,7 +330,7 @@ function getAnnotationFingerprint(
   const tag = annotation
     .getTags()
     .map(({ tag }) => tag)
-    .find((value) => GENERATED_TAG_PATTERN.test(value));
+    .find(isFigureResultTag);
   if (!position || !rect || !tag) return undefined;
   return buildFingerprint(
     position.pageIndex,
@@ -371,4 +392,8 @@ function getSortIndex(pageIndex: number, offset: number, top: number): string {
       .slice(0, 5)
       .padStart(5, "0"),
   ].join("|");
+}
+
+function toError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
 }

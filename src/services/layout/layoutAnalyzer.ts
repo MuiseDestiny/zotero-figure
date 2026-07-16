@@ -23,6 +23,7 @@ import {
 import { getString } from "../../utils/locale";
 import { getPref } from "../../utils/prefs";
 import { AsyncPermitPool } from "../concurrency/asyncPermitPool";
+import { KeyedAsyncMutex } from "../concurrency/keyedAsyncMutex";
 import { MODEL_NAME, type ModelVariant } from "../model/modelCatalog";
 import { modelManager } from "../model/modelManager";
 import { LayoutWorkerPool } from "./workerPool";
@@ -35,63 +36,23 @@ import type {
 import {
   FigureResultStore,
   type FigureResultRenderCandidate,
+  type FigureResultStorePrune,
   type FigureResultStoreReconcile,
   type StoredFigureResult,
 } from "../results/figureResultStore";
+import {
+  AnalysisTelemetry,
+  createAnalysisTimingLog,
+  PageAnalysisTelemetry,
+  type AnalysisFinalizationOutcome,
+  type AnalysisSummary,
+  type PageAnalysisOutcome,
+} from "./analysisTelemetry";
+
+export type { AnalysisSummary, AnalysisTimings } from "./analysisTelemetry";
 
 export interface AnalysisProgress {
   update(text: string, progress: number): void;
-}
-
-export interface AnalysisSummary {
-  annotationsCreated: number;
-  annotationsRemoved: number;
-  annotationsSkipped: number;
-  failedPages: number;
-  pagesAnalyzed: number;
-  pagesSkipped: number;
-  resultsCreated: number;
-  resultsRemoved: number;
-  resultsSkipped: number;
-  timings: AnalysisTimings;
-  totalPages: number;
-}
-
-export interface AnalysisTimings {
-  annotationMs: number;
-  annotationStageWaitMs: number;
-  cacheLookupMs: number;
-  cropEncodingMs: number;
-  detectionMs: number;
-  detectionRenderWaitMs: number;
-  detectionStageWaitMs: number;
-  eventLoopLagMaxMs: number;
-  eventLoopLongTaskCount: number;
-  imageWriteMs: number;
-  inferenceMs: number;
-  lockWaitMs: number;
-  manifestWriteMs: number;
-  modelPreparationMs: number;
-  pageDataMs: number;
-  pdfPreparationMs: number;
-  postprocessMs: number;
-  preprocessMs: number;
-  previewFallbackMs: number;
-  previewMaxScale: number;
-  previewPageRenderMs: number;
-  previewPdfRenderWaitMs: number;
-  previewPeakPixels: number;
-  previewRenderingMs: number;
-  previewStageWaitMs: number;
-  renderingMs: number;
-  sourceFingerprintMs: number;
-  storageMs: number;
-  storageStageWaitMs: number;
-  totalMs: number;
-  workerDecodeMs: number;
-  workerQueueMs: number;
-  workerPreparationMs: number;
-  workerTotalMs: number;
 }
 
 export interface AnalysisOptions {
@@ -104,45 +65,6 @@ export interface ResultCorrectionPreview {
   detectedRect: Rect;
   image: ArrayBuffer;
   rect: Rect;
-}
-
-interface PageOutcome {
-  annotationMs: number;
-  annotationStageWaitMs: number;
-  annotationsCreated: number;
-  annotationsRemoved: number;
-  annotationsSkipped: number;
-  cacheLookupMs: number;
-  created: number;
-  cropEncodingMs: number;
-  detectionMs: number;
-  detectionRenderWaitMs: number;
-  detectionStageWaitMs: number;
-  failed: boolean;
-  imageWriteMs: number;
-  inferenceMs: number;
-  lockWaitMs: number;
-  manifestWriteMs: number;
-  postprocessMs: number;
-  preprocessMs: number;
-  previewFallbackMs: number;
-  previewMaxScale: number;
-  previewPageRenderMs: number;
-  previewPdfRenderWaitMs: number;
-  previewPeakPixels: number;
-  previewRenderingMs: number;
-  previewStageWaitMs: number;
-  removed: number;
-  renderingMs: number;
-  resultsCreated: number;
-  resultsRemoved: number;
-  resultsSkipped: number;
-  skipped: number;
-  storageMs: number;
-  storageStageWaitMs: number;
-  workerDecodeMs: number;
-  workerQueueMs: number;
-  workerTotalMs: number;
 }
 
 const LAYOUT_WORKER_COUNT = 2;
@@ -159,6 +81,7 @@ const MAX_STORAGE_PAGES = 1;
 const MAX_ANNOTATION_PAGES = 1;
 const NO_PAGE_TASK_ERROR = Symbol("no-page-task-error");
 const SCAN_PROGRESS_WEIGHT = 0.2;
+const attachmentAnalysisLeases = new KeyedAsyncMutex<string>();
 
 export class LayoutAnalyzer {
   private readonly scheduledPages = new AsyncPermitPool(MAX_SCHEDULED_PAGES);
@@ -241,25 +164,28 @@ export class LayoutAnalyzer {
       const page = await document.getPageData(result.pageIndex, signal);
       const pdfRect = denormalizePageRect(normalizedRect, page);
       const releasePreview = await this.previewPages.acquire(signal);
-      const releaseRender = await this.pdfRenders.acquire(signal);
+      let releaseRender: (() => void) | undefined;
+      let image: ArrayBuffer;
       try {
+        releaseRender = await this.pdfRenders.acquire(signal);
         const rendered = await document.renderRegions(
           result.pageIndex,
           [pdfRect],
           signal,
         );
-        const image = rendered.images[0];
+        image = rendered.images[0];
         if (!image) throw new Error("Corrected result image was not rendered");
-        return await this.resultStore.updateRegion(
-          attachment,
-          result.id,
-          pdfRect,
-          image,
-        );
       } finally {
-        releaseRender();
+        releaseRender?.();
         releasePreview();
       }
+      return await this.resultStore.updateRegion(
+        attachment,
+        result.id,
+        pdfRect,
+        image,
+        signal,
+      );
     } finally {
       await document?.close();
       releaseDocument();
@@ -282,43 +208,35 @@ export class LayoutAnalyzer {
     progress: AnalysisProgress,
     options: AnalysisOptions = {},
   ): Promise<AnalysisSummary> {
+    const releaseAnalysis = await attachmentAnalysisLeases.acquire(
+      getAttachmentAnalysisKey(attachment),
+      options.signal,
+    );
+    try {
+      return await this.analyzeAttachmentWithLease(
+        attachment,
+        progress,
+        options,
+      );
+    } catch (error) {
+      if (options.signal?.aborted || isCancellationError(error)) {
+        throw new OperationCancelledError();
+      }
+      throw error;
+    } finally {
+      releaseAnalysis();
+    }
+  }
+
+  private async analyzeAttachmentWithLease(
+    attachment: Zotero.Item,
+    progress: AnalysisProgress,
+    options: AnalysisOptions,
+  ): Promise<AnalysisSummary> {
     const analysisStartedAt = Date.now();
-    const timings: AnalysisTimings = {
-      annotationMs: 0,
-      annotationStageWaitMs: 0,
-      cacheLookupMs: 0,
-      cropEncodingMs: 0,
-      detectionMs: 0,
-      detectionRenderWaitMs: 0,
-      detectionStageWaitMs: 0,
-      eventLoopLagMaxMs: 0,
-      eventLoopLongTaskCount: 0,
-      imageWriteMs: 0,
-      inferenceMs: 0,
-      lockWaitMs: 0,
-      manifestWriteMs: 0,
-      modelPreparationMs: 0,
-      pageDataMs: 0,
-      pdfPreparationMs: 0,
-      postprocessMs: 0,
-      preprocessMs: 0,
-      previewFallbackMs: 0,
-      previewMaxScale: 0,
-      previewPageRenderMs: 0,
-      previewPdfRenderWaitMs: 0,
-      previewPeakPixels: 0,
-      previewRenderingMs: 0,
-      previewStageWaitMs: 0,
-      renderingMs: 0,
-      sourceFingerprintMs: 0,
-      storageMs: 0,
-      storageStageWaitMs: 0,
-      totalMs: 0,
-      workerDecodeMs: 0,
-      workerQueueMs: 0,
-      workerPreparationMs: 0,
-      workerTotalMs: 0,
-    };
+    const telemetry = new AnalysisTelemetry(0, analysisStartedAt);
+    const summary = telemetry.summary;
+    const timings = summary.timings;
     const { signal } = options;
     const syncAnnotations = options.syncAnnotations === true;
     throwIfAborted(signal);
@@ -367,6 +285,7 @@ export class LayoutAnalyzer {
     }
     const pdfDocument = documentResult.value;
     const totalPages = pdfDocument.pageCount;
+    telemetry.setTotalPages(totalPages);
     timings.pdfPreparationMs += documentResult.elapsedMs;
 
     const operationController = new AbortController();
@@ -375,22 +294,10 @@ export class LayoutAnalyzer {
     if (signal?.aborted) abortOperation();
     const operationSignal = operationController.signal;
 
-    const summary: AnalysisSummary = {
-      annotationsCreated: 0,
-      annotationsRemoved: 0,
-      annotationsSkipped: 0,
-      failedPages: 0,
-      pagesAnalyzed: 0,
-      pagesSkipped: 0,
-      resultsCreated: 0,
-      resultsRemoved: 0,
-      resultsSkipped: 0,
-      timings,
-      totalPages,
-    };
     let completedPages = 0;
     let completed = false;
     let lastProgress = 0;
+    const skippedPageIndices: number[] = [];
     let pageTaskError: unknown | typeof NO_PAGE_TASK_ERROR = NO_PAGE_TASK_ERROR;
     const pendingPageTasks = new Set<Promise<void>>();
     const report = (text: string, value: number) => {
@@ -398,8 +305,7 @@ export class LayoutAnalyzer {
       progress.update(text, lastProgress);
     };
 
-    const responsiveness = new EventLoopResponsivenessMonitor();
-    responsiveness.start();
+    telemetry.startResponsivenessMonitoring();
     try {
       try {
         for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
@@ -420,7 +326,8 @@ export class LayoutAnalyzer {
           timings.pageDataMs += Date.now() - pageDataStartedAt;
           throwIfAborted(operationSignal);
           if (!pageMayContainFigures(page.chars)) {
-            summary.pagesSkipped++;
+            telemetry.recordSkippedPage();
+            skippedPageIndices.push(pageIndex);
             completedPages++;
             reportDetectionProgress(report, completedPages, totalPages);
             await yieldToUI(operationSignal);
@@ -456,7 +363,7 @@ export class LayoutAnalyzer {
                   operationSignal,
                 );
                 completedPages++;
-                mergeOutcomes(summary, [outcome]);
+                telemetry.mergePage(outcome);
                 reportDetectionProgress(report, completedPages, totalPages);
                 await yieldToUI(operationSignal);
               } catch (error) {
@@ -496,6 +403,17 @@ export class LayoutAnalyzer {
             }),
           );
         }
+        if (duplicateMode === "replace-page") {
+          const finalized = await this.finalizeReplacePageAnalysis(
+            attachment,
+            totalPages,
+            skippedPageIndices,
+            syncAnnotations,
+            annotationTarget,
+            operationSignal,
+          );
+          telemetry.mergeFinalization(finalized);
+        }
         completed = true;
         return summary;
       } catch (error) {
@@ -513,10 +431,7 @@ export class LayoutAnalyzer {
       }
     } finally {
       signal?.removeEventListener("abort", abortOperation);
-      const responsivenessResult = responsiveness.stop();
-      timings.eventLoopLagMaxMs = responsivenessResult.maximumLagMs;
-      timings.eventLoopLongTaskCount = responsivenessResult.longTaskCount;
-      timings.totalMs = Date.now() - analysisStartedAt;
+      telemetry.finish();
       if (completed) {
         logAnalysisCompletion(attachment, summary, syncAnnotations);
       }
@@ -539,43 +454,18 @@ export class LayoutAnalyzer {
     syncAnnotations: boolean,
     annotationTarget?: AnnotationTarget,
     signal?: AbortSignal,
-  ): Promise<PageOutcome> {
-    let annotationMs = 0;
-    let annotationStageWaitMs = 0;
-    let cacheLookupMs = 0;
-    let cropEncodingMs = 0;
-    let detectionMs: number | undefined;
-    let detectionRenderWaitMs = 0;
-    let detectionStageWaitMs = 0;
-    let imageWriteMs = 0;
-    let inferenceMs = 0;
-    let lockWaitMs = 0;
-    let manifestWriteMs = 0;
-    let postprocessMs = 0;
-    let preprocessMs = 0;
-    let previewFallbackMs = 0;
-    let previewMaxScale = 0;
-    let previewPageRenderMs = 0;
-    let previewPdfRenderWaitMs = 0;
-    let previewPeakPixels = 0;
-    let previewRenderingMs = 0;
-    let previewStageWaitMs = 0;
-    let renderingMs = 0;
-    let storageMs = 0;
-    let storageStageWaitMs = 0;
-    let workerDecodeMs = 0;
-    let workerQueueMs = 0;
-    let workerTotalMs = 0;
-    const pageStartedAt = Date.now();
+  ): Promise<PageAnalysisOutcome> {
+    const telemetry = new PageAnalysisTelemetry();
+    const timings = telemetry.timings;
     try {
       const detectionWaitStartedAt = Date.now();
       const releaseDetection = await this.detectionPages.acquire(signal);
-      detectionStageWaitMs = Date.now() - detectionWaitStartedAt;
+      timings.detectionStageWaitMs = Date.now() - detectionWaitStartedAt;
       let elements: PageLayoutData["elements"];
       try {
         const renderWaitStartedAt = Date.now();
         const releaseRender = await this.pdfRenders.acquire(signal);
-        detectionRenderWaitMs = Date.now() - renderWaitStartedAt;
+        timings.detectionRenderWaitMs = Date.now() - renderWaitStartedAt;
         let image: ArrayBuffer;
         try {
           const rendered = await pdfDocument.renderDetectionImage(
@@ -583,7 +473,7 @@ export class LayoutAnalyzer {
             signal,
           );
           image = rendered.image;
-          renderingMs = rendered.renderMs + rendered.encodeMs;
+          timings.renderingMs = rendered.renderMs + rendered.encodeMs;
         } finally {
           releaseRender();
         }
@@ -595,13 +485,13 @@ export class LayoutAnalyzer {
           signal,
         );
         elements = mapLayoutElementsToPdf(detection.elements, page);
-        workerDecodeMs = detection.timings.decodeMs;
-        workerQueueMs = detection.timings.queueMs;
-        preprocessMs = detection.timings.preprocessMs;
-        inferenceMs = detection.timings.inferenceMs;
-        postprocessMs = detection.timings.postprocessMs;
-        workerTotalMs = detection.timings.totalMs;
-        detectionMs = Date.now() - detectionStartedAt;
+        timings.workerDecodeMs = detection.timings.decodeMs;
+        timings.workerQueueMs = detection.timings.queueMs;
+        timings.preprocessMs = detection.timings.preprocessMs;
+        timings.inferenceMs = detection.timings.inferenceMs;
+        timings.postprocessMs = detection.timings.postprocessMs;
+        timings.workerTotalMs = detection.timings.totalMs;
+        timings.detectionMs = Date.now() - detectionStartedAt;
       } finally {
         releaseDetection();
       }
@@ -615,7 +505,7 @@ export class LayoutAnalyzer {
         signal,
         sourceFingerprint,
       );
-      cacheLookupMs = Date.now() - cacheLookupStartedAt;
+      timings.cacheLookupMs = Date.now() - cacheLookupStartedAt;
       let resultImages: ArrayBuffer[] = [];
       let renderCandidates: FigureResultRenderCandidate[] = [];
       if (!reusableResults) {
@@ -627,13 +517,13 @@ export class LayoutAnalyzer {
         );
         const previewWaitStartedAt = Date.now();
         const releasePreview = await this.previewPages.acquire(signal);
-        previewStageWaitMs = Date.now() - previewWaitStartedAt;
+        timings.previewStageWaitMs = Date.now() - previewWaitStartedAt;
         const previewStartedAt = Date.now();
         let releasePdfRender: (() => void) | undefined;
         try {
           const pdfRenderWaitStartedAt = Date.now();
           releasePdfRender = await this.pdfRenders.acquire(signal);
-          previewPdfRenderWaitMs = Date.now() - pdfRenderWaitStartedAt;
+          timings.previewPdfRenderWaitMs = Date.now() - pdfRenderWaitStartedAt;
           const rendered = await this.renderResultImages(
             pdfDocument,
             renderCandidates.map(({ renderRect }) => renderRect),
@@ -641,12 +531,12 @@ export class LayoutAnalyzer {
             signal,
           );
           resultImages = rendered.images;
-          cropEncodingMs = rendered.cropEncodingMs;
-          previewFallbackMs = rendered.fallbackMs;
-          previewMaxScale = rendered.scale;
-          previewPageRenderMs = rendered.pageRenderMs;
-          previewPeakPixels = rendered.pixelCount;
-          previewRenderingMs = Date.now() - previewStartedAt;
+          timings.cropEncodingMs = rendered.cropEncodingMs;
+          timings.previewFallbackMs = rendered.fallbackMs;
+          timings.previewMaxScale = rendered.scale;
+          timings.previewPageRenderMs = rendered.pageRenderMs;
+          timings.previewPeakPixels = rendered.pixelCount;
+          timings.previewRenderingMs = Date.now() - previewStartedAt;
         } finally {
           releasePdfRender?.();
           releasePreview();
@@ -654,7 +544,7 @@ export class LayoutAnalyzer {
       }
       const storageWaitStartedAt = Date.now();
       const releaseStorage = await this.storagePages.acquire(signal);
-      storageStageWaitMs = Date.now() - storageWaitStartedAt;
+      timings.storageStageWaitMs = Date.now() - storageWaitStartedAt;
       const storageStartedAt = Date.now();
       let annotationsCreated = 0;
       let annotationsRemoved = 0;
@@ -682,7 +572,7 @@ export class LayoutAnalyzer {
               signal,
               sourceFingerprint,
             );
-        storageMs = Date.now() - storageStartedAt;
+        timings.storageMs = Date.now() - storageStartedAt;
       } finally {
         releaseStorage();
       }
@@ -693,7 +583,7 @@ export class LayoutAnalyzer {
         }
         const annotationWaitStartedAt = Date.now();
         const releaseAnnotation = await this.annotationPages.acquire(signal);
-        annotationStageWaitMs = Date.now() - annotationWaitStartedAt;
+        timings.annotationStageWaitMs = Date.now() - annotationWaitStartedAt;
         const annotationStartedAt = Date.now();
         try {
           const annotationCandidates = stored.results
@@ -715,53 +605,27 @@ export class LayoutAnalyzer {
           annotationsRemoved = reconciled.removed;
           annotationsSkipped = reconciled.skipped;
         } finally {
-          annotationMs = Date.now() - annotationStartedAt;
+          timings.annotationMs = Date.now() - annotationStartedAt;
           releaseAnnotation();
         }
       }
       if (stored.timings) {
-        imageWriteMs = stored.timings.imageWriteMs;
-        lockWaitMs = stored.timings.lockWaitMs;
-        manifestWriteMs = stored.timings.manifestWriteMs;
+        timings.imageWriteMs = stored.timings.imageWriteMs;
+        timings.lockWaitMs = stored.timings.lockWaitMs;
+        timings.manifestWriteMs = stored.timings.manifestWriteMs;
       }
-      return {
-        annotationMs,
-        annotationStageWaitMs,
-        annotationsCreated,
-        annotationsRemoved,
-        annotationsSkipped,
-        cacheLookupMs,
-        created: stored.created,
-        cropEncodingMs,
-        detectionMs,
-        detectionRenderWaitMs,
-        detectionStageWaitMs,
-        failed: false,
-        imageWriteMs,
-        inferenceMs,
-        lockWaitMs,
-        manifestWriteMs,
-        postprocessMs,
-        preprocessMs,
-        previewFallbackMs,
-        previewMaxScale,
-        previewPageRenderMs,
-        previewPdfRenderWaitMs,
-        previewPeakPixels,
-        previewRenderingMs,
-        previewStageWaitMs,
-        removed: stored.removed,
-        renderingMs,
-        resultsCreated: stored.created,
-        resultsRemoved: stored.removed,
-        resultsSkipped: stored.skipped,
-        skipped: stored.skipped,
-        storageMs,
-        storageStageWaitMs,
-        workerDecodeMs,
-        workerQueueMs,
-        workerTotalMs,
-      };
+      return telemetry.succeed(
+        {
+          created: stored.created,
+          removed: stored.removed,
+          skipped: stored.skipped,
+        },
+        {
+          created: annotationsCreated,
+          removed: annotationsRemoved,
+          skipped: annotationsSkipped,
+        },
+      );
     } catch (error) {
       if (isCancellationError(error)) throw error;
       if (workerPool.isDisposed) throw error;
@@ -769,45 +633,77 @@ export class LayoutAnalyzer {
         `Layout analysis failed on page ${page.pageIndex + 1}`,
         error,
       );
-      return {
+      return telemetry.fail();
+    }
+  }
+
+  private async finalizeReplacePageAnalysis(
+    attachment: Zotero.Item,
+    totalPages: number,
+    skippedPageIndices: readonly number[],
+    syncAnnotations: boolean,
+    annotationTarget?: AnnotationTarget,
+    signal?: AbortSignal,
+  ): Promise<AnalysisFinalizationOutcome> {
+    const storageWaitStartedAt = Date.now();
+    const releaseStorage = await this.storagePages.acquire(signal);
+    const storageStageWaitMs = Date.now() - storageWaitStartedAt;
+    const storageStartedAt = Date.now();
+    let pruned: FigureResultStorePrune;
+    try {
+      pruned = await this.resultStore.pruneAfterAnalysis(
+        attachment,
+        totalPages,
+        skippedPageIndices,
+        signal,
+      );
+    } finally {
+      releaseStorage();
+    }
+    const storageMs = Date.now() - storageStartedAt;
+    const pagesToClearAnnotations = [
+      ...new Set([...skippedPageIndices, ...pruned.removedPageIndices]),
+    ].sort((first, second) => first - second);
+    let annotationMs = 0;
+    let annotationStageWaitMs = 0;
+    let annotationsRemoved = 0;
+    if (syncAnnotations && pagesToClearAnnotations.length > 0) {
+      if (!annotationTarget) {
+        throw new Error("Annotation mirroring requires a PDF attachment");
+      }
+      const annotationWaitStartedAt = Date.now();
+      const releaseAnnotation = await this.annotationPages.acquire(signal);
+      annotationStageWaitMs = Date.now() - annotationWaitStartedAt;
+      const annotationStartedAt = Date.now();
+      try {
+        for (const pageIndex of pagesToClearAnnotations) {
+          const reconciled = await reconcileGeneratedAnnotations(
+            annotationTarget,
+            pageIndex,
+            [],
+            "replace-page",
+            signal,
+          );
+          annotationsRemoved += reconciled.removed;
+        }
+      } finally {
+        annotationMs = Date.now() - annotationStartedAt;
+        releaseAnnotation();
+      }
+    }
+    return {
+      annotationsRemoved,
+      resultsRemoved: pruned.removed,
+      timings: {
         annotationMs,
         annotationStageWaitMs,
-        annotationsCreated: 0,
-        annotationsRemoved: 0,
-        annotationsSkipped: 0,
-        cacheLookupMs,
-        created: 0,
-        cropEncodingMs,
-        detectionMs: detectionMs ?? Date.now() - pageStartedAt,
-        detectionRenderWaitMs,
-        detectionStageWaitMs,
-        failed: true,
-        imageWriteMs,
-        inferenceMs,
-        lockWaitMs,
-        manifestWriteMs,
-        postprocessMs,
-        preprocessMs,
-        previewFallbackMs,
-        previewMaxScale,
-        previewPageRenderMs,
-        previewPdfRenderWaitMs,
-        previewPeakPixels,
-        previewRenderingMs,
-        previewStageWaitMs,
-        removed: 0,
-        renderingMs,
-        resultsCreated: 0,
-        resultsRemoved: 0,
-        resultsSkipped: 0,
-        skipped: 0,
+        imageWriteMs: pruned.timings.imageWriteMs,
+        lockWaitMs: pruned.timings.lockWaitMs,
+        manifestWriteMs: pruned.timings.manifestWriteMs,
         storageMs,
         storageStageWaitMs,
-        workerDecodeMs,
-        workerQueueMs,
-        workerTotalMs,
-      };
-    }
+      },
+    };
   }
 
   private async renderResultImages(
@@ -882,103 +778,19 @@ function logAnalysisCompletion(
   try {
     ztoolkit.log(
       "Layout analysis completed",
-      createAnalysisTimingLog(attachment, summary, syncAnnotations),
+      createAnalysisTimingLog(
+        {
+          itemID: attachment.id,
+          key: attachment.key,
+          libraryID: attachment.libraryID,
+        },
+        summary,
+        syncAnnotations,
+      ),
     );
   } catch (error) {
     Zotero.logError(error instanceof Error ? error : new Error(String(error)));
   }
-}
-
-function createAnalysisTimingLog(
-  attachment: Zotero.Item,
-  summary: AnalysisSummary,
-  syncAnnotations: boolean,
-) {
-  const timings = summary.timings;
-  return {
-    attachment: {
-      itemID: attachment.id,
-      key: attachment.key,
-      libraryID: attachment.libraryID,
-    },
-    wallMs: roundMilliseconds(timings.totalMs),
-    pages: {
-      analyzed: summary.pagesAnalyzed,
-      failed: summary.failedPages,
-      skipped: summary.pagesSkipped,
-      total: summary.totalPages,
-    },
-    results: {
-      created: summary.resultsCreated,
-      removed: summary.resultsRemoved,
-      skipped: summary.resultsSkipped,
-    },
-    setupMs: {
-      model: roundMilliseconds(timings.modelPreparationMs),
-      pdfEngine: roundMilliseconds(timings.pdfPreparationMs),
-      sourceFingerprint: roundMilliseconds(timings.sourceFingerprintMs),
-      worker: roundMilliseconds(timings.workerPreparationMs),
-    },
-    scanMs: {
-      pdfPageData: roundMilliseconds(timings.pageDataMs),
-    },
-    screenshotMs: {
-      detectionExport: roundMilliseconds(timings.renderingMs),
-      pngCropEncode: roundMilliseconds(timings.cropEncodingMs),
-      previewFallback: roundMilliseconds(timings.previewFallbackMs),
-      previewPageRender: roundMilliseconds(timings.previewPageRenderMs),
-      previewStageWall: roundMilliseconds(timings.previewRenderingMs),
-    },
-    parsingMs: {
-      decode: roundMilliseconds(timings.workerDecodeMs),
-      detectCallWall: roundMilliseconds(timings.detectionMs),
-      inference: roundMilliseconds(timings.inferenceMs),
-      postprocess: roundMilliseconds(timings.postprocessMs),
-      preprocess: roundMilliseconds(timings.preprocessMs),
-      workerQueue: roundMilliseconds(timings.workerQueueMs),
-      workerTotal: roundMilliseconds(timings.workerTotalMs),
-    },
-    storageMs: {
-      attachmentLockWait: roundMilliseconds(timings.lockWaitMs),
-      cacheLookup: roundMilliseconds(timings.cacheLookupMs),
-      imageWrite: roundMilliseconds(timings.imageWriteMs),
-      manifestWrite: roundMilliseconds(timings.manifestWriteMs),
-      stageWall: roundMilliseconds(timings.storageMs),
-    },
-    annotations: {
-      created: summary.annotationsCreated,
-      enabled: syncAnnotations,
-      removed: summary.annotationsRemoved,
-      skipped: summary.annotationsSkipped,
-      stageWallMs: roundMilliseconds(timings.annotationMs),
-    },
-    waitsMs: {
-      annotationStage: roundMilliseconds(timings.annotationStageWaitMs),
-      detectionStage: roundMilliseconds(timings.detectionStageWaitMs),
-      pdfForDetection: roundMilliseconds(timings.detectionRenderWaitMs),
-      pdfForPreview: roundMilliseconds(timings.previewPdfRenderWaitMs),
-      previewStage: roundMilliseconds(timings.previewStageWaitMs),
-      storageStage: roundMilliseconds(timings.storageStageWaitMs),
-    },
-    preview: {
-      maxScale: roundMetric(timings.previewMaxScale),
-      peakPixels: Math.round(timings.previewPeakPixels),
-    },
-    responsiveness: {
-      longTasks: timings.eventLoopLongTaskCount,
-      maxLagMs: roundMilliseconds(timings.eventLoopLagMaxMs),
-    },
-    timingNote:
-      "Stage values are cumulative across pages and can exceed wallMs when pages overlap.",
-  };
-}
-
-function roundMilliseconds(value: number): number {
-  return roundMetric(Math.max(0, value));
-}
-
-function roundMetric(value: number): number {
-  return Number.isFinite(value) ? Math.round(value * 10) / 10 : 0;
 }
 
 async function measureAsync<T>(
@@ -1032,52 +844,8 @@ function getDuplicateMode(): DuplicateMode {
     : "replace-page";
 }
 
-function mergeOutcomes(
-  summary: AnalysisSummary,
-  outcomes: readonly PageOutcome[],
-): void {
-  for (const outcome of outcomes) {
-    summary.timings.annotationMs += outcome.annotationMs;
-    summary.timings.annotationStageWaitMs += outcome.annotationStageWaitMs;
-    summary.timings.cacheLookupMs += outcome.cacheLookupMs;
-    summary.resultsCreated += outcome.resultsCreated;
-    summary.resultsRemoved += outcome.resultsRemoved;
-    summary.resultsSkipped += outcome.resultsSkipped;
-    summary.annotationsCreated += outcome.annotationsCreated;
-    summary.annotationsRemoved += outcome.annotationsRemoved;
-    summary.annotationsSkipped += outcome.annotationsSkipped;
-    summary.timings.cropEncodingMs += outcome.cropEncodingMs;
-    summary.timings.detectionMs += outcome.detectionMs;
-    summary.timings.detectionRenderWaitMs += outcome.detectionRenderWaitMs;
-    summary.timings.detectionStageWaitMs += outcome.detectionStageWaitMs;
-    summary.timings.imageWriteMs += outcome.imageWriteMs;
-    summary.timings.inferenceMs += outcome.inferenceMs;
-    summary.timings.lockWaitMs += outcome.lockWaitMs;
-    summary.timings.manifestWriteMs += outcome.manifestWriteMs;
-    summary.timings.postprocessMs += outcome.postprocessMs;
-    summary.timings.preprocessMs += outcome.preprocessMs;
-    summary.timings.previewFallbackMs += outcome.previewFallbackMs;
-    summary.timings.previewMaxScale = Math.max(
-      summary.timings.previewMaxScale,
-      outcome.previewMaxScale,
-    );
-    summary.timings.previewPageRenderMs += outcome.previewPageRenderMs;
-    summary.timings.previewPdfRenderWaitMs += outcome.previewPdfRenderWaitMs;
-    summary.timings.previewPeakPixels = Math.max(
-      summary.timings.previewPeakPixels,
-      outcome.previewPeakPixels,
-    );
-    summary.timings.previewRenderingMs += outcome.previewRenderingMs;
-    summary.timings.previewStageWaitMs += outcome.previewStageWaitMs;
-    summary.timings.renderingMs += outcome.renderingMs;
-    summary.timings.storageMs += outcome.storageMs;
-    summary.timings.storageStageWaitMs += outcome.storageStageWaitMs;
-    summary.timings.workerDecodeMs += outcome.workerDecodeMs;
-    summary.timings.workerQueueMs += outcome.workerQueueMs;
-    summary.timings.workerTotalMs += outcome.workerTotalMs;
-    if (outcome.failed) summary.failedPages++;
-    else summary.pagesAnalyzed++;
-  }
+function getAttachmentAnalysisKey(attachment: Zotero.Item): string {
+  return `${attachment.libraryID}:${attachment.key}`;
 }
 
 function reportDetectionProgress(
@@ -1139,37 +907,4 @@ function normalizeUnitRect(value: Rect): Rect {
 async function yieldToUI(signal?: AbortSignal): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
   throwIfAborted(signal);
-}
-
-const EVENT_LOOP_SAMPLE_INTERVAL_MS = 50;
-
-class EventLoopResponsivenessMonitor {
-  private intervalID?: ReturnType<typeof setInterval>;
-  private lastSampleAt = 0;
-  private longTaskCount = 0;
-  private maximumLagMs = 0;
-
-  public start(): void {
-    if (this.intervalID !== undefined) return;
-    this.lastSampleAt = Date.now();
-    this.intervalID = setInterval(() => {
-      const now = Date.now();
-      const lag = Math.max(
-        0,
-        now - this.lastSampleAt - EVENT_LOOP_SAMPLE_INTERVAL_MS,
-      );
-      this.lastSampleAt = now;
-      this.maximumLagMs = Math.max(this.maximumLagMs, lag);
-      if (lag >= EVENT_LOOP_SAMPLE_INTERVAL_MS) this.longTaskCount++;
-    }, EVENT_LOOP_SAMPLE_INTERVAL_MS);
-  }
-
-  public stop(): { longTaskCount: number; maximumLagMs: number } {
-    if (this.intervalID !== undefined) clearInterval(this.intervalID);
-    this.intervalID = undefined;
-    return {
-      longTaskCount: this.longTaskCount,
-      maximumLagMs: this.maximumLagMs,
-    };
-  }
 }

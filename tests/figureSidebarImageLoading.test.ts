@@ -1,9 +1,7 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
-import {
-  BoundedAsyncTaskQueue,
-  isNearVerticalViewport,
-} from "../src/features/reader/figureSidebarPanel";
+import { isNearVerticalViewport } from "../src/domain/figureSidebar";
+import { BoundedAsyncTaskQueue } from "../src/services/concurrency/boundedAsyncTaskQueue";
 
 test("bounds active sidebar image tasks", async () => {
   const queue = new BoundedAsyncTaskQueue(3);

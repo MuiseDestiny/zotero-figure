@@ -374,15 +374,22 @@
   padding: 0;
 }
 
+.zoterofigure-card-image.is-loaded {
+  min-height: 0;
+}
+
 .zoterofigure-card-image img {
+  border: 0 !important;
   box-sizing: border-box;
   display: block;
   height: auto !important;
   image-rendering: auto;
+  margin: 0 !important;
   max-height: none !important;
   max-width: 100% !important;
   min-width: 0;
   object-fit: fill;
+  padding: 0 !important;
   width: 100% !important;
 }
 

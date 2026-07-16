@@ -84,7 +84,9 @@ rotation, and non-zero origins are handled through `pageBounds`, `viewBox`,
 ## Analysis flow
 
 `LayoutAnalyzer.analyzeAttachment` is the reusable workflow for both Reader and
-headless library actions.
+headless library actions. A keyed analysis mutex covers the complete workflow,
+so Reader windows and batch actions cannot analyze different revisions of the
+same attachment concurrently; unrelated attachments still overlap.
 
 1. Prepare MuPDF and validate/extract the embedded model in parallel. The
    installed model is accepted only when its size and SHA-256 match
@@ -109,8 +111,17 @@ headless library actions.
    PNG.
 8. Reconcile candidates and PNGs under the attachment lock. Optionally mirror
    the stored results to Zotero annotations after the local result commit.
-9. Aggregate page outcomes and timing data, close the MuPDF document, and
-   release every permit in `finally` blocks.
+9. After all scheduled pages settle, `replace-page` prunes results from pages
+   skipped by the text heuristic and from page indices beyond the current PDF.
+   `skip-existing` deliberately retains them.
+10. Aggregate page outcomes and timing data, close the MuPDF document, and
+    release every permit in `finally` blocks.
+
+`LayoutAnalyzer` owns the workflow and permit ordering. Page timing state,
+success/failure outcomes, cumulative counters, peak preview metrics, event-loop
+responsiveness, and the structured completion log live in
+`analysisTelemetry.ts`; add a metric there instead of duplicating fields in the
+success, failure, and finalization branches.
 
 The ONNX worker verifies the model bytes again before creating its session.
 Remote models are disabled. PDF parsing, rendering, and inference remain local.
@@ -133,6 +144,13 @@ per-image cache identity. A PNG is reusable only when all of these agree:
 - detected result fingerprint;
 - current crop fingerprint;
 - referenced PNG existence.
+
+`figureResultManifestCodec.ts` is the pure schema boundary: it validates and
+normalizes persisted data, serializes the current schema, prunes translation
+caches, and compares cache identities. `FigureResultStore` owns attachment
+locks, filesystem paths, atomic manifest commits, PNG transactions, and
+reconciliation. Keep schema rules out of the IO workflow and keep Zotero globals
+out of the codec.
 
 Result IDs and matching fingerprints come from detected values, not user
 overrides. A manual caption stores the detector caption in `detectedComment`; a
@@ -166,17 +184,35 @@ must not be broadened casually.
 ## Persistence and failure semantics
 
 Result operations are serialized by attachment key. Manifests are written to a
-temporary file and atomically moved into place. Image writes are tracked until
-the owning manifest commits: cancellation or a commit failure removes newly
-created PNGs and restores overwritten PNGs. Unreadable, malformed, or invalid
-manifests are errors; treating them as empty would turn corruption into silent
-data loss.
+temporary file and atomically moved into place. Analysis and manual-correction
+image writes are tracked until the owning manifest commits: cancellation or a
+commit failure removes newly created PNGs and restores overwritten PNGs. A
+failure to read an overwrite backup aborts before the current PNG is touched.
+Unreadable, malformed, or invalid manifests are errors; treating them as empty
+would turn corruption into silent data loss. Gallery refreshes publish a new
+snapshot only after every indexed attachment has been read successfully, so a
+transient manifest error leaves the preceding snapshot usable.
 
 The manifest/PNG transaction does not include Zotero annotations or notes.
 Local results commit before optional annotation mirroring, and notes are
 independent snapshots with embedded images. Process termination can still
 interrupt filesystem cleanup, so do not describe these resources as one atomic
 transaction.
+
+## UI request and image lifecycles
+
+Reader sidebar and gallery images are loaded from local bytes through revocable
+Blob URLs. Their bounded queues do not finish when `src` is assigned: they wait
+for image load and decode, and cancellation must settle that wait before a queue
+slot is reused. A remount, filter change, or newer gallery refresh invalidates
+older generations so late file reads, localization, or decode callbacks cannot
+commit stale DOM.
+
+Pinned Reader cards keep independent Blob URLs and interaction state in
+`pinnedFigureCardView.ts`. Refreshing a result with the same ID must replace its
+snapshot in place without losing position or scale; the old URL remains valid
+until the replacement is ready and is then revoked. Every image entry, observer,
+timer, request generation, and Blob URL needs one explicit teardown owner.
 
 ## Cancellation and bounded work
 

@@ -6,6 +6,7 @@ import type {
   Rect,
 } from "../src/domain/layout";
 import type { PdfReader } from "../src/platform/zotero/reader";
+import { AsyncPermitPool } from "../src/services/concurrency/asyncPermitPool";
 import { LayoutAnalyzer } from "../src/services/layout/layoutAnalyzer";
 import {
   DEFAULT_FIGURE_RESULT_ANALYSIS_IDENTITY,
@@ -150,6 +151,25 @@ test("does not persist a low-resolution fallback when region rendering fails", a
   try {
     await assert.rejects(analyzer.analyze(harness.reader, { update() {} }));
     assert.equal(harness.renderedPreviewPageCount(), 0);
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("normalizes preparation cancellation as OperationCancelledError", async () => {
+  const harness = installAnalyzerHarness({
+    pdfPreparationError: new DOMException(
+      "Preparation cancelled",
+      "AbortError",
+    ),
+  });
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
+  try {
+    await assert.rejects(
+      analyzer.analyze(harness.reader, { update() {} }),
+      OperationCancelledError,
+    );
   } finally {
     analyzer.dispose();
     harness.restore();
@@ -308,6 +328,110 @@ test("maps a corrected preview rectangle back to PDF coordinates", async () => {
   }
 });
 
+test("removes results from heuristic-skipped and no-longer-present pages", async () => {
+  const harness = installAnalyzerHarness({
+    pageCount: 2,
+    pageText: (pageIndex) =>
+      pageIndex === 1
+        ? "plain text without a layout hint"
+        : "Figure 1. Caption",
+  });
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  const skipped = {
+    comment: "Figure 2. Stale",
+    pageIndex: 1,
+    rect: [1, 2, 10, 12] as Rect,
+    tag: "Figure 2",
+  };
+  const removedPage = {
+    comment: "Figure 4. Stale",
+    pageIndex: 3,
+    rect: [1, 2, 10, 12] as Rect,
+    tag: "Figure 4",
+  };
+  try {
+    await store.reconcilePage(
+      harness.reader._item,
+      1,
+      [skipped],
+      [Uint8Array.of(1).buffer],
+      "replace-page",
+    );
+    await store.reconcilePage(
+      harness.reader._item,
+      3,
+      [removedPage],
+      [Uint8Array.of(2).buffer],
+      "replace-page",
+    );
+
+    const summary = await analyzer.analyze(harness.reader, { update() {} });
+
+    assert.equal(summary.pagesSkipped, 1);
+    assert.equal(summary.resultsRemoved, 2);
+    assert.deepEqual(
+      (await store.list(harness.reader._item)).map(
+        ({ pageIndex }) => pageIndex,
+      ),
+      [0],
+    );
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("releases the correction permit when render waiting is cancelled", async () => {
+  const harness = installAnalyzerHarness();
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  const candidate: AnnotationCandidate = {
+    comment: "Figure 1. Caption",
+    pageIndex: 0,
+    rect: [1, 2, 10, 12],
+    tag: "Figure 1",
+  };
+  const pools = analyzer as unknown as {
+    pdfRenders: AsyncPermitPool;
+    previewPages: AsyncPermitPool;
+  };
+  const releaseRender = await pools.pdfRenders.acquire();
+  try {
+    const seeded = await store.reconcilePage(
+      harness.reader._item,
+      0,
+      [candidate],
+      [Uint8Array.of(1).buffer],
+      "replace-page",
+    );
+    const controller = new AbortController();
+    const correction = analyzer.correctResultRegion(
+      harness.reader._item,
+      seeded.results[0],
+      [0.2, 0.3, 0.6, 0.7],
+      controller.signal,
+    );
+    await waitFor(
+      () =>
+        pools.previewPages.activeCount === 1 &&
+        pools.pdfRenders.pendingCount === 1,
+    );
+
+    controller.abort();
+    await assert.rejects(correction, OperationCancelledError);
+    assert.equal(pools.previewPages.activeCount, 0);
+    assert.equal(pools.pdfRenders.pendingCount, 0);
+
+    const releasePreview = await pools.previewPages.acquire();
+    releasePreview();
+  } finally {
+    releaseRender();
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
 test("overlaps the second page but waits for a permit before rendering the third", async () => {
   const harness = installAnalyzerHarness({ automatic: false, pageCount: 3 });
   const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
@@ -386,6 +510,41 @@ test("shares the two-page detection limit across concurrent readers", async () =
   }
 });
 
+test("serializes analyses of the same attachment before reading a new source", async () => {
+  const harness = installAnalyzerHarness({ automatic: false });
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  const first = analyzer.analyze(harness.reader, { update() {} });
+  let second: Promise<Awaited<typeof first>> | undefined;
+  try {
+    await waitFor(() => harness.openedDocumentCount() === 1);
+    await waitFor(() => harness.renderedPages.length === 1);
+    (harness.reader._item as Zotero.Item & { version: number }).version = 2;
+    second = analyzer.analyze(harness.reader, { update() {} });
+    await flushTasks();
+    assert.equal(harness.openedDocumentCount(), 1);
+
+    const worker = harness.worker();
+    await waitFor(() => worker.detectionMessages.length === 1);
+    assert.equal(worker.respondToNextDetection(), true);
+    await first;
+    await waitFor(() => harness.openedDocumentCount() === 2);
+    await waitFor(() => worker.detectionMessages.length === 2);
+    assert.equal(worker.respondToNextDetection(), true);
+    await second;
+
+    const [stored] = await store.list(harness.reader._item);
+    assert.ok(
+      await store.getReusablePageResults(harness.reader._item, 0, [stored]),
+    );
+  } finally {
+    await first.catch(() => undefined);
+    await second?.catch(() => undefined);
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
 test("cancels active and permit-waiting pages as OperationCancelledError", async () => {
   const harness = installAnalyzerHarness({ automatic: false, pageCount: 3 });
   const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
@@ -423,6 +582,8 @@ interface AnalyzerHarnessOptions {
   allowAnnotations?: boolean;
   automatic?: boolean;
   pageCount?: number;
+  pageText?: (pageIndex: number) => string;
+  pdfPreparationError?: Error;
   previewRenderer?: boolean;
   readerCount?: number;
 }
@@ -431,6 +592,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
   annotationComments(): readonly string[];
   annotationWrites(): number;
   logs(): readonly (readonly unknown[])[];
+  openedDocumentCount(): number;
   pdfEngine: PdfEngine;
   reader: PdfReader;
   readers: PdfReader[];
@@ -451,6 +613,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
   const annotationComments: string[] = [];
   const logs: unknown[][] = [];
   let renderedPreviewPages = 0;
+  let openedDocuments = 0;
   const renderedPages: number[] = [];
   const renderedRegionRects: Rect[][] = [];
 
@@ -554,16 +717,19 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
 
   const pdfEngine: PdfEngine = {
     dispose() {},
-    async prepare() {},
+    async prepare() {
+      if (options.pdfPreparationError) throw options.pdfPreparationError;
+    },
     async open() {
+      openedDocuments++;
       return {
         pageCount: options.pageCount ?? 1,
         async close() {},
-        async getPageData() {
+        async getPageData(pageIndex) {
           return {
             chars: [
               {
-                c: "Figure 1. Caption",
+                c: options.pageText?.(pageIndex) ?? "Figure 1. Caption",
                 rect: [10, 5, 80, 18],
               },
             ],
@@ -604,6 +770,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
     annotationComments: () => annotationComments,
     annotationWrites: () => writes,
     logs: () => logs,
+    openedDocumentCount: () => openedDocuments,
     pdfEngine,
     reader: readers[0],
     readers,

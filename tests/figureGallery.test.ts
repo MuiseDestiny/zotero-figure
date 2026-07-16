@@ -153,6 +153,32 @@ test("atomically drops deleted results when a library is reloaded", async () => 
   assert.equal((await index.readImage(newID)).base64, "L2ltYWdlcy9uZXcucG5n");
 });
 
+test("preserves the previous snapshot when an attachment refresh fails", async () => {
+  let failRefresh = false;
+  const attachment = galleryAttachment(1, "ATTACHMENT");
+  const index = new FigureGalleryIndex(
+    {
+      list: async () => {
+        if (failRefresh) throw new Error("manifest could not be read");
+        return [storedGalleryResult("retained", "/images/retained.png")];
+      },
+      listIndexedAttachmentKeys: async () => ["ATTACHMENT"],
+    },
+    galleryPlatform([attachment]),
+  );
+
+  const first = await index.loadLibrary(1);
+  const retainedID = first.entries[0].id;
+  failRefresh = true;
+
+  await assert.rejects(index.loadLibrary(1), /manifest could not be read/);
+  assert.equal(
+    (await index.readImage(retainedID)).base64,
+    "L2ltYWdlcy9yZXRhaW5lZC5wbmc=",
+  );
+  await index.openSource(retainedID);
+});
+
 test("resolves out-of-order same-library loads to the indexed snapshot", async () => {
   const first = createDeferred<StoredFigureResult[]>();
   const second = createDeferred<StoredFigureResult[]>();

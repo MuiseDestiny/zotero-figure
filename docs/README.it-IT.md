@@ -12,10 +12,11 @@ Zotero Figure legge localmente gli allegati PDF con MuPDF WASM, rileva figure, t
 
 - Rilevamento locale di figure, tabelle e formule isolate.
 - La nota a piè di tabella più vicina viene inclusa nel ritaglio e nella didascalia della tabella.
-- Lettura diretta dell'allegato in un Worker MuPDF WASM, estrazione di pagine e testo, rendering delle immagini di rilevamento a 640 px e rendering diretto dei PNG ad alta risoluzione dalle coordinate PDF. Il pannello Reader e i futuri flussi batch condividono gli stessi risultati locali.
+- Lettura diretta dell'allegato in un Worker MuPDF WASM, estrazione di pagine e testo, rendering delle immagini di rilevamento a 640 px e rendering diretto dei PNG ad alta risoluzione dalle coordinate PDF. Il pannello Reader e i flussi batch della finestra principale condividono gli stessi risultati locali.
 - Modello Q8 ottimizzato incluso nell'XPI, copia installata verificata tramite dimensione esatta e SHA-256, quindi byte verificati trasferiti al Worker e sottoposti a un ulteriore controllo SHA-256 prima dell'inferenza.
 - Indice dei risultati per allegato salvato come JSON e immagini estratte salvate come PNG nella directory dati di Zotero.
 - Nuova analisi sicura, sostituendo i risultati locali pagina per pagina o aggiungendo solo quelli mancanti.
+- Se l'analisi viene annullata o la scrittura di una pagina non riesce, vengono annullate le nuove annotazioni speculari create per quella pagina; le scritture PNG non confermate vengono rimosse e i PNG sovrascritti vengono ripristinati.
 - Analisi annullabile; l'annullamento termina i Worker di inferenza interessati, che vengono ricreati per le attività successive. Il rilevamento rimane a 640 px. Ogni risultato non memorizzato viene renderizzato direttamente dal rettangolo PDF, con lato lungo obiettivo di 2400 px, fino a 6x e 8 megapixel, senza una tela ad alta risoluzione dell'intera pagina.
 - Anche le pagine senza testo estraibile vengono inviate al rilevatore anziché essere ignorate. Le pagine con testo usano indicazioni complete e più rigorose per figure e tabelle in inglese, cinese, italiano e russo.
 - Icona Zotero Figure nella barra laterale sinistra come unico accesso principale; il plugin non aggiunge pulsanti alla barra superiore del lettore.

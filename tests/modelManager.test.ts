@@ -5,6 +5,7 @@ import {
   RECOMMENDED_MODEL,
 } from "../src/services/model/modelCatalog";
 import { ModelManager } from "../src/services/model/modelManager";
+import { OperationCancelledError } from "../src/utils/cancellation";
 
 test("validates models by exact size and SHA-256 and caches unchanged files", async () => {
   const previousIOUtils = globalThis.IOUtils;
@@ -166,3 +167,122 @@ test("installs the bundled Q8 model from the local chrome resource", async () =>
     globalThis.Zotero = previousZotero;
   }
 });
+
+test("caller cancellation preserves duplicate subscriptions to a shared model installation", async () => {
+  const previousIOUtils = globalThis.IOUtils;
+  const previousPathUtils = globalThis.PathUtils;
+  const previousZotero = globalThis.Zotero;
+  const files = new Map<string, Uint8Array>();
+  const modelBytes = new Uint8Array(RECOMMENDED_MODEL.size);
+  let progressListener: EventListener | undefined;
+  let requestCount = 0;
+  let resolveRequest!: (value: { response: ArrayBuffer }) => void;
+
+  globalThis.PathUtils = {
+    join: (...parts: string[]) => parts.join("/").replace(/\/+/g, "/"),
+  } as unknown as typeof PathUtils;
+  globalThis.IOUtils = {
+    computeHexDigest: async (path: string) =>
+      files.get(path)?.byteLength === RECOMMENDED_MODEL.size
+        ? RECOMMENDED_MODEL.sha256
+        : "0".repeat(64),
+    exists: async (path: string) => files.has(path),
+    makeDirectory: async () => undefined,
+    move: async (source: string, destination: string) => {
+      const bytes = files.get(source);
+      if (!bytes) throw new Error(`Missing source: ${source}`);
+      files.set(destination, bytes);
+      files.delete(source);
+    },
+    remove: async (path: string) => {
+      files.delete(path);
+    },
+    stat: async (path: string) =>
+      ({
+        lastModified: 1,
+        size: files.get(path)?.byteLength,
+      }) as FileInfo,
+    write: async (path: string, bytes: Uint8Array) => {
+      files.set(path, bytes);
+      return bytes.byteLength;
+    },
+  } as unknown as typeof IOUtils;
+  globalThis.Zotero = {
+    DataDirectory: { dir: "/data" },
+    HTTP: {
+      request: async (
+        _method: string,
+        _url: string,
+        options: {
+          requestObserver?: (request: XMLHttpRequest) => void;
+        },
+      ) => {
+        requestCount++;
+        options.requestObserver?.({
+          addEventListener: (_type: string, listener: EventListener) => {
+            progressListener = listener;
+          },
+        } as unknown as XMLHttpRequest);
+        return new Promise<{ response: ArrayBuffer }>((resolve) => {
+          resolveRequest = resolve;
+        });
+      },
+    },
+    logError: () => undefined,
+  } as unknown as typeof Zotero;
+
+  try {
+    const manager = new ModelManager();
+    const controller = new AbortController();
+    const progressValues: number[] = [];
+    const progressReceivers: unknown[] = [];
+    const onProgress = function (
+      this: unknown,
+      { loaded }: { loaded: number },
+    ) {
+      progressReceivers.push(this);
+      progressValues.push(loaded);
+    };
+    const first = manager.ensureRecommendedModel({
+      onProgress,
+      signal: controller.signal,
+    });
+    const second = manager.ensureRecommendedModel({
+      onProgress,
+    });
+    await waitFor(() => requestCount === 1 && progressListener !== undefined);
+    progressListener?.({
+      lengthComputable: true,
+      loaded: 1,
+      total: RECOMMENDED_MODEL.size,
+    } as ProgressEvent);
+    assert.deepEqual(progressValues, [1, 1]);
+    assert.deepEqual(progressReceivers, [undefined, undefined]);
+
+    controller.abort();
+    await assert.rejects(first, OperationCancelledError);
+    progressListener?.({
+      lengthComputable: true,
+      loaded: 2,
+      total: RECOMMENDED_MODEL.size,
+    } as ProgressEvent);
+    assert.deepEqual(progressValues, [1, 1, 2]);
+    assert.deepEqual(progressReceivers, [undefined, undefined, undefined]);
+
+    resolveRequest({ response: modelBytes.buffer });
+    assert.equal((await second).state, "valid");
+    assert.equal(requestCount, 1);
+  } finally {
+    globalThis.IOUtils = previousIOUtils;
+    globalThis.PathUtils = previousPathUtils;
+    globalThis.Zotero = previousZotero;
+  }
+});
+
+async function waitFor(condition: () => boolean): Promise<void> {
+  for (let attempt = 0; attempt < 100; attempt++) {
+    if (condition()) return;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+  throw new Error("Timed out waiting for model installation");
+}

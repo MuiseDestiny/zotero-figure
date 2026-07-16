@@ -248,8 +248,11 @@ export class FigureReaderController {
   ): Promise<void> {
     if (!this.win.confirm(getString("confirm-remove-one"))) return;
     await this.resultStore.remove(reader._item, result.id);
-    await removeGeneratedAnnotationForCandidate(reader._item, result);
-    this.reloadSidebarResults(reader);
+    try {
+      await removeGeneratedAnnotationForCandidate(reader._item, result);
+    } finally {
+      this.reloadSidebarResults(reader);
+    }
   }
 
   private async editResultComment(

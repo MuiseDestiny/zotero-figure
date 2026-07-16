@@ -1,0 +1,112 @@
+import * as assert from "node:assert/strict";
+import test from "node:test";
+import type { FigureGalleryEntry } from "../src/domain/figureGallery";
+import {
+  buildGalleryFilterOptions,
+  filterGalleryEntries,
+  formatGalleryOptionLabel,
+  matchesGalleryKeyword,
+} from "../src/features/gallery/galleryFilters";
+
+const entries: FigureGalleryEntry[] = [
+  galleryEntry({
+    collectionIDs: [10, 10, 11],
+    collectionNames: ["Alpha", "Ignored duplicate", "Beta"],
+    comment: "Figure 1. Results",
+    documentItemID: 1,
+    documentTitle: "Zebra study",
+    id: "figure",
+    kind: "figure",
+    tag: "Figure 1",
+    year: "2024",
+  }),
+  galleryEntry({
+    collectionIDs: [10],
+    collectionNames: ["Alpha"],
+    documentItemID: 1,
+    documentTitle: "Zebra study",
+    id: "table",
+    kind: "table",
+    tag: "Table 2",
+    year: "2023",
+  }),
+  galleryEntry({
+    collectionIDs: [11],
+    collectionNames: ["Beta"],
+    documentItemID: 2,
+    documentTitle: "Alpha methods",
+    id: "formula",
+    kind: "formula",
+    tag: "Formula 3",
+    year: "2024",
+  }),
+];
+
+test("builds stable counted options without double-counting one entry", () => {
+  const options = buildGalleryFilterOptions(entries, {
+    figure: "Figure",
+    formula: "Formula",
+    table: "Table",
+  });
+
+  assert.deepEqual(options.documents, [
+    ["2", "Alpha methods", 1],
+    ["1", "Zebra study", 2],
+  ]);
+  assert.deepEqual(options.collections, [
+    ["10", "Alpha", 2],
+    ["11", "Beta", 2],
+  ]);
+  assert.deepEqual(options.years, [
+    ["2024", "2024", 2],
+    ["2023", "2023", 1],
+  ]);
+  assert.deepEqual(options.kinds, [
+    ["figure", "Figure", 1],
+    ["formula", "Formula", 1],
+    ["table", "Table", 1],
+  ]);
+  assert.equal(formatGalleryOptionLabel("All figures", 3), "All figures (3)");
+});
+
+test("combines gallery filters and matches keywords case-insensitively", () => {
+  const sourceSnapshot = structuredClone(entries);
+  const filtered = filterGalleryEntries(entries, {
+    collectionID: "11",
+    documentID: "1",
+    keyword: " RESULTS ",
+    kind: "figure",
+    year: "2024",
+  });
+
+  assert.deepEqual(
+    filtered.map(({ id }) => id),
+    ["figure"],
+  );
+  assert.equal(matchesGalleryKeyword(entries[1], "TABLE 2"), true);
+  assert.equal(matchesGalleryKeyword(entries[2], "alpha METHODS"), true);
+  assert.equal(matchesGalleryKeyword(entries[2], "missing"), false);
+  assert.deepEqual(entries, sourceSnapshot);
+});
+
+function galleryEntry(
+  overrides: Partial<FigureGalleryEntry> &
+    Pick<
+      FigureGalleryEntry,
+      "documentItemID" | "documentTitle" | "id" | "kind"
+    >,
+): FigureGalleryEntry {
+  return {
+    attachmentID: 100,
+    collectionIDs: [],
+    collectionNames: [],
+    comment: "",
+    libraryID: 1,
+    pageIndex: 0,
+    pageLabel: "1",
+    rect: [1, 2, 3, 4],
+    tag: "",
+    year: "",
+    ...overrides,
+  };
+}

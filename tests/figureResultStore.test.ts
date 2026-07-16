@@ -338,6 +338,44 @@ test("does not apply detected-rect images to a persisted manual crop", async () 
   }
 });
 
+test("refreshes an invalid cache when equivalent detection coordinates jitter", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const original = makeCandidate({ rect: [1.01, 2.01, 10.01, 12.01] });
+  const jittered = makeCandidate({ rect: [1.04, 2.04, 10.04, 12.04] });
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [original],
+      [bytes(1)],
+      "replace-page",
+    );
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+    const plan = await store.getPageRenderCandidates(harness.item, 0, [
+      jittered,
+    ]);
+    assert.deepEqual(plan[0].renderRect, jittered.rect);
+
+    await store.reconcilePlannedPage(
+      harness.item,
+      0,
+      plan,
+      [bytes(9)],
+      "replace-page",
+    );
+
+    const [stored] = await store.list(harness.item);
+    assert.equal(stored.id, seeded.results[0].id);
+    assert.deepEqual(stored.rect, jittered.rect);
+    assert.deepEqual(harness.io.readBytes(stored.imagePath), [9]);
+    assert.ok(await store.getReusablePageResults(harness.item, 0, [jittered]));
+  } finally {
+    harness.restore();
+  }
+});
+
 test("does not replace corrupt or unreadable manifests with empty data", async () => {
   const harness = installStoreHarness();
   const store = new FigureResultStore();
@@ -490,6 +528,51 @@ test("restores an overwritten PNG when reconciliation is cancelled", async () =>
       harness.io.readBytes(seeded.results[0].imagePath),
       [1, 2, 3],
     );
+  } finally {
+    harness.restore();
+  }
+});
+
+test("does not roll back a committed manifest when temporary cleanup fails", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+    const originalExists = IOUtils.exists.bind(IOUtils);
+    const originalMove = IOUtils.move.bind(IOUtils);
+    let manifestMoved = false;
+    IOUtils.move = async (source: string, destination: string, options) => {
+      const result = await originalMove(source, destination, options);
+      if (destination === getManifestPath()) manifestMoved = true;
+      return result;
+    };
+    IOUtils.exists = async (path: string) => {
+      if (manifestMoved && path.includes("manifest.json.part-")) {
+        throw new Error("simulated temporary cleanup failure");
+      }
+      return originalExists(path);
+    };
+
+    const updated = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(9, 8)],
+      "replace-page",
+    );
+
+    assert.equal(updated.skipped, 1);
+    assert.deepEqual(harness.io.readBytes(seeded.results[0].imagePath), [9, 8]);
+    assert.ok(await store.getReusablePageResults(harness.item, 0, [candidate]));
   } finally {
     harness.restore();
   }
@@ -648,6 +731,67 @@ test("clear removes the attachment's local manifest and images", async () => {
     assert.equal(harness.io.exists(getManifestPath()), false);
     assert.equal(harness.io.exists(imagePath), false);
     assert.deepEqual(await store.list(harness.item), []);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("prunes skipped pages and results beyond the current PDF", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const retained = makeCandidate({ pageIndex: 0 });
+  const skipped = makeCandidate({
+    comment: "Figure 2. Skipped",
+    pageIndex: 1,
+    tag: "Figure 2",
+  });
+  const removedPage = makeCandidate({
+    comment: "Figure 4. Removed page",
+    pageIndex: 3,
+    tag: "Figure 4",
+  });
+
+  try {
+    await store.reconcilePage(
+      harness.item,
+      0,
+      [retained],
+      [bytes(1)],
+      "replace-page",
+    );
+    await store.reconcilePage(
+      harness.item,
+      1,
+      [skipped],
+      [bytes(2)],
+      "replace-page",
+    );
+    await store.reconcilePage(
+      harness.item,
+      3,
+      [removedPage],
+      [bytes(4)],
+      "replace-page",
+    );
+    const before = await store.list(harness.item);
+    const removedPaths = before
+      .filter(({ pageIndex }) => pageIndex !== 0)
+      .map(({ imagePath }) => imagePath);
+    const retainedPath = before.find(
+      ({ pageIndex }) => pageIndex === 0,
+    )!.imagePath;
+
+    const pruned = await store.pruneAfterAnalysis(harness.item, 3, [1]);
+
+    assert.equal(pruned.removed, 2);
+    assert.deepEqual(pruned.removedPageIndices, [1, 3]);
+    assert.deepEqual(
+      (await store.list(harness.item)).map(({ id }) => id),
+      [getFigureResultID(retained)],
+    );
+    for (const path of removedPaths)
+      assert.equal(harness.io.exists(path), false);
+    assert.equal(harness.io.exists(retainedPath), true);
   } finally {
     harness.restore();
   }
@@ -865,6 +1009,44 @@ test("persists manual crop corrections across repeated analysis", async () => {
     assert.deepEqual(reset?.rect, candidate.rect);
     assert.equal(reset?.detectedRect, undefined);
     assert.deepEqual(harness.io.readBytes(original.imagePath), [7]);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("does not overwrite a corrected PNG when its rollback backup cannot be read", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate();
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    const imagePath = seeded.results[0].imagePath;
+    const originalManifest = harness.io.readText(getManifestPath());
+    const originalRead = IOUtils.read.bind(IOUtils);
+    IOUtils.read = async (path: string) => {
+      if (path === imagePath) throw new Error("simulated backup read failure");
+      return originalRead(path);
+    };
+
+    await assert.rejects(
+      store.updateRegion(
+        harness.item,
+        seeded.results[0].id,
+        [2, 3, 12, 14],
+        bytes(9),
+      ),
+      /simulated backup read failure/,
+    );
+
+    assert.equal(harness.io.readText(getManifestPath()), originalManifest);
+    assert.deepEqual(harness.io.readBytes(imagePath), [1, 2, 3]);
   } finally {
     harness.restore();
   }
@@ -1179,6 +1361,7 @@ function installStoreHarness(): {
   const io = installMemoryIO();
   globalThis.Zotero = {
     DataDirectory: { dir: "/data" },
+    logError: () => undefined,
   } as unknown as typeof Zotero;
   return {
     io,

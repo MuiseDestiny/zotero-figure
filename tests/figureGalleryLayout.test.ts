@@ -3,7 +3,23 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const markup = readFileSync("addon/chrome/content/gallery/index.html", "utf8");
-const script = readFileSync("addon/chrome/content/gallery/gallery.js", "utf8");
+const script = readFileSync(
+  "src/features/gallery/figureGalleryView.ts",
+  "utf8",
+);
+const filters = readFileSync("src/features/gallery/galleryFilters.ts", "utf8");
+const imageCoordinator = readFileSync(
+  "src/features/gallery/galleryImageLoadCoordinator.ts",
+  "utf8",
+);
+const imageLoadMonitor = readFileSync(
+  "src/features/reader/imageLoadMonitor.ts",
+  "utf8",
+);
+const loadCoordinator = readFileSync(
+  "src/features/gallery/galleryLibraryLoadCoordinator.ts",
+  "utf8",
+);
 const css = readFileSync("addon/chrome/content/gallery/gallery.css", "utf8");
 const tabAdapter = readFileSync("src/platform/zotero/mainTab.ts", "utf8");
 const hooks = readFileSync("src/hooks.ts", "utf8");
@@ -37,21 +53,21 @@ test("exposes all requested cross-document filters", () => {
   ]) {
     assert.match(markup, new RegExp(`id="${id}"`));
   }
-  assert.match(script, /entry\.documentItemID/);
-  assert.match(script, /entry\.year/);
-  assert.match(script, /entry\.collectionIDs/);
-  assert.match(script, /entry\.kind/);
-  assert.match(script, /entry\.comment, entry\.tag, entry\.documentTitle/);
+  assert.match(filters, /entry\.documentItemID/);
+  assert.match(filters, /entry\.year/);
+  assert.match(filters, /entry\.collectionIDs/);
+  assert.match(filters, /entry\.kind/);
+  assert.match(filters, /entry\.comment, entry\.tag, entry\.documentTitle/);
   assert.match(
     script,
     /select\.addEventListener\("input", scheduleFilterUpdate\)/,
   );
-  assert.match(script, /function countedOptions\(/);
-  assert.match(script, /formatOptionLabel\(label, count\)/);
+  assert.match(filters, /function countOptions\(/);
+  assert.match(script, /formatGalleryOptionLabel\(label, count\)/);
   assert.match(script, /document\.createElement\("mark"\)/);
   assert.match(script, /setHighlightedText\(caption, entry\.comment\)/);
   assert.match(script, /kind\.append\(createKindIcon\(entry\.kind\)\)/);
-  assert.match(script, /function createKindIcon\(kind\)/);
+  assert.match(script, /function createKindIcon\(kind: FigureResultKind\)/);
   assert.match(script, /M12 3v18/);
   assert.match(script, /m21 15-3\.086-3\.086/);
   assert.match(script, /M18 7V5/);
@@ -69,11 +85,11 @@ test("exposes all requested cross-document filters", () => {
 
 test("bounds rendering and lazy image work while revoking blob URLs", () => {
   assert.match(script, /const PAGE_SIZE = 60/);
-  assert.match(script, /const IMAGE_CONCURRENCY = 4/);
+  assert.match(imageCoordinator, /const DEFAULT_IMAGE_CONCURRENCY = 4/);
   assert.match(script, /new IntersectionObserver/);
-  assert.match(script, /activeImageLoads < IMAGE_CONCURRENCY/);
-  assert.match(script, /URL\.createObjectURL\(\s*new Blob/);
-  assert.match(script, /URL\.revokeObjectURL/);
+  assert.match(imageCoordinator, /new BoundedAsyncTaskQueue\(/);
+  assert.match(imageCoordinator, /URL\.createObjectURL\(\s*new Blob/);
+  assert.match(imageCoordinator, /URL\.revokeObjectURL/);
   assert.match(script, /api\.openSource\(entryID\)/);
   assert.match(script, /style\.setProperty\("display", "none", "important"\)/);
   assert.match(css, /column-width:\s*230px/);
@@ -113,5 +129,28 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
   assert.match(css, /transform:\s*translateX\(-50%\)/);
   assert.doesNotMatch(css, /\.gallery-toolbar\s*\{[^}]*position:\s*sticky/);
   assert.match(script, /parentElement\?\.classList\.add\("is-loaded"\)/);
+  assert.match(loadCoordinator, /const requestID = \+\+this\.requestID/);
+  assert.match(
+    loadCoordinator,
+    /await this\.port\.buildFilterOptions\(snapshot\)/,
+  );
+  assert.match(loadCoordinator, /loadedSnapshot = snapshot/);
+  assert.match(loadCoordinator, /requestID === this\.requestID/);
+  assert.match(
+    script,
+    /if \(loadedSnapshot\)[\s\S]*entriesByID\.clear\(\)[\s\S]*showState\("error"/,
+  );
+  assert.match(script, /catch \{[\s\S]*return messageID/);
+  assert.match(script, /committedLibraryID === libraryID/);
+  assert.match(
+    script,
+    /if \(committedLibraryID === libraryID\)[\s\S]*applyFilters\(\)/,
+  );
+  assert.match(imageCoordinator, /const outcome = await monitor\.promise/);
+  assert.match(imageCoordinator, /loadCancellers/);
+  assert.match(imageCoordinator, /monitorImageLoad/);
+  assert.doesNotMatch(imageCoordinator, /function monitorImageLoad/);
+  assert.match(imageLoadMonitor, /image\.decode\(\)/);
+  assert.doesNotMatch(script, /blobURLs|activeLoads|function countOptions/);
   assert.match(css, /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/);
 });

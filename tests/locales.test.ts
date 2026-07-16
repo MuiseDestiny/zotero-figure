@@ -53,7 +53,7 @@ test("runtime Fluent contains every message requested by source code", () => {
 
 function readGalleryMessageKeys(): string[] {
   const source = readFileSync(
-    "addon/chrome/content/gallery/gallery.js",
+    "src/features/gallery/figureGalleryView.ts",
     "utf8",
   );
   const keys = [

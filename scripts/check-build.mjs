@@ -22,7 +22,12 @@ const requiredInputs = [
   "src/domain/figureResults.ts",
   "src/features/library/figureBatchController.ts",
   "src/features/gallery/figureGalleryController.ts",
+  "src/features/gallery/galleryFilters.ts",
+  "src/features/gallery/galleryImageLoadCoordinator.ts",
+  "src/features/gallery/figureGalleryView.ts",
+  "src/features/gallery/galleryLibraryLoadCoordinator.ts",
   "src/features/reader/figureSidebarPanel.ts",
+  "src/features/reader/imageLoadMonitor.ts",
   "src/features/reader/figureReaderController.ts",
   "src/platform/zotero/pdfTranslate.ts",
   "src/platform/zotero/figureGallery.ts",
@@ -41,13 +46,24 @@ const requiredInputs = [
 ];
 const inputs = new Set(Object.keys(result.metafile?.inputs ?? {}));
 for (const input of requiredInputs) {
-  if (!inputs.has(input)) throw new Error(`Main bundle is missing ${input}`);
+  if (!inputs.has(input)) throw new Error(`Build graph is missing ${input}`);
+}
+
+const outputPaths = new Set(
+  result.outputFiles.map(({ path }) => path.replaceAll("\\", "/")),
+);
+for (const output of [
+  `/build/addon/chrome/content/gallery/gallery.js`,
+  `/build/addon/chrome/content/scripts/${details.config.addonRef}.js`,
+]) {
+  if (![...outputPaths].some((path) => path.endsWith(output))) {
+    throw new Error(`Build check did not emit ${output}`);
+  }
 }
 
 const requiredAssets = [
   "addon/chrome/content/figure-sidebar.css",
   "addon/chrome/content/gallery/gallery.css",
-  "addon/chrome/content/gallery/gallery.js",
   "addon/chrome/content/gallery/index.html",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/config.json",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/preprocessor_config.json",
@@ -78,14 +94,6 @@ await transform(readFileSync("addon/chrome/content/mupdf-worker.js", "utf8"), {
   loader: "js",
   target: "firefox128",
 });
-await transform(
-  readFileSync("addon/chrome/content/gallery/gallery.js", "utf8"),
-  {
-    loader: "js",
-    target: "firefox128",
-  },
-);
-
 for (const key of [
   "addonID",
   "addonRef",

@@ -17,7 +17,7 @@ These instructions apply to the entire repository.
 - Keep analysis cancellation observable as `OperationCancelledError`; do not convert cancellation into a failed page.
 - Keep page rendering and inference bounded. Increasing pipeline depth requires a documented memory analysis and focused tests.
 - Repeated analysis must go through `reconcileGeneratedAnnotations`. Preserve both `replace-page` and `skip-existing` behavior and rollback newly created annotations on cancellation or failure.
-- Generated annotations are identified by both the `zoterofigure` author and a `Figure` or `Table` tag. Do not broaden destructive deletion rules casually.
+- Generated annotations are identified by both the `zoterofigure` author and a `Figure`, `Table`, or `Formula` tag. Do not broaden destructive deletion rules casually.
 - Update all runtime Fluent locales (`en-US`, `zh-CN`, `it-IT`, `ru-RU`) together. Preserve identical message keys and variables.
 - Keep all six README translations aligned when requirements, installation, model handling, or user-visible behavior changes.
 

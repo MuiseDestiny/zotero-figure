@@ -720,7 +720,7 @@ export function renderComparisonHtml(report) {
       render();
     });
 
-    elements.subtitle.textContent = report.metadata.pdfTitle + " | " + report.metadata.pdfPath;
+    elements.subtitle.textContent = report.metadata.pdfTitle;
     elements["run-meta"].innerHTML = "生成于 " + report.metadata.generatedAt + "<br>DocLayout " + formatSeconds(report.metadata.timings.docLayoutMs) + " / Zotero " + formatSeconds(report.metadata.timings.zoteroMs);
     elements.methodology.textContent = "本次结果：DocLayout-YOLO 生成 " + report.summary.docLayoutFigures + " 个图像框并识别 " + report.summary.docLayoutFigureCaptions + " 个图注；Zotero SDT 生成 " + report.summary.zoteroFigures + " 个 image 节点并识别 " + report.summary.zoteroFigureCaptions + " 个图注。图像框跨模型匹配 " + report.summary.matchedFigures + " 个。表格两侧各检测到 " + report.summary.docLayoutTables + " 个，匹配 " + report.summary.matchedTables + " 个，平均边界 IoU 为 " + formatPercent(report.summary.averageMatchedTableIou) + "。SDT 模型使用 PDF 文字行与对象特征，不读取整页 RGB 像素；DocLayout-YOLO 使用渲染页图像。";
     renderSummary();

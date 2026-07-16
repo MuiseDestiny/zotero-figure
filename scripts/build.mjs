@@ -63,11 +63,11 @@ export const esbuildOptions = {
       ).toString("base64")}`,
     ),
   },
-  entryPoints: ["src/index.ts"],
-  outfile: path.join(
-    BUILD_DIR,
-    `addon/chrome/content/scripts/${config.addonRef}.js`,
-  ),
+  entryPoints: {
+    "gallery/gallery": "src/features/gallery/figureGalleryView.ts",
+    [`scripts/${config.addonRef}`]: "src/index.ts",
+  },
+  outdir: path.join(BUILD_DIR, "addon/chrome/content"),
   sourcemap: process.env.NODE_ENV === "development" ? "inline" : false,
   target: "firefox128",
 };
@@ -110,7 +110,6 @@ function validateSourceAssets() {
   const requiredFiles = [
     "addon/bootstrap.js",
     "addon/chrome/content/gallery/gallery.css",
-    "addon/chrome/content/gallery/gallery.js",
     "addon/chrome/content/gallery/index.html",
     "addon/chrome/content/preferences.xhtml",
     "addon/chrome/content/mupdf-worker.js",
@@ -120,6 +119,7 @@ function validateSourceAssets() {
     "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/preprocessor_config.json",
     "addon/manifest.json",
     "scripts/update-template.json",
+    "src/features/gallery/figureGalleryView.ts",
     "node_modules/@huggingface/transformers/LICENSE",
     "node_modules/mupdf/LICENSE",
     ...MUPDF_DIST_FILES.map((file) => `node_modules/mupdf/dist/${file}`),

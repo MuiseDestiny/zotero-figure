@@ -11,6 +11,18 @@ const iconSource = readFileSync(
   "src/features/reader/figureSidebarIcons.ts",
   "utf8",
 );
+const pinnedCardViewSource = readFileSync(
+  "src/features/reader/pinnedFigureCardView.ts",
+  "utf8",
+);
+const sidebarImageLoadSource = readFileSync(
+  "src/features/reader/sidebarImageLoadCoordinator.ts",
+  "utf8",
+);
+const resultEditorSource = readFileSync(
+  "src/features/reader/sidebarResultEditorController.ts",
+  "utf8",
+);
 const controllerSource = readFileSync(
   "src/features/reader/figureReaderController.ts",
   "utf8",
@@ -167,7 +179,7 @@ test("navigates hover result menus without rebuilding the active filter", () => 
   const createCard = getSourceSection(
     panelSource,
     "  private createCard(",
-    "  private async loadLocalImage(",
+    "  private createCardStart(",
   );
   const filters = getRule(".zoterofigure-sidebar-filters");
   const filterSlot = getRule(".zoterofigure-sidebar-filter-slot");
@@ -219,26 +231,46 @@ test("pins a complete card with an independent image URL", () => {
   const pinCard = getSourceSection(
     panelSource,
     "  private async pinCard(",
-    "  private preparePinnedCardElement(",
+    "  private restorePinnedCardInteractions(",
   );
   const restoreInteractions = getSourceSection(
     panelSource,
     "  private restorePinnedCardInteractions(",
-    "  private bindPinnedCard(",
+    "  private bringPinnedCardToFront(",
   );
   const preparePinnedCard = getSourceSection(
-    panelSource,
-    "  private preparePinnedCardElement(",
-    "  private restorePinnedCardInteractions(",
+    pinnedCardViewSource,
+    "export function preparePinnedFigureCardElement(",
+    "export function bindPinnedFigureCard(",
   );
   const bindPinnedCard = getSourceSection(
-    panelSource,
-    "  private bindPinnedCard(",
-    "  private bringPinnedCardToFront(",
+    pinnedCardViewSource,
+    "export function bindPinnedFigureCard(",
+    "function getDocumentViewportSize(",
   );
   const closePinnedCard = getSourceSection(
     panelSource,
     "  private closePinnedCard(",
+    "  private reconcilePinnedCards(",
+  );
+  const reconcilePinnedCards = getSourceSection(
+    panelSource,
+    "  private reconcilePinnedCards(",
+    "  private requestPinnedCardRefresh(",
+  );
+  const requestPinnedCardRefresh = getSourceSection(
+    panelSource,
+    "  private requestPinnedCardRefresh(",
+    "  private createPinnedCardResultSnapshot(",
+  );
+  const preparePinnedCardSnapshot = getSourceSection(
+    panelSource,
+    "  private async preparePinnedCardSnapshot(",
+    "  private createPreparedPinnedCardContent(",
+  );
+  const applyPinnedCardSnapshot = getSourceSection(
+    panelSource,
+    "  private applyPinnedCardSnapshot(",
     "  private disposePinnedCards(",
   );
   const openMenu = getSourceSection(
@@ -247,8 +279,18 @@ test("pins a complete card with an independent image URL", () => {
     "  private closeMenu(",
   );
   const openCommentEditor = getSourceSection(
+    resultEditorSource,
+    "  public async editComment(",
+    "  public async correctRegion(",
+  );
+  const panelCommentEditor = getSourceSection(
     panelSource,
     "  private async openCommentEditor(",
+    "  private async openRegionEditor(",
+  );
+  const panelRegionEditor = getSourceSection(
+    panelSource,
+    "  private async openRegionEditor(",
     "  private applyUpdatedResult(",
   );
   const applyUpdatedResult = getSourceSection(
@@ -302,17 +344,21 @@ test("pins a complete card with an independent image URL", () => {
     /this\.createMenuButton\(document, result\)/,
   );
   assert.match(restoreInteractions, /this\.createComment\(document, result\)/);
-  assert.match(restoreInteractions, /this\.scheduleImageNavigation\(result\)/);
+  assert.match(restoreInteractions, /this\.getCurrentResult\(result\.id\)/);
+  assert.match(
+    restoreInteractions,
+    /this\.scheduleImageNavigation\(getCurrentResult\(\)\)/,
+  );
   assert.match(
     preparePinnedCard,
-    /sourceGeometry\.width > 0[\s\S]*sourceGeometry\.width[\s\S]*PINNED_CARD_FALLBACK_WIDTH/,
+    /sourceGeometry\.width > 0[\s\S]*sourceGeometry\.width[\s\S]*FALLBACK_WIDTH/,
   );
   assert.match(preparePinnedCard, /element\.style\.fontFamily/);
   assert.match(preparePinnedCard, /element\.style\.fontSize/);
   assert.match(preparePinnedCard, /element\.style\.lineHeight/);
   assert.match(
     bindPinnedCard,
-    /x: sourceGeometry\.right \+ PINNED_CARD_MARGIN \+ stagger/,
+    /x: sourceGeometry\.right \+ CARD_MARGIN \+ stagger/,
   );
   assert.match(bindPinnedCard, /y: sourceGeometry\.top \+ stagger/);
   assert.match(bindPinnedCard, /addEventListener\("click", handleClickCapture/);
@@ -327,10 +373,7 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(bindPinnedCard, /interpolatePinnedCardTransform\(/);
   assert.match(bindPinnedCard, /getPinnedCardSmoothingProgress\(/);
   assert.match(bindPinnedCard, /frameTime - previousTransformFrameTime/);
-  assert.match(
-    bindPinnedCard,
-    /PINNED_CARD_MAX_WHEEL_DELTA[\s\S]*PINNED_CARD_WHEEL_SENSITIVITY/,
-  );
+  assert.match(bindPinnedCard, /MAX_WHEEL_DELTA[\s\S]*WHEEL_SENSITIVITY/);
   assert.match(bindPinnedCard, /requestAnimationFrame\(step\)/);
   assert.match(bindPinnedCard, /cancelAnimationFrame\(transformFrameID\)/);
   assert.match(bindPinnedCard, /addEventListener\("dblclick"/);
@@ -338,10 +381,25 @@ test("pins a complete card with an independent image URL", () => {
     bindPinnedCard,
     /target\?\.closest\("button, a, input, select, textarea"\)/,
   );
-  assert.match(bindPinnedCard, /this\.closePinnedCard\(resultID\)/);
+  assert.match(bindPinnedCard, /onClose\(\)/);
+  assert.match(pinCard, /onClose: \(\) => this\.closePinnedCard\(result\.id\)/);
   assert.match(closePinnedCard, /this\.cancelImageNavigation\(\)/);
   assert.match(closePinnedCard, /entry\.element\.contains\(this\.menuAnchor\)/);
   assert.match(closePinnedCard, /this\.closeMenu\(\)/);
+  assert.match(reconcilePinnedCards, /this\.requestPinnedCardRefresh/);
+  assert.match(
+    requestPinnedCardRefresh,
+    /entry\s*\.\s*refreshSnapshot\(prepare\)/,
+  );
+  assert.match(
+    requestPinnedCardRefresh,
+    /entry\.cancelPendingSnapshotRefresh\(\)/,
+  );
+  assert.match(preparePinnedCardSnapshot, /await IOUtils\.read/);
+  assert.match(preparePinnedCardSnapshot, /await loadMonitor\.promise/);
+  assert.match(preparePinnedCardSnapshot, /blobURL\.release/);
+  assert.match(applyPinnedCardSnapshot, /imageContainer\.replaceChildren/);
+  assert.doesNotMatch(applyPinnedCardSnapshot, /element\.replaceWith/);
   assert.match(
     openMenu,
     /\.zoterofigure-sidebar-card:not\(\.zoterofigure-pinned-card\)/,
@@ -361,13 +419,26 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(openMenu, /this\.openCommentEditor\(result\)/);
   assert.match(openMenu, /"sidebar-correct-region"/);
   assert.match(openMenu, /this\.openRegionEditor\(result\)/);
-  assert.match(openCommentEditor, /tag: "textarea"/);
-  assert.match(openCommentEditor, /"data-bind": "comment"/);
-  assert.match(openCommentEditor, /COMMENT_EDITOR_MAX_LENGTH/);
-  assert.match(openCommentEditor, /rows: 2/);
-  assert.match(openCommentEditor, /resize: "none"/);
-  assert.doesNotMatch(openCommentEditor, /resize: "vertical"/);
+  assert.match(resultEditorSource, /tag: "textarea"/);
+  assert.match(resultEditorSource, /"data-bind": "comment"/);
+  assert.match(resultEditorSource, /COMMENT_EDITOR_MAX_LENGTH/);
+  assert.match(resultEditorSource, /rows: 2/);
+  assert.match(resultEditorSource, /resize: "none"/);
+  assert.doesNotMatch(resultEditorSource, /resize: "vertical"/);
   assert.match(openCommentEditor, /this\.options\.onEditComment\(/);
+  assert.match(openCommentEditor, /\+\+this\.commentGeneration/);
+  assert.match(openCommentEditor, /isCurrentCommentRequest/);
+  assert.match(
+    panelCommentEditor,
+    /this\.resultEditors\.editComment\(result\)/,
+  );
+  assert.match(panelCommentEditor, /this\.applyUpdatedResult\(updated\)/);
+  assert.match(
+    panelRegionEditor,
+    /this\.resultEditors\.correctRegion\(result\)/,
+  );
+  assert.match(panelRegionEditor, /this\.reloadResults\(\)/);
+  assert.doesNotMatch(panelSource, /new ztoolkit\.Dialog/);
   assert.match(applyUpdatedResult, /this\.translatedComments\.delete/);
   assert.match(applyUpdatedResult, /this\.translationRequestID\+\+/);
   assert.match(applyUpdatedResult, /this\.translationPending = false/);
@@ -421,37 +492,56 @@ test("clears the sidebar before local files without touching annotation mirrors"
 });
 
 test("loads local previews lazily through revocable blob URLs", () => {
-  const loadLocalImage = getSourceSection(
+  const createCard = getSourceSection(
     panelSource,
-    "  private async loadLocalImage(",
-    "  private isCurrentImageEntry(",
+    "  private createCard(",
+    "  private createCardStart(",
   );
   const pinCard = getSourceSection(
     panelSource,
     "  private async pinCard(",
-    "  private preparePinnedCardElement(",
+    "  private restorePinnedCardInteractions(",
   );
 
-  assert.match(panelSource, /new BoundedAsyncTaskQueue\(/);
-  assert.match(panelSource, /IMAGE_LOAD_CONCURRENCY = 3/);
-  assert.match(panelSource, /IOUtils\.read\(entry\.result\.imagePath\)/);
-  assert.match(panelSource, /createDocumentBlobURL\(entry\.document/);
-  assert.match(panelSource, /blobURL\.release\(\)/);
-  assert.doesNotMatch(panelSource, /new Blob\(/);
-  assert.doesNotMatch(panelSource, /URL\.createObjectURL/);
-  assert.match(panelSource, /getBoundingClientRect\(\)/);
-  assert.match(panelSource, /image\.style\.aspectRatio/);
-  assert.doesNotMatch(panelSource, /readAsDataURL/);
-  assert.doesNotMatch(panelSource, /bytesToDataURL/);
-  assert.doesNotMatch(panelSource, /loading\s*=\s*["']eager["']/);
+  assert.match(panelSource, /new SidebarImageLoadCoordinator\(/);
+  assert.match(createCard, /this\.imageLoads\.register\(/);
+  assert.doesNotMatch(panelSource, /interface SidebarImageEntry/);
+  assert.doesNotMatch(panelSource, /private async loadLocalImage/);
+  assert.match(sidebarImageLoadSource, /new BoundedAsyncTaskQueue\(/);
+  assert.match(sidebarImageLoadSource, /SIDEBAR_IMAGE_LOAD_CONCURRENCY = 3/);
   assert.match(
-    loadLocalImage,
-    /addEventListener\(\s*"load"[\s\S]*container\.style\.aspectRatio = ""/,
+    sidebarImageLoadSource,
+    /this\.readBytes\(entry\.result\.imagePath\)/,
   );
+  assert.match(sidebarImageLoadSource, /createDocumentBlobURL\(document/);
+  assert.match(sidebarImageLoadSource, /blobURL\.release\(\)/);
+  assert.doesNotMatch(sidebarImageLoadSource, /new Blob\(/);
+  assert.doesNotMatch(sidebarImageLoadSource, /URL\.createObjectURL/);
+  assert.match(sidebarImageLoadSource, /getBoundingClientRect\(\)/);
+  assert.match(panelSource, /image\.style\.aspectRatio/);
+  assert.doesNotMatch(sidebarImageLoadSource, /readAsDataURL/);
+  assert.doesNotMatch(sidebarImageLoadSource, /bytesToDataURL/);
+  assert.doesNotMatch(sidebarImageLoadSource, /loading\s*=\s*["']eager["']/);
+  assert.match(sidebarImageLoadSource, /container\.style\.aspectRatio = ""/);
   assert.match(
     pinCard,
     /addEventListener\(\s*"load"[\s\S]*imageContainer\.style\.aspectRatio = ""/,
   );
+  assert.match(pinCard, /classList\.remove\("is-loaded"\)/);
+  assert.match(
+    pinCard,
+    /addEventListener\(\s*"error"[\s\S]*"sidebar-image-unavailable"/,
+  );
+  assert.match(sidebarImageLoadSource, /await loadMonitor\.promise/);
+  assert.match(sidebarImageLoadSource, /classList\.add\("is-loaded"\)/);
+  assert.match(
+    css,
+    /\.zoterofigure-card-image\.is-loaded\s*\{[^}]*min-height\s*:\s*0/,
+  );
+  const loadedImage = getRule(".zoterofigure-card-image img");
+  assert.match(loadedImage, /border\s*:\s*0\s*!important/);
+  assert.match(loadedImage, /margin\s*:\s*0\s*!important/);
+  assert.match(loadedImage, /padding\s*:\s*0\s*!important/);
 });
 
 test("analysis updates controls without rebuilding cards and reloads once", () => {
