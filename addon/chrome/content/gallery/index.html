@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title data-l10n-id="gallery-title">PDF Figure Library</title>
     <link rel="localization" href="__addonRef__-addon.ftl" />
+    <link rel="stylesheet" href="chrome://zotero-platform/content/zotero.css" />
     <link rel="stylesheet" href="gallery.css?v=__buildTimestamp__" />
     <script>
       Services.scriptloader.loadSubScript(
@@ -71,6 +72,27 @@
             <span aria-hidden="true">&#x21bb;</span>
           </button>
         </div>
+        <button
+          id="reset-filters"
+          class="gallery-icon-button gallery-reset-filters"
+          type="button"
+          data-l10n-id="gallery-reset-filters"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+            <path d="M3 3v5h5" />
+          </svg>
+        </button>
         <button
           id="toolbar-toggle"
           class="gallery-icon-button gallery-toolbar-toggle"

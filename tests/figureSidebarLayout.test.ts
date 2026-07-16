@@ -23,6 +23,10 @@ const resultEditorSource = readFileSync(
   "src/features/reader/sidebarResultEditorController.ts",
   "utf8",
 );
+const monacoLatexEditorSource = readFileSync(
+  "src/features/reader/monacoLatexEditor.ts",
+  "utf8",
+);
 const controllerSource = readFileSync(
   "src/features/reader/figureReaderController.ts",
   "utf8",
@@ -40,9 +44,13 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   const cardPage = getRule(".zoterofigure-card-page");
   const cardImage = getExactRule(".zoterofigure-card-image");
   const cardImageElement = getExactRule(".zoterofigure-card-image img");
+  const pinnedLatex = getRule(
+    ".zoterofigure-pinned-card .zoterofigure-card-image.is-latex",
+  );
   const noteIcon = getRule(".zoterofigure-native-note-icon");
   const analysisAction = getRule(".zoterofigure-analysis-action");
   const analysisIcon = getRule(".zoterofigure-analysis-plugin-icon");
+  const emptyAnalysisAction = getRule(".zoterofigure-sidebar-empty-action");
   const magnifier = getRule(
     ".zoterofigure-analysis-action .zoterofigure-analysis-magnifier",
   );
@@ -77,6 +85,10 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(cardImageElement, /max-width\s*:\s*100%\s*!important/);
   assert.match(cardImageElement, /min-width\s*:\s*0/);
   assert.match(cardImageElement, /width\s*:\s*100%\s*!important/);
+  assert.match(
+    pinnedLatex,
+    /font-size\s*:\s*var\(--zoterofigure-pinned-latex-font-size, 1em\)/,
+  );
   assert.match(noteIcon, /height\s*:\s*16px/);
   assert.match(noteIcon, /width\s*:\s*16px/);
   assert.doesNotMatch(noteIcon, /mask\s*:/);
@@ -90,6 +102,9 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(analysisAction, /position\s*:\s*relative/);
   assert.match(analysisIcon, /height\s*:\s*16px/);
   assert.match(analysisIcon, /width\s*:\s*16px/);
+  assert.match(emptyAnalysisAction, /display\s*:\s*inline-flex/);
+  assert.match(emptyAnalysisAction, /min-height\s*:\s*30px/);
+  assert.match(emptyAnalysisAction, /max-width\s*:\s*calc\(100% - 24px\)/);
   assert.match(magnifier, /position\s*:\s*absolute/);
   assert.match(magnifier, /color\s*:\s*var\(--fill-secondary\)/);
   assert.match(magnifier, /height\s*:\s*12px/);
@@ -307,7 +322,7 @@ test("pins a complete card with an independent image URL", () => {
     ".zoterofigure-sidebar-card.zoterofigure-pinned-card",
   );
 
-  assert.match(createCard, /image\.addEventListener\("dblclick"/);
+  assert.match(createCard, /media\.addEventListener\("dblclick"/);
   assert.match(createCard, /this\.cancelImageNavigation\(\)/);
   assert.match(pinCard, /IOUtils\.read\(result\.imagePath\)/);
   assert.match(pinCard, /this\.pinGeneration !== generation/);
@@ -356,6 +371,7 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(preparePinnedCard, /element\.style\.fontFamily/);
   assert.match(preparePinnedCard, /element\.style\.fontSize/);
   assert.match(preparePinnedCard, /element\.style\.lineHeight/);
+  assert.doesNotMatch(preparePinnedCard, /scale\(1\)/);
   assert.match(
     bindPinnedCard,
     /x: sourceGeometry\.right \+ CARD_MARGIN \+ stagger/,
@@ -364,9 +380,11 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(bindPinnedCard, /addEventListener\("click", handleClickCapture/);
   assert.match(bindPinnedCard, /addEventListener\("pointerdown"/);
   assert.match(bindPinnedCard, /setPointerCapture\(event\.pointerId\)/);
-  assert.match(bindPinnedCard, /addEventListener\("wheel"/);
+  assert.match(bindPinnedCard, /media\.addEventListener\("wheel"/);
+  assert.doesNotMatch(bindPinnedCard, /element\.addEventListener\("wheel"/);
   assert.match(bindPinnedCard, /passive: false/);
   assert.match(bindPinnedCard, /zoomPinnedCardAtPoint\(/);
+  assert.match(bindPinnedCard, /getPinnedCardRenderStyles\(/);
   assert.match(bindPinnedCard, /element\.offsetHeight/);
   assert.match(bindPinnedCard, /element\.offsetWidth/);
   assert.match(bindPinnedCard, /getCardSize\(\)/);
@@ -419,12 +437,42 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(openMenu, /this\.openCommentEditor\(result\)/);
   assert.match(openMenu, /"sidebar-correct-region"/);
   assert.match(openMenu, /this\.openRegionEditor\(result\)/);
+  assert.match(openMenu, /"sidebar-rerecognize-latex"/);
+  assert.match(openMenu, /this\.rerecognizeFormulaLatex\(anchor, result\)/);
+  assert.ok(
+    openMenu.indexOf('"sidebar-copy-latex"') <
+      openMenu.indexOf('"sidebar-rerecognize-latex"'),
+  );
+  assert.ok(
+    openMenu.indexOf('"sidebar-rerecognize-latex"') <
+      openMenu.indexOf('"sidebar-edit-latex"'),
+  );
   assert.match(resultEditorSource, /tag: "textarea"/);
   assert.match(resultEditorSource, /"data-bind": "comment"/);
   assert.match(resultEditorSource, /COMMENT_EDITOR_MAX_LENGTH/);
   assert.match(resultEditorSource, /rows: 2/);
   assert.match(resultEditorSource, /resize: "none"/);
-  assert.doesNotMatch(resultEditorSource, /resize: "vertical"/);
+  assert.match(resultEditorSource, /openMonacoLatexEditor/);
+  assert.match(resultEditorSource, /latexEditor\?\.close/);
+  assert.doesNotMatch(resultEditorSource, /"data-bind": "latex"/);
+  assert.match(
+    monacoLatexEditorSource,
+    /chrome:\/\/scaffold\/content\/monaco\/monaco\.html/,
+  );
+  assert.match(monacoLatexEditorSource, /"monaco"/);
+  assert.match(monacoLatexEditorSource, /scrollbars=yes,width=800,height=600/);
+  assert.match(monacoLatexEditorSource, /editorWindow\.focus\(\)/);
+  assert.match(monacoLatexEditorSource, /language: "plaintext"/);
+  assert.match(monacoLatexEditorSource, /theme: `vs-/);
+  assert.match(
+    monacoLatexEditorSource,
+    /editor\.setValue\(options\.initialValue\)/,
+  );
+  assert.match(monacoLatexEditorSource, /loadedEditor\.getValue\(\)/);
+  assert.match(monacoLatexEditorSource, /options\.saveLabel/);
+  assert.match(monacoLatexEditorSource, /options\.cancelLabel/);
+  assert.match(monacoLatexEditorSource, /settle\(undefined\)/);
+  assert.doesNotMatch(monacoLatexEditorSource, /editor\.addCommand/);
   assert.match(openCommentEditor, /this\.options\.onEditComment\(/);
   assert.match(openCommentEditor, /\+\+this\.commentGeneration/);
   assert.match(openCommentEditor, /isCurrentCommentRequest/);
@@ -454,7 +502,7 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(createComment, /this\.resultCards\.get\(resultID\)/);
   assert.match(createComment, /this\.pinnedCards\.get\(resultID\)/);
   assert.match(pinnedCard, /position\s*:\s*fixed/);
-  assert.match(pinnedCard, /transform-origin\s*:\s*top left/);
+  assert.doesNotMatch(pinnedCard, /transform-origin/);
   assert.doesNotMatch(
     css,
     /zoterofigure-pinned-card[^}]*pointer-events\s*:\s*none/,
@@ -518,7 +566,7 @@ test("loads local previews lazily through revocable blob URLs", () => {
   assert.doesNotMatch(sidebarImageLoadSource, /new Blob\(/);
   assert.doesNotMatch(sidebarImageLoadSource, /URL\.createObjectURL/);
   assert.match(sidebarImageLoadSource, /getBoundingClientRect\(\)/);
-  assert.match(panelSource, /image\.style\.aspectRatio/);
+  assert.match(panelSource, /media\.style\.aspectRatio/);
   assert.doesNotMatch(sidebarImageLoadSource, /readAsDataURL/);
   assert.doesNotMatch(sidebarImageLoadSource, /bytesToDataURL/);
   assert.doesNotMatch(sidebarImageLoadSource, /loading\s*=\s*["']eager["']/);
@@ -561,6 +609,30 @@ test("analysis updates controls without rebuilding cards and reloads once", () =
     runAnalysis.lastIndexOf("reloadSidebarResults(reader)") >
       runAnalysis.indexOf("finally"),
   );
+});
+
+test("offers analysis only when the PDF has no local results", () => {
+  const renderContent = getSourceSection(
+    panelSource,
+    "  private renderContent(",
+    "  private createControls(",
+  );
+  const createEmpty = getSourceSection(
+    panelSource,
+    "  private createEmpty(",
+    "  private createAnalysisProgress(",
+  );
+
+  assert.match(
+    renderContent,
+    /this\.createEmpty\(document, results\.length === 0\)/,
+  );
+  assert.match(createEmpty, /document\.createElement\("button"\)/);
+  assert.match(createEmpty, /sidebar-start-analysis/);
+  assert.match(createEmpty, /this\.options\.isAnalyzing\(\)/);
+  assert.match(createEmpty, /this\.options\.onAnalyze\(\)/);
+  assert.match(createEmpty, /document\.createElement\("div"\)/);
+  assert.match(createEmpty, /sidebar-empty/);
 });
 
 function getRule(selector: string): string {

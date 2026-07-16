@@ -16,9 +16,11 @@ test("uses the requested sigma path for formula results", () => {
 test("defines drawable parts for every sidebar icon", () => {
   for (const kind of [
     "annotation",
+    "check",
     "figure",
     "formula",
     "languages",
+    "loading",
     "menu",
     "refresh",
     "search",

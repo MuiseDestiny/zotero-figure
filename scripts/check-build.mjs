@@ -35,6 +35,8 @@ const requiredInputs = [
   "src/platform/zotero/annotations.ts",
   "src/platform/zotero/attachmentFile.ts",
   "src/services/figureOutputService.ts",
+  "src/services/formula/formulaLatexCoordinator.ts",
+  "src/services/formula/formulaLatexService.ts",
   "src/services/layout/layoutAnalyzer.ts",
   "src/services/results/figureResultStore.ts",
   "src/services/results/figureGalleryIndex.ts",
@@ -43,6 +45,7 @@ const requiredInputs = [
   "src/services/model/modelCatalog.ts",
   "src/services/model/modelManager.ts",
   "src/utils/cancellation.ts",
+  "src/utils/renderLatex.ts",
 ];
 const inputs = new Set(Object.keys(result.metafile?.inputs ?? {}));
 for (const input of requiredInputs) {
@@ -73,6 +76,7 @@ const requiredAssets = [
   "node_modules/mupdf/dist/mupdf-wasm.js",
   "node_modules/mupdf/dist/mupdf-wasm.wasm",
   "node_modules/mupdf/dist/mupdf.js",
+  "node_modules/katex/LICENSE",
 ];
 for (const asset of requiredAssets) {
   if (!existsSync(asset))

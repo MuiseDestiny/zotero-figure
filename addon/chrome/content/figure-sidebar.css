@@ -122,6 +122,10 @@
     animation: none;
     transform: translateX(2px);
   }
+
+  .zoterofigure-card-menu.is-loading .zoterofigure-icon-loading {
+    animation: none;
+  }
 }
 
 .zoterofigure-sidebar-action:hover:not(:disabled),
@@ -134,6 +138,26 @@
 .zoterofigure-card-menu:disabled {
   cursor: default;
   opacity: 0.38;
+}
+
+.zoterofigure-card-menu.is-loading,
+.zoterofigure-card-menu.is-success {
+  color: var(--fill-primary);
+  opacity: 1;
+}
+
+.zoterofigure-card-menu.is-success {
+  color: var(--accent-green, #2e7d32);
+}
+
+.zoterofigure-card-menu.is-loading .zoterofigure-icon-loading {
+  animation: zoterofigure-formula-loading 800ms linear infinite;
+}
+
+@keyframes zoterofigure-formula-loading {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .zoterofigure-sidebar-filters {
@@ -245,6 +269,39 @@
   text-align: center;
 }
 
+.zoterofigure-sidebar-empty-action {
+  align-self: center;
+  appearance: none;
+  background: var(--material-button, #ffffff);
+  border: 1px solid var(--fill-quaternary);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: var(--fill-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 12px;
+  justify-content: center;
+  margin: 20px 12px;
+  max-width: calc(100% - 24px);
+  min-height: 30px;
+  padding: 6px 14px;
+}
+
+.zoterofigure-sidebar-empty-action:hover:not(:disabled) {
+  background: var(--fill-quinary);
+}
+
+.zoterofigure-sidebar-empty-action:focus-visible {
+  outline: 2px solid var(--accent-blue, #3b82f6);
+  outline-offset: 2px;
+}
+
+.zoterofigure-sidebar-empty-action:disabled {
+  cursor: default;
+  opacity: 0.38;
+}
+
 .zoterofigure-analysis-progress {
   box-sizing: border-box;
   color: var(--fill-primary);
@@ -312,7 +369,6 @@
   margin: 0;
   position: fixed;
   touch-action: none;
-  transform-origin: top left;
   user-select: none;
   will-change: transform;
 }
@@ -376,6 +432,29 @@
 
 .zoterofigure-card-image.is-loaded {
   min-height: 0;
+}
+
+.zoterofigure-card-image.is-latex {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 72px;
+  overflow: auto;
+  padding: 12px 8px;
+}
+
+.zoterofigure-pinned-card .zoterofigure-card-image.is-latex {
+  font-size: var(--zoterofigure-pinned-latex-font-size, 1em);
+}
+
+.zoterofigure-rendered-latex {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: max-content;
+}
+
+.zoterofigure-rendered-latex .katex-display {
+  margin: 0;
 }
 
 .zoterofigure-card-image img {
@@ -451,6 +530,15 @@
   display: block;
   overflow: visible;
   -webkit-line-clamp: unset;
+}
+
+.zoterofigure-card-latex-error {
+  border-top: 1px solid var(--fill-quinary);
+  color: var(--accent-red, #b3261e);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  padding: 7px 8px;
 }
 
 .zoterofigure-sidebar-status {

@@ -7,26 +7,34 @@ import { FigureGalleryController } from "./features/gallery/figureGalleryControl
 import { FigureBatchController } from "./features/library/figureBatchController";
 import { FigureReaderController } from "./features/reader/figureReaderController";
 import { LayoutAnalyzer } from "./services/layout/layoutAnalyzer";
+import { FormulaLatexCoordinator } from "./services/formula/formulaLatexCoordinator";
 import { FigureGalleryIndex } from "./services/results/figureGalleryIndex";
 import { FigureResultStore } from "./services/results/figureResultStore";
 import { initLocale } from "./utils/locale";
 
 const controllers = new Map<Window, FigureReaderController>();
 const galleryControllers = new Map<Window, FigureGalleryController>();
-const resultStore = new FigureResultStore();
-const galleryIndex = new FigureGalleryIndex(resultStore);
-const layoutAnalyzer = new LayoutAnalyzer(resultStore);
-const batchController = new FigureBatchController(layoutAnalyzer, resultStore);
+let services: HookServices | undefined;
 
 async function onStartup(): Promise<void> {
   await waitForZotero();
   initLocale();
   await registerPrefs();
+  const { batchController, formulaLatex, galleryIndex } = ensureServices();
   addon.api.gallery = {
     getBootstrap: () => galleryIndex.getBootstrap(),
     loadLibrary: (libraryID: number) => galleryIndex.loadLibrary(libraryID),
     openSource: (entryID: string) => galleryIndex.openSource(entryID),
     readImage: (entryID: string) => galleryIndex.readImage(entryID),
+    subscribeFormulaLatex: (
+      listener: (entryID: string, latex: string) => void,
+    ) =>
+      formulaLatex.subscribe((update) =>
+        listener(
+          `${update.libraryID}:${update.attachmentKey}:${update.result.id}`,
+          update.result.latex ?? "",
+        ),
+      ),
   };
   batchController.start();
   await onMainWindowLoad(window);
@@ -34,7 +42,9 @@ async function onStartup(): Promise<void> {
 
 async function onMainWindowLoad(win: Window): Promise<void> {
   if (controllers.has(win)) return;
+  const { formulaLatex, layoutAnalyzer, resultStore } = ensureServices();
   const controller = new FigureReaderController(win, {
+    formulaLatex,
     layoutAnalyzer,
     resultStore,
   });
@@ -59,7 +69,8 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 }
 
 async function onShutdown(): Promise<void> {
-  batchController.dispose();
+  const initialized = services;
+  initialized?.batchController.dispose();
   for (const controller of [...controllers.values()].reverse()) {
     controller.dispose();
   }
@@ -69,7 +80,9 @@ async function onShutdown(): Promise<void> {
   }
   galleryControllers.clear();
   delete addon.api.gallery;
-  layoutAnalyzer.dispose();
+  initialized?.formulaLatex.dispose();
+  initialized?.layoutAnalyzer.dispose();
+  services = undefined;
   ztoolkit.unregisterAll();
   addon.data.dialog?.window?.close();
   addon.data.alive = false;
@@ -82,7 +95,42 @@ async function onPrefsEvent(
   type: string,
   data: { window: Window },
 ): Promise<void> {
-  if (type === "load") registerPrefsScripts(data.window);
+  if (type === "load") {
+    const { formulaLatex } = ensureServices();
+    registerPrefsScripts(data.window, {
+      recognizeExistingFormulae: (onProgress, signal) =>
+        formulaLatex.recognizeStoredFormulae(onProgress, signal),
+    });
+  }
+}
+
+interface HookServices {
+  batchController: FigureBatchController;
+  formulaLatex: FormulaLatexCoordinator;
+  galleryIndex: FigureGalleryIndex;
+  layoutAnalyzer: LayoutAnalyzer;
+  resultStore: FigureResultStore;
+}
+
+function ensureServices(): HookServices {
+  if (services) return services;
+  const resultStore = new FigureResultStore();
+  const galleryIndex = new FigureGalleryIndex(resultStore);
+  const layoutAnalyzer = new LayoutAnalyzer(resultStore);
+  const formulaLatex = new FormulaLatexCoordinator(resultStore);
+  const batchController = new FigureBatchController(
+    layoutAnalyzer,
+    resultStore,
+    formulaLatex,
+  );
+  services = {
+    batchController,
+    formulaLatex,
+    galleryIndex,
+    layoutAnalyzer,
+    resultStore,
+  };
+  return services;
 }
 
 async function waitForZotero(): Promise<void> {

@@ -122,6 +122,7 @@ function validateSourceAssets() {
     "src/features/gallery/figureGalleryView.ts",
     "node_modules/@huggingface/transformers/LICENSE",
     "node_modules/mupdf/LICENSE",
+    "node_modules/katex/LICENSE",
     ...MUPDF_DIST_FILES.map((file) => `node_modules/mupdf/dist/${file}`),
     ...RUNTIME_DIST_FILES.map(
       (file) => `node_modules/@huggingface/transformers/dist/${file}`,
@@ -162,6 +163,10 @@ function prepareRuntimeAssets() {
   for (const file of MUPDF_DIST_FILES) {
     copyFileSync(path.join("node_modules/mupdf/dist", file), mupdfTarget);
   }
+
+  const katexTarget = path.join(BUILD_DIR, "addon/chrome/content/katex");
+  clearFolder(katexTarget);
+  copyFileSync("node_modules/katex/LICENSE", katexTarget);
 }
 
 function removeLegacyAssets() {

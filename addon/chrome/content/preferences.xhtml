@@ -73,6 +73,52 @@
       min-height: 30px;
     }
 
+    #zotero-prefpane-__addonRef__ .api-key-field {
+      margin-top: 20px;
+      min-width: 0;
+    }
+
+    #zotero-prefpane-__addonRef__ .api-key-label {
+      color: var(--fill-primary, #222);
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    #zotero-prefpane-__addonRef__ #siliconflow-api-key {
+      box-sizing: border-box;
+      max-width: 520px;
+      min-height: 30px;
+      width: min(100%, 520px);
+    }
+
+    #zotero-prefpane-__addonRef__ .api-key-control {
+      align-items: center;
+      display: flex;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    #zotero-prefpane-__addonRef__ #siliconflow-api-status {
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+
+    #zotero-prefpane-__addonRef__ #siliconflow-api-status[data-state="valid"] {
+      color: #2e7d32;
+    }
+
+    #zotero-prefpane-__addonRef__ #siliconflow-api-status[data-state="invalid"] {
+      color: #c62828;
+    }
+
+    #zotero-prefpane-__addonRef__ .api-key-help {
+      color: var(--fill-secondary, #666);
+      line-height: 1.4;
+      margin-top: 6px;
+      max-width: 560px;
+    }
+
     #zotero-prefpane-__addonRef__ .button-row {
       align-items: center;
       display: flex;
@@ -82,6 +128,25 @@
 
     #zotero-prefpane-__addonRef__ .button-row > .model-action-button + .model-action-button {
       margin-inline-start: 8px;
+    }
+
+    #zotero-prefpane-__addonRef__ .existing-formula-button {
+      margin-inline-start: 12px;
+    }
+
+    #zotero-prefpane-__addonRef__ #existing-formula-status {
+      color: var(--fill-secondary, #666);
+      font-size: 12px;
+      line-height: 1.4;
+      margin-top: 6px;
+    }
+
+    #zotero-prefpane-__addonRef__ #existing-formula-status[data-state="success"] {
+      color: #2e7d32;
+    }
+
+    #zotero-prefpane-__addonRef__ #existing-formula-status[data-state="failed"] {
+      color: #c62828;
     }
 
     @media (max-width: 620px) {
@@ -159,5 +224,53 @@
         </svg>
       </hbox>
     </hbox>
+
+    <vbox class="api-key-field">
+      <html:label
+        class="api-key-label"
+        for="siliconflow-api-key"
+        data-l10n-id="preferences-siliconflow-api-key"
+      />
+      <hbox class="api-key-control" align="center">
+        <html:input
+          id="siliconflow-api-key"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          data-l10n-id="preferences-siliconflow-api-key-input"
+        />
+        <button
+          id="verify-siliconflow-api-key"
+          data-l10n-id="preferences-siliconflow-api-key-verify"
+        />
+        <button
+          id="get-siliconflow-api-key"
+          data-l10n-id="preferences-siliconflow-api-key-get"
+        />
+      </hbox>
+      <html:span id="siliconflow-api-status" data-state="idle" />
+      <html:span
+        class="api-key-help"
+        data-l10n-id="preferences-siliconflow-api-key-help"
+      />
+    </vbox>
+    <hbox
+      id="auto-recognize-formula-row"
+      class="field-row"
+      align="center"
+      hidden="true"
+    >
+      <checkbox
+        id="auto-recognize-formula"
+        native="true"
+        data-l10n-id="preferences-auto-recognize-formula"
+      />
+      <button
+        id="recognize-existing-formulae"
+        class="existing-formula-button"
+        data-l10n-id="preferences-recognize-existing-formulae"
+      />
+    </hbox>
+    <html:span id="existing-formula-status" data-state="idle" hidden="true" />
   </groupbox>
 </vbox>

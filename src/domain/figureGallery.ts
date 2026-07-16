@@ -15,6 +15,7 @@ export interface FigureGalleryEntry {
   documentTitle: string;
   id: string;
   kind: FigureResultKind;
+  latex?: string;
   libraryID: number;
   pageIndex: number;
   pageLabel: string;

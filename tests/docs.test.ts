@@ -19,34 +19,46 @@ const documents = [
 
 const readmeContracts = [
   {
-    batch: /main-window batch workflows/,
+    batchEntry: /Batch Processing:/,
     file: "README.md",
-    rollback: /rolled back; uncommitted PNG/,
+    formulaBackfill: /Convert existing formulae/,
+    galleryEntry: /Figure Library:/,
+    preferencesEntry: /Preferences:/,
   },
   {
-    batch: /flujos por lotes de la ventana principal/,
+    batchEntry: /Procesamiento por lotes:/,
     file: "docs/README.es-ES.md",
-    rollback: /se revierten.*PNG no confirmadas/,
+    formulaBackfill: /Convertir fórmulas existentes/,
+    galleryEntry: /Biblioteca de figuras:/,
+    preferencesEntry: /Preferencias:/,
   },
   {
-    batch: /flussi batch della finestra principale/,
+    batchEntry: /Elaborazione batch:/,
     file: "docs/README.it-IT.md",
-    rollback: /vengono annullate.*PNG non confermate/,
+    formulaBackfill: /Converti formule esistenti/,
+    galleryEntry: /Libreria di figure:/,
+    preferencesEntry: /Preferenze:/,
   },
   {
-    batch: /メイン画面のバッチ処理/,
+    batchEntry: /一括処理:/,
     file: "docs/README.ja-JP.md",
-    rollback: /ロールバック.*未コミットの PNG/,
+    formulaBackfill: /既存の数式を変換/,
+    galleryEntry: /Figure Library:/,
+    preferencesEntry: /設定:/,
   },
   {
-    batch: /пакетная обработка в главном окне/,
+    batchEntry: /Пакетная обработка:/,
     file: "docs/README.ru-RU.md",
-    rollback: /откатываются.*незафиксированные записи PNG/,
+    formulaBackfill: /Преобразовать существующие формулы/,
+    galleryEntry: /Библиотека иллюстраций:/,
+    preferencesEntry: /Настройки:/,
   },
   {
-    batch: /主界面批量处理/,
+    batchEntry: /批量处理：/,
     file: "docs/README.zh-CN.md",
-    rollback: /回滚.*未提交的 PNG/,
+    formulaBackfill: /转换已有公式/,
+    galleryEntry: /图表库：/,
+    preferencesEntry: /设置：/,
   },
 ];
 
@@ -67,20 +79,38 @@ test("all documented local links resolve", () => {
   }
 });
 
-test("all README translations document the same runtime contracts", () => {
-  for (const { batch, file, rollback } of readmeContracts) {
+test("all README translations document the same user entry points", () => {
+  for (const {
+    batchEntry,
+    file,
+    formulaBackfill,
+    galleryEntry,
+    preferencesEntry,
+  } of readmeContracts) {
     const content = readFileSync(file, "utf8");
     for (const token of [
-      "Figure N",
-      "Table N",
-      "Formula N",
       "PDF Figure >",
       "Zotero 9",
+      "SiliconFlow",
+      "Qwen/Qwen3.6-35B-A3B",
+      "KaTeX",
+      "LaTeX",
+      "Monaco",
     ]) {
       assert.ok(content.includes(token), `${file} -> ${token}`);
     }
-    assert.match(content, batch, `${file} -> implemented batch workflow`);
-    assert.match(content, rollback, `${file} -> rollback behavior`);
+    assert.match(content, batchEntry, `${file} -> batch entry point`);
+    assert.match(
+      content,
+      formulaBackfill,
+      `${file} -> formula backfill action`,
+    );
+    assert.match(content, galleryEntry, `${file} -> gallery entry point`);
+    assert.match(
+      content,
+      preferencesEntry,
+      `${file} -> preferences entry point`,
+    );
   }
 });
 

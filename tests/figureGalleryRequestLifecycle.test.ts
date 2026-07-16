@@ -101,6 +101,41 @@ test("cancelling the gallery loader invalidates pending view work", async () => 
   assert.equal(reported, false);
 });
 
+test("merges live updates received throughout a pending gallery load", async () => {
+  const snapshotRequest = createDeferred<FigureGallerySnapshot>();
+  const filterRequest = createDeferred<object>();
+  let committed = "";
+  let filterStarted = false;
+  const coordinator = new GalleryLibraryLoadCoordinator({
+    buildFilterOptions: async () => {
+      filterStarted = true;
+      return await filterRequest.promise;
+    },
+    commit: (loaded) => {
+      committed = loaded.generatedAt;
+    },
+    isSelectedLibrary: () => true,
+    loadSnapshot: async () => await snapshotRequest.promise,
+    reportError: (error) => assert.fail(String(error)),
+    setControlsDisabled: () => undefined,
+    showLoading: () => undefined,
+  });
+
+  const request = coordinator.load(1);
+  coordinator.updatePendingSnapshot((loaded) => {
+    loaded.generatedAt += ":before-snapshot";
+  });
+  snapshotRequest.resolve(snapshot("base"));
+  await waitFor(() => filterStarted);
+  coordinator.updatePendingSnapshot((loaded) => {
+    loaded.generatedAt += ":before-commit";
+  });
+  filterRequest.resolve({});
+  await request;
+
+  assert.equal(committed, "base:before-snapshot:before-commit");
+});
+
 test("reports a current refresh failure with its library identity", async () => {
   const error = new Error("manifest could not be read");
   const reported: Array<{ error: unknown; libraryID: number }> = [];

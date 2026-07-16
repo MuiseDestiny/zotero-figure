@@ -12,8 +12,10 @@ import {
   translateWithPdfTranslate,
 } from "../../platform/zotero/pdfTranslate";
 import { getString } from "../../utils/locale";
+import { renderLatex } from "../../utils/renderLatex";
 import type { PdfReader } from "../../platform/zotero/reader";
 import { createDocumentBlobURL } from "../../platform/zotero/browserGlobals";
+import type { FormulaLatexEditSnapshot } from "../../services/formula/formulaLatexCoordinator";
 import type {
   FigureResultTranslationUpdate,
   StoredFigureResult,
@@ -70,19 +72,31 @@ export interface FigureSidebarPanelOptions {
   ): Promise<ReadonlyMap<string, string>>;
   onClear(): Promise<void>;
   onCopyImage(result: StoredFigureResult): Promise<void>;
+  onCopyLatex(result: StoredFigureResult): Promise<StoredFigureResult>;
   onCorrectRegion(
     result: StoredFigureResult,
     rect: Rect,
+    signal: AbortSignal,
   ): Promise<StoredFigureResult | undefined>;
   onEditComment(
     result: StoredFigureResult,
     comment: string,
   ): Promise<StoredFigureResult | undefined>;
+  onEditLatex(
+    edit: FormulaLatexEditSnapshot,
+    latex: string,
+  ): Promise<StoredFigureResult | undefined>;
   onGoToPage(result: StoredFigureResult): Promise<void>;
   onPrepareCorrection(
     result: StoredFigureResult,
+    signal: AbortSignal,
   ): Promise<ResultCorrectionPreview>;
+  onPrepareLatexEdit(
+    result: StoredFigureResult,
+  ): Promise<FormulaLatexEditSnapshot | undefined>;
   onRemove(result: StoredFigureResult): Promise<void>;
+  onRerecognizeLatex(result: StoredFigureResult): Promise<StoredFigureResult>;
+  onResultsDisplayed(results: readonly StoredFigureResult[]): void;
   onSaveImage(result: StoredFigureResult): Promise<void>;
   onSyncAnnotations(): Promise<void>;
   ownerWindow: Window;
@@ -115,6 +129,7 @@ interface PinnedSidebarCard extends PinnedFigureCard {
 interface PreparedPinnedCardContent {
   ariaLabel: string;
   comment: HTMLElement;
+  formula?: HTMLElement;
   image: HTMLImageElement;
   menuButton: HTMLButtonElement;
   start: HTMLElement;
@@ -142,6 +157,11 @@ export class FigureSidebarPanel {
   private remountTimerID?: number;
   private renderRevision = 0;
   private readonly imageLoads: SidebarImageLoadCoordinator;
+  private readonly formulaLatexErrors = new Map<string, string>();
+  private readonly formulaLatexRecognitionRequests = new Map<
+    string,
+    Promise<StoredFigureResult>
+  >();
   private readonly resultEditors: SidebarResultEditorController;
   private readonly resultCards = new Map<string, HTMLElement>();
   private resultScrollTimerID?: number;
@@ -209,7 +229,10 @@ export class FigureSidebarPanel {
     this.resultEditors = new SidebarResultEditorController({
       onCorrectRegion: options.onCorrectRegion,
       onEditComment: options.onEditComment,
+      onEditLatex: options.onEditLatex,
       onPrepareCorrection: options.onPrepareCorrection,
+      onPrepareLatexEdit: options.onPrepareLatexEdit,
+      ownerWindow: options.ownerWindow,
     });
   }
 
@@ -234,6 +257,12 @@ export class FigureSidebarPanel {
 
   public refresh(): void {
     this.reloadResults();
+  }
+
+  public updateFormulaLatex(result: StoredFigureResult): void {
+    if (this.disposed) return;
+    if (this.loadingResults) this.reloadAfterLoad = true;
+    this.applyUpdatedResult(result);
   }
 
   public refreshControls(): void {
@@ -470,6 +499,7 @@ export class FigureSidebarPanel {
       if (this.disposed || revision !== this.renderRevision) return;
       this.results = results;
       this.renderContent(panelContent, results);
+      this.options.onResultsDisplayed(results);
     } catch (error) {
       if (this.disposed || revision !== this.renderRevision) return;
       const document = this.document;
@@ -523,7 +553,7 @@ export class FigureSidebarPanel {
           Boolean(this.analysisProgress),
         )
       ) {
-        list.append(this.createEmpty(document));
+        list.append(this.createEmpty(document, results.length === 0));
       }
     } else {
       for (const result of filtered) list.append(this.createCard(result));
@@ -565,7 +595,25 @@ export class FigureSidebarPanel {
     return loading;
   }
 
-  private createEmpty(document: Document): HTMLElement {
+  private createEmpty(
+    document: Document,
+    canStartAnalysis: boolean,
+  ): HTMLElement {
+    if (canStartAnalysis) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className =
+        "zoterofigure-sidebar-empty zoterofigure-sidebar-empty-action";
+      button.textContent = getString("sidebar-start-analysis");
+      button.disabled = this.options.isAnalyzing();
+      button.addEventListener("click", () => {
+        if (this.options.isAnalyzing()) return;
+        void Promise.resolve(this.options.onAnalyze()).catch((error) =>
+          Zotero.logError(toError(error)),
+        );
+      });
+      return button;
+    }
     const empty = document.createElement("div");
     empty.className = "zoterofigure-sidebar-empty";
     empty.textContent = getString("sidebar-empty");
@@ -669,7 +717,9 @@ export class FigureSidebarPanel {
           Boolean(this.analysisProgress),
         )
       ) {
-        if (list && !empty) list.append(this.createEmpty(document));
+        if (list && !empty) {
+          list.append(this.createEmpty(document, this.results.length === 0));
+        }
       } else {
         empty?.remove();
       }
@@ -1170,19 +1220,24 @@ export class FigureSidebarPanel {
     header.append(start, end);
     header.addEventListener("click", () => this.goToPage(result));
 
-    const image = document.createElement("div");
-    image.className = "zoterofigure-card-image";
-    const cropWidth = result.rect[2] - result.rect[0];
-    const cropHeight = result.rect[3] - result.rect[1];
-    if (cropWidth > 0 && cropHeight > 0) {
-      image.style.aspectRatio = `${cropWidth} / ${cropHeight}`;
-    }
-    this.imageLoads.register(image, result, this.getDisplayComment(result));
-    image.addEventListener("click", (event) => {
+    const media = this.createCardMedia(document, result);
+    this.bindCardMediaInteractions(media, result, card);
+    const comment = this.createComment(document, result);
+    card.append(header, media, comment);
+    this.resultCards.set(result.id, card);
+    return card;
+  }
+
+  private bindCardMediaInteractions(
+    media: HTMLElement,
+    result: StoredFigureResult,
+    card: HTMLElement,
+  ): void {
+    media.addEventListener("click", (event) => {
       if (event.detail > 1) return;
       this.scheduleImageNavigation(this.getCurrentResult(result.id) ?? result);
     });
-    image.addEventListener("dblclick", (event) => {
+    media.addEventListener("dblclick", (event) => {
       event.preventDefault();
       event.stopPropagation();
       this.cancelImageNavigation();
@@ -1190,11 +1245,34 @@ export class FigureSidebarPanel {
         (error) => Zotero.logError(toError(error)),
       );
     });
+  }
 
-    const comment = this.createComment(document, result);
-    card.append(header, image, comment);
-    this.resultCards.set(result.id, card);
-    return card;
+  private createCardMedia(
+    document: Document,
+    result: StoredFigureResult,
+  ): HTMLDivElement {
+    const media = document.createElement("div");
+    media.className = "zoterofigure-card-image";
+    if (result.kind === "formula" && result.latex) {
+      media.classList.add("is-latex", "is-loaded");
+      media.append(this.createRenderedLatex(document, result.latex));
+      return media;
+    }
+    const cropWidth = result.rect[2] - result.rect[0];
+    const cropHeight = result.rect[3] - result.rect[1];
+    if (cropWidth > 0 && cropHeight > 0) {
+      media.style.aspectRatio = `${cropWidth} / ${cropHeight}`;
+    }
+    this.imageLoads.register(media, result, this.getDisplayComment(result));
+    return media;
+  }
+
+  private createRenderedLatex(document: Document, latex: string): HTMLElement {
+    const formula = document.createElement("div");
+    formula.className = "zoterofigure-rendered-latex";
+    formula.setAttribute("aria-label", latex);
+    renderLatex(formula, latex);
+    return formula;
   }
 
   private createCardStart(
@@ -1324,8 +1402,16 @@ export class FigureSidebarPanel {
         },
         { once: true },
       );
-      image.src = blobURL.url;
-      imageContainer.replaceChildren(image);
+      if (result.kind === "formula" && result.latex) {
+        imageContainer.style.aspectRatio = "";
+        imageContainer.classList.add("is-latex", "is-loaded");
+        imageContainer.replaceChildren(
+          this.createRenderedLatex(document, result.latex),
+        );
+      } else {
+        image.src = blobURL.url;
+        imageContainer.replaceChildren(image);
+      }
       this.restorePinnedCardInteractions(element, result);
       preparePinnedFigureCardElement(element, sourceGeometry);
       document.documentElement.append(element);
@@ -1525,6 +1611,10 @@ export class FigureSidebarPanel {
     return {
       ariaLabel: this.getCardNavigationLabel(result, snapshot.displayComment),
       comment: this.createComment(document, result, snapshot.displayComment),
+      formula:
+        result.kind === "formula" && result.latex
+          ? this.createRenderedLatex(document, result.latex)
+          : undefined,
       image,
       menuButton: this.createMenuButton(document, result),
       start: this.createCardStart(document, result),
@@ -1559,7 +1649,8 @@ export class FigureSidebarPanel {
     comment.replaceWith(content.comment);
     imageContainer.style.aspectRatio = "";
     imageContainer.classList.add("is-loaded");
-    imageContainer.replaceChildren(content.image);
+    imageContainer.classList.toggle("is-latex", Boolean(content.formula));
+    imageContainer.replaceChildren(content.formula ?? content.image);
   }
 
   private disposePinnedCards(): void {
@@ -1636,7 +1727,10 @@ export class FigureSidebarPanel {
     button.className = "zoterofigure-card-menu";
     button.title = getString("sidebar-menu");
     button.setAttribute("aria-label", getString("sidebar-menu"));
-    button.append(createFigureSidebarIcon(document, "menu"));
+    this.setMenuButtonState(
+      button,
+      this.formulaLatexRecognitionRequests.has(result.id) ? "loading" : "menu",
+    );
     button.addEventListener("click", (event) => {
       event.stopPropagation();
       this.openMenu(button, result);
@@ -1656,6 +1750,19 @@ export class FigureSidebarPanel {
     this.appendMenuItem(menu, "sidebar-copy-image", () =>
       this.options.onCopyImage(result),
     );
+    if (result.kind === "formula") {
+      this.appendMenuItem(menu, "sidebar-copy-latex", () =>
+        this.copyFormulaLatex(anchor, result),
+      );
+      if (result.latex) {
+        this.appendMenuItem(menu, "sidebar-rerecognize-latex", () =>
+          this.rerecognizeFormulaLatex(anchor, result),
+        );
+        this.appendMenuItem(menu, "sidebar-edit-latex", () =>
+          this.openLatexEditor(result),
+        );
+      }
+    }
     this.appendMenuItem(menu, "sidebar-save-image", () =>
       this.options.onSaveImage(result),
     );
@@ -1726,30 +1833,73 @@ export class FigureSidebarPanel {
     if (!document) return;
     const updated = await this.resultEditors.correctRegion(result);
     if (updated && !this.disposed && this.document === document) {
+      this.formulaLatexErrors.delete(updated.id);
       this.reloadResults();
+    }
+  }
+
+  private async openLatexEditor(result: StoredFigureResult): Promise<void> {
+    const document = this.document;
+    logLatexEditor(
+      `[Zotero Figure][LaTeX editor] menu command: id=${result.id}, document=${document ? "ready" : "missing"}, latexLength=${result.latex?.length ?? 0}`,
+    );
+    if (!document || !result.latex) return;
+    this.formulaLatexErrors.delete(result.id);
+    try {
+      const updated = await this.resultEditors.editLatex(result);
+      logLatexEditor(
+        `[Zotero Figure][LaTeX editor] panel result: id=${result.id}, updated=${Boolean(updated)}`,
+      );
+      if (updated && !this.disposed && this.document === document) {
+        this.applyUpdatedResult(updated);
+      }
+    } catch (error) {
+      logLatexEditor(
+        `[Zotero Figure][LaTeX editor] panel caught error: id=${result.id}, message=${toError(error).message}`,
+      );
+      if (this.disposed || this.document !== document) return;
+      this.formulaLatexErrors.set(
+        result.id,
+        getString("sidebar-edit-latex-failed", {
+          args: { message: toError(error).message },
+        }),
+      );
+      this.showFormulaLatexError(this.getCurrentResult(result.id) ?? result);
     }
   }
 
   private applyUpdatedResult(updated: StoredFigureResult): void {
     if (!this.results) return;
+    const previous = this.getCurrentResult(updated.id);
     this.results = this.results.map((result) =>
       result.id === updated.id ? updated : result,
     );
     this.translationRequestID++;
     this.translationPending = false;
     this.translatedComments.delete(updated.id);
+    this.formulaLatexErrors.delete(updated.id);
     this.closeFilterPopover();
     this.imageLoads.updateResult(updated, this.getDisplayComment(updated));
     const cards = [this.resultCards.get(updated.id)];
     for (const card of cards) {
       if (!card) continue;
       const document = card.ownerDocument;
+      card.querySelector(".zoterofigure-card-latex-error")?.remove();
       card
         .querySelector<HTMLElement>(".zoterofigure-card-end")
         ?.replaceChildren(this.createMenuButton(document, updated));
       card
         .querySelector<HTMLElement>(".zoterofigure-card-comment")
         ?.replaceWith(this.createComment(document, updated));
+      if (previous?.latex !== updated.latex) {
+        this.imageLoads.unregister(updated.id);
+        const currentMedia = card.querySelector<HTMLElement>(
+          ".zoterofigure-card-image",
+        );
+        const nextMedia = this.createCardMedia(document, updated);
+        this.bindCardMediaInteractions(nextMedia, updated, card);
+        currentMedia?.replaceWith(nextMedia);
+      }
       const image = card.querySelector<HTMLImageElement>(
         ".zoterofigure-card-image img",
       );
@@ -1758,6 +1908,219 @@ export class FigureSidebarPanel {
     const pinnedCard = this.pinnedCards.get(updated.id);
     if (pinnedCard) this.requestPinnedCardRefresh(pinnedCard, updated);
     this.refreshControls();
+  }
+
+  private async copyFormulaLatex(
+    anchor: HTMLButtonElement,
+    result: StoredFigureResult,
+  ): Promise<void> {
+    this.closeMenu();
+    this.formulaLatexErrors.delete(result.id);
+    this.setMenuButtonState(anchor, "loading");
+    const document = anchor.ownerDocument;
+    const sourceCard = this.getFormulaLatexRequestCard(anchor);
+    try {
+      const updated = await this.options.onCopyLatex(
+        this.getCurrentResult(result.id) ?? result,
+      );
+      if (this.disposed || this.document !== document) return;
+      const currentAtCompletion = this.getCurrentResult(result.id);
+      this.setFormulaLatexRequestButtonState(
+        anchor,
+        sourceCard,
+        result.id,
+        "check",
+      );
+      await new Promise<void>((resolve) => {
+        this.options.ownerWindow.setTimeout(resolve, 900);
+      });
+      if (this.disposed || this.document !== document) return;
+      if (this.getCurrentResult(result.id) === currentAtCompletion) {
+        this.applyUpdatedResult(updated);
+      }
+    } catch (error) {
+      if (this.disposed || this.document !== document) return;
+      this.formulaLatexErrors.set(
+        result.id,
+        getString("sidebar-copy-latex-failed", {
+          args: { message: toError(error).message },
+        }),
+      );
+      this.showFormulaLatexError(this.getCurrentResult(result.id) ?? result);
+      this.setFormulaLatexRequestButtonState(
+        anchor,
+        sourceCard,
+        result.id,
+        "menu",
+      );
+    }
+  }
+
+  private async rerecognizeFormulaLatex(
+    anchor: HTMLButtonElement,
+    result: StoredFigureResult,
+  ): Promise<void> {
+    this.closeMenu();
+    this.formulaLatexErrors.delete(result.id);
+    this.setMenuButtonState(anchor, "loading", "rerecognize");
+    const document = anchor.ownerDocument;
+    const sourceCard = this.getFormulaLatexRequestCard(anchor);
+    let request = this.formulaLatexRecognitionRequests.get(result.id);
+    const ownsRequest = request === undefined;
+    if (!request) {
+      request = this.options.onRerecognizeLatex(
+        this.getCurrentResult(result.id) ?? result,
+      );
+      this.formulaLatexRecognitionRequests.set(result.id, request);
+    }
+    try {
+      const updated = await request;
+      if (
+        ownsRequest &&
+        this.formulaLatexRecognitionRequests.get(result.id) === request
+      ) {
+        this.formulaLatexRecognitionRequests.delete(result.id);
+      }
+      if (
+        !this.disposed &&
+        !this.formulaLatexRecognitionRequests.has(result.id)
+      ) {
+        this.resetFormulaLatexMenuButtons(result.id);
+      }
+      if (this.disposed || this.document !== document) return;
+      const currentAtCompletion = this.getCurrentResult(result.id);
+      this.setFormulaLatexRequestButtonState(
+        anchor,
+        sourceCard,
+        result.id,
+        "check",
+        "rerecognize",
+      );
+      await new Promise<void>((resolve) => {
+        this.options.ownerWindow.setTimeout(resolve, 900);
+      });
+      if (this.disposed || this.document !== document) return;
+      if (this.getCurrentResult(result.id) === currentAtCompletion) {
+        this.applyUpdatedResult(updated);
+      }
+    } catch (error) {
+      if (
+        ownsRequest &&
+        this.formulaLatexRecognitionRequests.get(result.id) === request
+      ) {
+        this.formulaLatexRecognitionRequests.delete(result.id);
+      }
+      if (
+        !this.disposed &&
+        !this.formulaLatexRecognitionRequests.has(result.id)
+      ) {
+        this.resetFormulaLatexMenuButtons(result.id);
+      }
+      if (this.disposed || this.document !== document) return;
+      this.formulaLatexErrors.set(
+        result.id,
+        getString("sidebar-copy-latex-failed", {
+          args: { message: toError(error).message },
+        }),
+      );
+      this.showFormulaLatexError(this.getCurrentResult(result.id) ?? result);
+      this.setFormulaLatexRequestButtonState(
+        anchor,
+        sourceCard,
+        result.id,
+        "menu",
+      );
+    }
+  }
+
+  private resetFormulaLatexMenuButtons(resultID: string): void {
+    for (const card of [
+      this.resultCards.get(resultID),
+      this.pinnedCards.get(resultID)?.element,
+    ]) {
+      const button = card?.querySelector<HTMLButtonElement>(
+        ".zoterofigure-card-menu",
+      );
+      if (button) this.setMenuButtonState(button, "menu");
+    }
+  }
+
+  private getFormulaLatexRequestCard(
+    anchor: HTMLButtonElement,
+  ): HTMLElement | undefined {
+    return typeof anchor.closest === "function"
+      ? (anchor.closest<HTMLElement>(".zoterofigure-sidebar-card") ?? undefined)
+      : undefined;
+  }
+
+  private setFormulaLatexRequestButtonState(
+    anchor: HTMLButtonElement,
+    sourceCard: HTMLElement | undefined,
+    resultID: string,
+    state: "check" | "loading" | "menu",
+    action: "copy" | "rerecognize" = "copy",
+  ): void {
+    const sourceButton =
+      sourceCard?.isConnected === false
+        ? undefined
+        : sourceCard?.querySelector<HTMLButtonElement>(
+            ".zoterofigure-card-menu",
+          );
+    const button =
+      sourceButton ??
+      this.resultCards
+        .get(resultID)
+        ?.querySelector<HTMLButtonElement>(".zoterofigure-card-menu") ??
+      this.pinnedCards
+        .get(resultID)
+        ?.element.querySelector<HTMLButtonElement>(".zoterofigure-card-menu") ??
+      anchor;
+    this.setMenuButtonState(button, state, action);
+  }
+
+  private showFormulaLatexError(result: StoredFigureResult): void {
+    const error = this.formulaLatexErrors.get(result.id);
+    for (const card of [
+      this.resultCards.get(result.id),
+      this.pinnedCards.get(result.id)?.element,
+    ]) {
+      if (!card) continue;
+      card.querySelector(".zoterofigure-card-latex-error")?.remove();
+      if (!error) continue;
+      const message = card.ownerDocument.createElement("div");
+      message.className = "zoterofigure-card-latex-error";
+      message.setAttribute("role", "status");
+      message.textContent = error;
+      card.append(message);
+    }
+  }
+
+  private setMenuButtonState(
+    button: HTMLButtonElement,
+    state: "check" | "loading" | "menu",
+    action: "copy" | "rerecognize" = "copy",
+  ): void {
+    const labelKey =
+      state === "loading"
+        ? action === "rerecognize"
+          ? "sidebar-rerecognize-latex-loading"
+          : "sidebar-copy-latex-loading"
+        : state === "check"
+          ? action === "rerecognize"
+            ? "sidebar-rerecognize-latex-success"
+            : "sidebar-copy-latex-success"
+          : "sidebar-menu";
+    button.dataset.state = state;
+    button.classList.toggle("is-loading", state === "loading");
+    button.classList.toggle("is-success", state === "check");
+    button.disabled = state !== "menu";
+    button.title = getString(labelKey);
+    button.setAttribute("aria-label", getString(labelKey));
+    if (state === "loading") button.setAttribute("aria-busy", "true");
+    else button.removeAttribute("aria-busy");
+    button.replaceChildren(
+      createFigureSidebarIcon(button.ownerDocument, state),
+    );
   }
 
   private getCurrentResult(resultID: string): StoredFigureResult | undefined {
@@ -1900,4 +2263,9 @@ function pinnedCardSnapshotsMatch(
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
+}
+
+function logLatexEditor(message: string): void {
+  if (typeof ztoolkit === "undefined") return;
+  ztoolkit.log(message);
 }

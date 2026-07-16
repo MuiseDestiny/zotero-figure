@@ -10,7 +10,7 @@ const script = readFileSync(
 );
 const rootSelector = "#zotero-prefpane-__addonRef__";
 
-test("shows only model maintenance and annotation sync preferences", () => {
+test("shows model maintenance, annotation sync, and verified formula API preferences", () => {
   const styles = getInlineStyles();
   const helpIcon = getRule(`${rootSelector} .help-icon`);
   const helpIconSvg = getRule(`${rootSelector} .help-icon > svg`);
@@ -30,6 +30,22 @@ test("shows only model maintenance and annotation sync preferences", () => {
     /pathInput|#model-path|storagePath|metadata|duplicateMode/,
   );
   assert.match(markup, /id="sync-annotations"[\s\S]*native="true"/);
+  assert.match(markup, /id="siliconflow-api-key"[\s\S]*type="password"/);
+  assert.match(markup, /id="verify-siliconflow-api-key"/);
+  assert.match(
+    markup,
+    /id="verify-siliconflow-api-key"[\s\S]*id="get-siliconflow-api-key"/,
+  );
+  assert.match(script, /Zotero\.launchURL\(SILICONFLOW_API_KEY_URL\)/);
+  assert.match(script, /https:\/\/cloud\.siliconflow\.cn\/i\/3Xa4I0X8/);
+  assert.match(markup, /id="auto-recognize-formula-row"[\s\S]*hidden="true"/);
+  assert.match(markup, /id="recognize-existing-formulae"/);
+  assert.match(markup, /id="existing-formula-status"[\s\S]*hidden="true"/);
+  assert.match(script, /validateSiliconFlowApiKey/);
+  assert.match(script, /recognizeExistingFormulae/);
+  assert.match(script, /preferences-existing-formulae-progress/);
+  assert.match(script, /setPref\("siliconFlowApiKeyValidated", false\)/);
+  assert.match(script, /toggleAttribute\("hidden", !valid\)/);
   assert.match(markup, /data-l10n-id="preferences-sync-annotations-help"/);
   assert.match(markup, /class="help-icon"[\s\S]*role="img"/);
   assert.match(markup, /<circle cx="12" cy="12" r="10"/);
@@ -51,6 +67,18 @@ test("shows only model maintenance and annotation sync preferences", () => {
   assert.match(buttonRow, /margin-top\s*:\s*10px/);
   assert.match(adjacentButton, /margin-inline-start\s*:\s*8px/);
   assert.match(fieldRow, /margin-top\s*:\s*16px/);
+});
+
+test("invalidates and cancels stale formula API work", () => {
+  assert.match(
+    script,
+    /apiKeyInput\.addEventListener\("input", \(\) => \{[\s\S]*apiValidationController\?\.abort\(\)[\s\S]*apiKeyVerifyButton\.removeAttribute\("disabled"\)/,
+  );
+  assert.match(
+    script,
+    /validateSiliconFlowApiKey\(key, \{ signal: controller\.signal \}\)/,
+  );
+  assert.match(script, /existingFormulaController\?\.abort\(\)/);
 });
 
 function getRule(selector: string): string {

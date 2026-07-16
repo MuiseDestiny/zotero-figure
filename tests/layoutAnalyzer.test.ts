@@ -176,6 +176,54 @@ test("normalizes preparation cancellation as OperationCancelledError", async () 
   }
 });
 
+test("does not recreate workers when prewarm completes after dispose", async () => {
+  const originalEnsureModel = modelManager.ensureRecommendedModel;
+  const previousWorker = globalThis.Worker;
+  let finishModelPreparation!: () => void;
+  const modelPreparation = new Promise<void>((resolve) => {
+    finishModelPreparation = resolve;
+  });
+  let workersCreated = 0;
+  let pdfDisposed = false;
+  modelManager.ensureRecommendedModel = async () => {
+    await modelPreparation;
+    return {
+      hash: RECOMMENDED_MODEL.sha256,
+      path: "/model.onnx",
+      size: RECOMMENDED_MODEL.size,
+      state: "valid",
+      variant: RECOMMENDED_MODEL,
+    };
+  };
+  globalThis.Worker = class {
+    public constructor() {
+      workersCreated++;
+    }
+  } as unknown as typeof Worker;
+  const pdfEngine: PdfEngine = {
+    dispose: () => {
+      pdfDisposed = true;
+    },
+    open: async () => assert.fail("prewarm must not open a document"),
+    prepare: async () => undefined,
+  };
+  const analyzer = new LayoutAnalyzer(undefined, pdfEngine, 1);
+
+  try {
+    const prewarm = analyzer.prewarm();
+    analyzer.dispose();
+    finishModelPreparation();
+
+    await assert.rejects(prewarm, OperationCancelledError);
+    assert.equal(workersCreated, 0);
+    assert.equal(pdfDisposed, true);
+  } finally {
+    analyzer.dispose();
+    modelManager.ensureRecommendedModel = originalEnsureModel;
+    globalThis.Worker = previousWorker;
+  }
+});
+
 test("reuses versioned local previews on repeated analysis", async () => {
   const harness = installAnalyzerHarness();
   const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);

@@ -26,11 +26,19 @@ export interface GalleryImageLoadOptions {
   runtime?: GalleryImageLoadRuntime;
 }
 
+interface ActiveGalleryImageLoadRequest extends GalleryImageLoadRequest {
+  token: object;
+}
+
 /** Owns bounded gallery image work and every Blob URL created for it. */
 export class GalleryImageLoadCoordinator {
   private readonly runtime: GalleryImageLoadRuntime;
   private readonly blobURLs = new Map<HTMLImageElement, string>();
-  private readonly loadCancellers = new Set<() => void>();
+  private readonly imageTokens = new WeakMap<HTMLImageElement, object>();
+  private readonly loadCancellers = new Map<
+    HTMLImageElement,
+    { cancel(): void; token: object }
+  >();
   private readonly loadQueue: BoundedAsyncTaskQueue;
   private disposed = false;
   private generation = 0;
@@ -56,12 +64,24 @@ export class GalleryImageLoadCoordinator {
   }
 
   public enqueue(request: GalleryImageLoadRequest): void {
-    if (!this.isCurrent(request)) return;
-    const task = this.loadQueue.enqueue(() => this.load(request));
+    if (this.disposed || request.generation !== this.generation) return;
+    const activeRequest: ActiveGalleryImageLoadRequest = {
+      ...request,
+      token: {},
+    };
+    this.imageTokens.set(request.image, activeRequest.token);
+    if (!this.isCurrent(activeRequest)) return;
+    const task = this.loadQueue.enqueue(() => this.load(activeRequest));
     void task.promise.catch(() => {
       // load() is the presentation error boundary. Keep the queue safe if a
       // future implementation adds work outside that boundary.
     });
+  }
+
+  public unregister(image: HTMLImageElement): void {
+    this.imageTokens.delete(image);
+    this.cancelImageLoad(image);
+    this.releaseImageURL(image);
   }
 
   public dispose(): void {
@@ -72,7 +92,7 @@ export class GalleryImageLoadCoordinator {
     this.releaseImages();
   }
 
-  private async load(request: GalleryImageLoadRequest): Promise<void> {
+  private async load(request: ActiveGalleryImageLoadRequest): Promise<void> {
     if (!this.isCurrent(request)) return;
     let cancelLoad: (() => void) | undefined;
     try {
@@ -83,7 +103,10 @@ export class GalleryImageLoadCoordinator {
       this.blobURLs.set(request.image, url);
       const monitor = this.runtime.monitor(request.image);
       cancelLoad = () => monitor.cancel();
-      this.loadCancellers.add(cancelLoad);
+      this.loadCancellers.set(request.image, {
+        cancel: cancelLoad,
+        token: request.token,
+      });
       request.image.src = url;
       const outcome = await monitor.promise;
       if (outcome !== "loaded" || !this.isCurrent(request)) {
@@ -105,14 +128,18 @@ export class GalleryImageLoadCoordinator {
       this.releaseImageURL(request.image);
       if (this.isCurrent(request)) this.notifyFailed(request);
     } finally {
-      if (cancelLoad) this.loadCancellers.delete(cancelLoad);
+      const active = this.loadCancellers.get(request.image);
+      if (active?.token === request.token) {
+        this.loadCancellers.delete(request.image);
+      }
     }
   }
 
-  private isCurrent(request: GalleryImageLoadRequest): boolean {
+  private isCurrent(request: ActiveGalleryImageLoadRequest): boolean {
     return (
       !this.disposed &&
       request.generation === this.generation &&
+      this.imageTokens.get(request.image) === request.token &&
       request.image.isConnected
     );
   }
@@ -126,7 +153,7 @@ export class GalleryImageLoadCoordinator {
   }
 
   private releaseImages(): void {
-    for (const cancel of [...this.loadCancellers]) {
+    for (const { cancel } of [...this.loadCancellers.values()]) {
       try {
         cancel();
       } catch {
@@ -137,6 +164,17 @@ export class GalleryImageLoadCoordinator {
     const urls = [...this.blobURLs.values()];
     this.blobURLs.clear();
     for (const url of urls) this.revokeObjectURL(url);
+  }
+
+  private cancelImageLoad(image: HTMLImageElement): void {
+    const active = this.loadCancellers.get(image);
+    if (!active) return;
+    this.loadCancellers.delete(image);
+    try {
+      active.cancel();
+    } catch {
+      // Continue through URL cleanup even if a monitor cannot be cancelled.
+    }
   }
 
   private releaseImageURL(image: HTMLImageElement): void {

@@ -18,6 +18,7 @@ const WHEEL_SENSITIVITY = 0.0015;
 const MAX_WHEEL_DELTA = 80;
 const POSITION_EPSILON = 0.1;
 const SCALE_EPSILON = 0.0005;
+const PINNED_LATEX_FONT_SIZE_PROPERTY = "--zoterofigure-pinned-latex-font-size";
 
 export interface PinnedFigureCard {
   cancelPendingSnapshotRefresh(): void;
@@ -138,7 +139,7 @@ export function preparePinnedFigureCardElement(
   element.classList.add("zoterofigure-pinned-card");
   element.style.left = "0px";
   element.style.top = "0px";
-  element.style.transform = "translate3d(0, 0, 0) scale(1)";
+  element.style.transform = "translate3d(0, 0, 0)";
   element.style.width = `${width}px`;
   if (sourceGeometry.fontFamily) {
     element.style.fontFamily = sourceGeometry.fontFamily;
@@ -150,6 +151,17 @@ export function preparePinnedFigureCardElement(
     element.style.lineHeight = sourceGeometry.lineHeight;
   }
   element.tabIndex = 0;
+}
+
+export function getPinnedCardRenderStyles(
+  transform: PinnedCardTransform,
+  baseWidth: number,
+): { latexFontSize: string; transform: string; width: string } {
+  return {
+    latexFontSize: `${Math.max(0.01, transform.scale)}em`,
+    transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+    width: `${Math.max(1, baseWidth * transform.scale)}px`,
+  };
 }
 
 export function bindPinnedFigureCard(
@@ -167,24 +179,57 @@ export function bindPinnedFigureCard(
   const document = element.ownerDocument;
   const root = document.documentElement;
   const baseBounds = element.getBoundingClientRect();
+  const media = element.querySelector<HTMLElement>(".zoterofigure-card-image");
+  if (!media) throw new Error("Pinned card image container is missing");
   const initialCardSize: Size = {
     height: baseBounds.height,
     width: baseBounds.width,
   };
+  const baseCardWidth = element.offsetWidth || initialCardSize.width;
   const getCardSize = (): Size => ({
     height: element.offsetHeight || initialCardSize.height,
     width: element.offsetWidth || initialCardSize.width,
   });
+  const getCardSizeAtScale = (scale: number): Size => {
+    const previousWidth = element.style.width;
+    const previousLatexFontSize = element.style.getPropertyValue(
+      PINNED_LATEX_FONT_SIZE_PROPERTY,
+    );
+    const styles = getPinnedCardRenderStyles(
+      { scale, x: 0, y: 0 },
+      baseCardWidth,
+    );
+    element.style.width = styles.width;
+    element.style.setProperty(
+      PINNED_LATEX_FONT_SIZE_PROPERTY,
+      styles.latexFontSize,
+    );
+    const size = getCardSize();
+    element.style.width = previousWidth;
+    if (previousLatexFontSize) {
+      element.style.setProperty(
+        PINNED_LATEX_FONT_SIZE_PROPERTY,
+        previousLatexFontSize,
+      );
+    } else {
+      element.style.removeProperty(PINNED_LATEX_FONT_SIZE_PROPERTY);
+    }
+    return size;
+  };
+  const clampTransform = (value: PinnedCardTransform): PinnedCardTransform => {
+    const clamped = clampPinnedCardTransform(
+      { ...value, scale: 1 },
+      getCardSizeAtScale(value.scale),
+      getDocumentViewportSize(document),
+      CARD_MARGIN,
+    );
+    return { ...clamped, scale: value.scale };
+  };
   const initialPosition: Point = {
     x: sourceGeometry.right + CARD_MARGIN + stagger,
     y: sourceGeometry.top + stagger,
   };
-  let transform = clampPinnedCardTransform(
-    { scale: 1, ...initialPosition },
-    getCardSize(),
-    getDocumentViewportSize(document),
-    CARD_MARGIN,
-  );
+  let transform = clampTransform({ scale: 1, ...initialPosition });
   let renderedTransform = { ...transform };
   let transformFrameID: number | undefined;
   let previousTransformFrameTime: number | undefined;
@@ -198,7 +243,13 @@ export function bindPinnedFigureCard(
   let suppressClickTimerID: number | undefined;
 
   const renderTransform = (value: PinnedCardTransform): void => {
-    element.style.transform = `translate3d(${value.x}px, ${value.y}px, 0) scale(${value.scale})`;
+    const styles = getPinnedCardRenderStyles(value, baseCardWidth);
+    element.style.transform = styles.transform;
+    element.style.width = styles.width;
+    element.style.setProperty(
+      PINNED_LATEX_FONT_SIZE_PROPERTY,
+      styles.latexFontSize,
+    );
   };
   const cancelTransformAnimation = (): void => {
     if (transformFrameID === undefined) return;
@@ -242,12 +293,7 @@ export function bindPinnedFigureCard(
     transformFrameID = requestAnimationFrame(step);
   };
   const updateClampedTransform = (): void => {
-    transform = clampPinnedCardTransform(
-      transform,
-      getCardSize(),
-      getDocumentViewportSize(document),
-      CARD_MARGIN,
-    );
+    transform = clampTransform(transform);
   };
   const clampToViewport = (): void => {
     updateClampedTransform();
@@ -335,9 +381,11 @@ export function bindPinnedFigureCard(
         transform.scale * Math.exp(-boundedDelta * WHEEL_SENSITIVITY),
       ),
     );
+    const elementBounds = element.getBoundingClientRect();
+    const mediaBounds = media.getBoundingClientRect();
     transform = zoomPinnedCardAtPoint(transform, nextScale, {
-      x: event.clientX,
-      y: event.clientY,
+      x: event.clientX - (mediaBounds.left - elementBounds.left),
+      y: event.clientY - (mediaBounds.top - elementBounds.top),
     });
     animateToClampedTransform();
   };
@@ -363,7 +411,7 @@ export function bindPinnedFigureCard(
   element.addEventListener("pointerup", stopDragging);
   element.addEventListener("pointercancel", stopDragging);
   element.addEventListener("lostpointercapture", stopDragging);
-  element.addEventListener("wheel", handleWheel, { passive: false });
+  media.addEventListener("wheel", handleWheel, { passive: false });
   element.addEventListener("dblclick", handleDoubleClick);
   element.addEventListener("keydown", handleKeyDown);
   view?.addEventListener("resize", clampToViewport);

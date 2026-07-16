@@ -172,6 +172,35 @@ test("drops malformed optional metadata without discarding valid results", () =>
   assert.equal(decoded.updatedAt, "");
 });
 
+test("round-trips current formula LaTeX and rejects invalid values", () => {
+  const result = makeFormulaResult();
+  const manifest = createFigureResultManifest({
+    ...owner,
+    analysisIdentity: identity,
+    results: [{ ...result, latex: "\\sum_{i=1}^n x_i" }],
+    translations: {},
+    updatedAt: "",
+  });
+  assert.equal(
+    decodeFigureResultManifest(serializeFigureResultManifest(manifest), owner)
+      .results[0].latex,
+    "\\sum_{i=1}^n x_i",
+  );
+  for (const latex of ["", "   ", 42, null]) {
+    assert.throws(
+      () =>
+        decodeFigureResultManifest(
+          JSON.stringify({
+            ...manifest,
+            results: [{ ...result, latex }],
+          }),
+          owner,
+        ),
+      /invalid result record/,
+    );
+  }
+});
+
 test("rejects invalid schema structures and future manifests", () => {
   assert.throws(
     () => decodeFigureResultManifest("{broken", owner),
@@ -187,7 +216,7 @@ test("rejects invalid schema structures and future manifests", () => {
     analysisIdentity: identity,
     imageCache: {},
     results: [result],
-    schemaVersion: 5,
+    schemaVersion: 6,
     translations: {},
     updatedAt: "",
   };
@@ -287,10 +316,10 @@ test("rejects invalid schema structures and future manifests", () => {
   assert.throws(
     () =>
       decodeFigureResultManifest(
-        JSON.stringify({ ...base, schemaVersion: 6 }),
+        JSON.stringify({ ...base, schemaVersion: 7 }),
         owner,
       ),
-    /schema 6 is newer than supported schema 5/,
+    /schema 7 is newer than supported schema 6/,
   );
 });
 
@@ -414,6 +443,19 @@ function makeResult() {
     pageIndex: 0,
     rect: [1, 2, 10, 12],
     tag: "Figure 1",
+  };
+  return createFigureResultRecord(
+    candidate,
+    `images/${getFigureResultID(candidate)}.png`,
+  );
+}
+
+function makeFormulaResult() {
+  const candidate: AnnotationCandidate = {
+    comment: "Formula 1",
+    pageIndex: 0,
+    rect: [1, 2, 10, 12],
+    tag: "Formula 1",
   };
   return createFigureResultRecord(
     candidate,

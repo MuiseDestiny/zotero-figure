@@ -1,7 +1,10 @@
 import { config } from "../../package.json";
 
 export interface PreferenceSchema {
+  autoRecognizeFormula: boolean;
   duplicateMode: "replace-page" | "skip-existing";
+  siliconFlowApiKey: string;
+  siliconFlowApiKeyValidated: boolean;
   syncAnnotations: boolean;
   view: "All" | "Annotation" | "Figure";
 }

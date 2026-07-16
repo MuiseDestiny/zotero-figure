@@ -17,6 +17,7 @@ export interface FigureResultRecord {
   id: string;
   imageFile: string;
   kind: FigureResultKind;
+  latex?: string;
   pageIndex: number;
   pageLabel: string;
   rect: Rect;

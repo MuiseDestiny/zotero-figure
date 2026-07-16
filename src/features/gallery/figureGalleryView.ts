@@ -12,6 +12,7 @@ import {
   getFigureGalleryImageAspectRatio,
 } from "../../domain/figureGallery";
 import type { FigureResultKind } from "../../domain/figureResults";
+import { renderLatex } from "../../utils/renderLatex";
 import {
   buildGalleryFacetState,
   filterGalleryEntries,
@@ -34,6 +35,9 @@ interface FigureGalleryApi {
   loadLibrary(libraryID: number): Promise<FigureGallerySnapshot>;
   openSource(entryID: string): Promise<void>;
   readImage(entryID: string): Promise<FigureGalleryImage>;
+  subscribeFormulaLatex(
+    listener: (entryID: string, latex: string) => void,
+  ): () => void;
 }
 
 interface GalleryAddon {
@@ -49,6 +53,7 @@ interface GalleryElements {
   keywordFilter: HTMLInputElement;
   libraryFilter: HTMLSelectElement;
   refresh: HTMLButtonElement;
+  resetFilters: HTMLButtonElement;
   resultCount: HTMLSpanElement;
   state: HTMLElement;
   stateMessage: HTMLParagraphElement;
@@ -141,6 +146,7 @@ let galleryRenderedCards: HTMLElement[] = [];
 let filterUpdateScheduled = false;
 let searchTimer: number | undefined;
 let committedLibraryID: number | undefined;
+let unsubscribeFormulaLatex: (() => void) | undefined;
 let disposed = false;
 
 window.addEventListener("DOMContentLoaded", () => void initialize());
@@ -157,6 +163,7 @@ async function initialize(): Promise<void> {
   }
 
   const api = galleryApi;
+  unsubscribeFormulaLatex = api.subscribeFormulaLatex(applyFormulaLatexUpdate);
   imageLoader = new GalleryImageLoadCoordinator((entryID) =>
     api.readImage(entryID),
   );
@@ -231,6 +238,7 @@ function collectElements(): GalleryElements {
     keywordFilter: requireElement("keyword-filter"),
     libraryFilter: requireElement("library-filter"),
     refresh: requireElement("refresh"),
+    resetFilters: requireElement("reset-filters"),
     resultCount: requireElement("result-count"),
     state: requireElement("state"),
     stateMessage: requireElement("state-message"),
@@ -261,6 +269,7 @@ function bindControls(): void {
   elements.refresh.addEventListener("click", () => {
     void loadLibrary(Number(elements.libraryFilter.value));
   });
+  elements.resetFilters.addEventListener("click", resetFilters);
   elements.toolbarToggle.addEventListener("click", toggleToolbar);
   for (const select of [
     elements.documentFilter,
@@ -274,6 +283,17 @@ function bindControls(): void {
     window.clearTimeout(searchTimer);
     searchTimer = window.setTimeout(applyFilters, 120);
   });
+}
+
+function resetFilters(): void {
+  window.clearTimeout(searchTimer);
+  searchTimer = undefined;
+  elements.collectionFilter.value = "";
+  elements.documentFilter.value = "";
+  elements.yearFilter.value = "";
+  elements.typeFilter.value = "";
+  elements.keywordFilter.value = "";
+  applyFilters();
 }
 
 function toggleToolbar(): void {
@@ -688,8 +708,12 @@ function createCard(entry: FigureGalleryEntry, version: number): HTMLElement {
   const imageStatus = document.createElement("span");
   imageStatus.className = "gallery-image-status";
   setLocalizedText(imageStatus, "gallery-image-loading");
-  media.append(image, imageStatus);
-  imageObserver?.observe(image);
+  if (entry.kind === "formula" && entry.latex) {
+    renderGalleryFormula(media, entry.latex);
+  } else {
+    media.append(image, imageStatus);
+    imageObserver?.observe(image);
+  }
 
   const body = document.createElement("div");
   body.className = "gallery-card-body";
@@ -731,6 +755,70 @@ function createCard(entry: FigureGalleryEntry, version: number): HTMLElement {
     void openSource(card, entry.id, version);
   });
   return card;
+}
+
+function applyFormulaLatexUpdate(entryID: string, latex: string): void {
+  if (disposed) return;
+  libraryLoader?.updatePendingSnapshot(({ entries }) => {
+    updateFormulaLatexEntry(entries, entryID, latex);
+  });
+  const entry = entriesByID.get(entryID);
+  if (!entry || entry.kind !== "formula") return;
+  entry.latex = latex || undefined;
+  const card = galleryRenderedCards.find(
+    (candidate) => candidate.dataset.id === entryID,
+  );
+  const media = card?.querySelector<HTMLElement>(".gallery-media");
+  if (!media) return;
+  const image = media.querySelector<HTMLImageElement>(".gallery-image");
+  if (image) {
+    imageObserver?.unobserve(image);
+    imageLoader?.unregister(image);
+  }
+  if (latex) renderGalleryFormula(media, latex);
+  else renderGalleryImage(media, entry);
+  reflowGalleryColumns(galleryColumnCount);
+}
+
+function updateFormulaLatexEntry(
+  entries: readonly FigureGalleryEntry[],
+  entryID: string,
+  latex: string,
+): void {
+  const entry = entries.find(({ id }) => id === entryID);
+  if (entry?.kind === "formula") entry.latex = latex || undefined;
+}
+
+function renderGalleryImage(
+  media: HTMLElement,
+  entry: FigureGalleryEntry,
+): void {
+  media.classList.remove("is-latex", "is-loaded", "is-failed");
+  const imageAspectRatio = getFigureGalleryImageAspectRatio(entry.rect);
+  media.classList.toggle("has-ratio", imageAspectRatio !== undefined);
+  if (imageAspectRatio === undefined)
+    media.style.removeProperty("aspect-ratio");
+  else media.style.aspectRatio = String(imageAspectRatio);
+  const image = document.createElement("img");
+  image.className = "gallery-image";
+  image.alt = entry.comment || entry.tag;
+  image.dataset.id = entry.id;
+  const status = document.createElement("span");
+  status.className = "gallery-image-status";
+  setLocalizedText(status, "gallery-image-loading");
+  media.replaceChildren(image, status);
+  imageObserver?.observe(image);
+}
+
+function renderGalleryFormula(media: HTMLElement, latex: string): void {
+  media.classList.remove("has-ratio", "is-failed");
+  media.classList.add("is-latex", "is-loaded");
+  media.style.removeProperty("aspect-ratio");
+  const formula = document.createElement("div");
+  formula.className = "gallery-rendered-latex";
+  formula.setAttribute("aria-label", latex);
+  renderLatex(formula, latex);
+  media.replaceChildren(formula);
 }
 
 function enqueueImage(
@@ -784,6 +872,8 @@ function dispose(): void {
   window.clearTimeout(searchTimer);
   window.clearTimeout(galleryResizeTimer);
   libraryLoader?.cancel();
+  unsubscribeFormulaLatex?.();
+  unsubscribeFormulaLatex = undefined;
   renderVersion++;
   imageLoader?.dispose();
   imageObserver?.disconnect();

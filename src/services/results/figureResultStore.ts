@@ -48,6 +48,16 @@ export interface StoredFigureResult extends FigureResultRecord {
   imagePath: string;
 }
 
+export interface FormulaLatexState {
+  imageIdentity: string;
+  latex: string | null;
+  result: StoredFigureResult;
+}
+
+export interface FormulaRecognitionInput extends FormulaLatexState {
+  image: Uint8Array;
+}
+
 export interface FigureResultRenderCandidate {
   detectedCandidate: AnnotationCandidate;
   renderRect: Rect;
@@ -87,6 +97,39 @@ export class FigureResultStore {
     try {
       const manifest = await this.readManifest(item);
       return manifest.results.map((result) => this.withImagePath(item, result));
+    } finally {
+      release();
+    }
+  }
+
+  public async readFormulaRecognitionInput(
+    item: Zotero.Item,
+    resultID: string,
+    signal?: AbortSignal,
+  ): Promise<FormulaRecognitionInput | undefined> {
+    const release = await this.acquireAttachmentLock(item, signal);
+    try {
+      const manifest = await this.readManifest(item);
+      throwIfAborted(signal);
+      const state = this.getFormulaLatexState(item, manifest, resultID);
+      if (!state) return undefined;
+      const image = await IOUtils.read(state.result.imagePath);
+      throwIfAborted(signal);
+      if (!image.byteLength) throw new Error("Formula result image is empty");
+      return { ...state, image };
+    } finally {
+      release();
+    }
+  }
+
+  public async readFormulaLatexState(
+    item: Zotero.Item,
+    resultID: string,
+  ): Promise<FormulaLatexState | undefined> {
+    const release = await this.acquireAttachmentLock(item);
+    try {
+      const manifest = await this.readManifest(item);
+      return this.getFormulaLatexState(item, manifest, resultID);
     } finally {
       release();
     }
@@ -310,6 +353,62 @@ export class FigureResultStore {
     }
   }
 
+  public async updateFormulaLatex(
+    item: Zotero.Item,
+    resultID: string,
+    latex: string,
+    expectedImageIdentity?: string,
+    expectedLatex?: string | null,
+  ): Promise<StoredFigureResult | undefined> {
+    const normalizedLatex = latex.trim();
+    if (!normalizedLatex) {
+      throw new Error("Formula LaTeX is empty");
+    }
+    const release = await this.acquireAttachmentLock(item);
+    try {
+      const manifest = await this.readManifest(item);
+      const existing = manifest.results.find(({ id }) => id === resultID);
+      if (!existing) return undefined;
+      const imageCacheEntry = manifest.imageCache[resultID];
+      if (
+        expectedImageIdentity !== undefined &&
+        (!imageCacheEntry ||
+          manifestCodec.getFigureResultImageCacheIdentity(imageCacheEntry) !==
+            expectedImageIdentity)
+      ) {
+        throw new Error("Formula image changed during LaTeX recognition");
+      }
+      if (
+        expectedLatex !== undefined &&
+        (existing.latex ?? null) !== expectedLatex
+      ) {
+        throw new Error("Formula LaTeX changed during recognition");
+      }
+      if (existing.kind !== "formula") {
+        throw new Error("LaTeX can only be saved for formula results");
+      }
+      if (existing.latex === normalizedLatex) {
+        return this.withImagePath(item, existing);
+      }
+      const updated: FigureResultRecord = {
+        ...existing,
+        latex: normalizedLatex,
+      };
+      const results = manifest.results.map((result) =>
+        result.id === resultID ? updated : result,
+      );
+      await this.commit(
+        item,
+        results,
+        manifest.translations,
+        manifest.imageCache,
+      );
+      return this.withImagePath(item, updated);
+    } finally {
+      release();
+    }
+  }
+
   public async updateRegion(
     item: Zotero.Item,
     resultID: string,
@@ -318,7 +417,7 @@ export class FigureResultStore {
     signal?: AbortSignal,
   ): Promise<StoredFigureResult | undefined> {
     const normalizedRect = normalizeResultRect(rect);
-    if (!(image instanceof ArrayBuffer) || image.byteLength === 0) {
+    if (!isNonEmptyArrayBufferLike(image)) {
       throw new Error("Corrected figure result image is empty");
     }
     const sourceFingerprint = await this.getSourceFingerprint(item, signal);
@@ -331,6 +430,7 @@ export class FigureResultStore {
       const detectedRect = existing.detectedRect ?? existing.rect;
       const base = { ...existing, rect: normalizedRect };
       delete base.detectedRect;
+      delete base.latex;
       const updated: FigureResultRecord = resultRectsMatch(
         normalizedRect,
         detectedRect,
@@ -536,6 +636,7 @@ export class FigureResultStore {
     if (mode === "skip-existing") {
       let committed = false;
       try {
+        const updatedByID = new Map<string, FigureResultRecord>();
         for (const entry of entries) {
           throwIfAborted(signal);
           const existing = existingByFingerprint.get(entry.fingerprint);
@@ -550,7 +651,9 @@ export class FigureResultStore {
               )) &&
               renderedImageMatchesResult(entry, existing)
             ) {
-              await writeCurrentImage(existing, entry.image, existing);
+              const updated = clearFormulaLatex(existing);
+              updatedByID.set(existing.id, updated);
+              await writeCurrentImage(updated, entry.image, existing);
             }
             continue;
           }
@@ -564,7 +667,12 @@ export class FigureResultStore {
           existingByID.set(record.id, record);
         }
         throwIfAborted(signal);
-        const results = [...manifest.results, ...createdRecords];
+        const results = [
+          ...manifest.results.map(
+            (result) => updatedByID.get(result.id) ?? result,
+          ),
+          ...createdRecords,
+        ];
         if (
           createdRecords.length > 0 ||
           imageCacheChanged ||
@@ -621,21 +729,22 @@ export class FigureResultStore {
               "Matching figure result disappeared during reconciliation",
             );
           }
+          const imageReusable = await this.isReusableImage(
+            item,
+            imageCache,
+            existing,
+            sourceFingerprint,
+          );
+          const imageWillChange =
+            !imageReusable && renderedImageMatchesResult(entry, existing);
           const record = preserveManualOverrides(
             this.createRecord(entry.candidate),
             existing,
+            !imageWillChange,
           );
           updatedByID.set(existing.id, record);
           recordsChanged ||= !figureResultRecordsMatch(record, existing);
-          if (
-            !(await this.isReusableImage(
-              item,
-              imageCache,
-              existing,
-              sourceFingerprint,
-            )) &&
-            renderedImageMatchesResult(entry, record)
-          ) {
+          if (!imageReusable && renderedImageMatchesResult(entry, record)) {
             await writeCurrentImage(record, entry.image, existing);
           }
         }
@@ -682,18 +791,24 @@ export class FigureResultStore {
         throwIfAborted(signal);
         const matchingExisting = existingByFingerprint.get(entry.fingerprint);
         const detectedRecord = this.createRecord(entry.candidate);
-        const record = matchingExisting
+        const imageReusable = matchingExisting
+          ? await this.isReusableImage(
+              item,
+              imageCache,
+              matchingExisting,
+              sourceFingerprint,
+            )
+          : false;
+        const imageNeedsWrite = !matchingExisting || !imageReusable;
+        const preservedRecord = matchingExisting
           ? preserveManualOverrides(detectedRecord, matchingExisting)
           : detectedRecord;
+        const imageWillChange =
+          imageNeedsWrite && renderedImageMatchesResult(entry, preservedRecord);
+        const record = imageWillChange
+          ? clearFormulaLatex(preservedRecord)
+          : preservedRecord;
         assertResultIDAvailable(record, entry.fingerprint, existingByID);
-        const imageNeedsWrite =
-          !matchingExisting ||
-          !(await this.isReusableImage(
-            item,
-            imageCache,
-            matchingExisting,
-            sourceFingerprint,
-          ));
         if (imageNeedsWrite) {
           if (renderedImageMatchesResult(entry, record)) {
             await writeCurrentImage(record, entry.image, matchingExisting);
@@ -1071,6 +1186,28 @@ export class FigureResultStore {
     });
   }
 
+  private getFormulaLatexState(
+    item: Zotero.Item,
+    manifest: FigureResultManifest,
+    resultID: string,
+  ): FormulaLatexState | undefined {
+    const result = manifest.results.find(({ id }) => id === resultID);
+    if (!result) return undefined;
+    if (result.kind !== "formula") {
+      throw new Error("LaTeX editing requires a formula result");
+    }
+    const imageCacheEntry = manifest.imageCache[resultID];
+    if (!imageCacheEntry) {
+      throw new Error("Formula image identity is unavailable");
+    }
+    return {
+      imageIdentity:
+        manifestCodec.getFigureResultImageCacheIdentity(imageCacheEntry),
+      latex: result.latex ?? null,
+      result: this.withImagePath(item, result),
+    };
+  }
+
   private withImagePath(
     item: Zotero.Item,
     result: FigureResultRecord,
@@ -1119,6 +1256,15 @@ export class FigureResultStore {
   }
 }
 
+function isNonEmptyArrayBufferLike(value: unknown): value is ArrayBuffer {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { byteLength?: unknown }).byteLength === "number" &&
+    (value as { byteLength: number }).byteLength > 0
+  );
+}
+
 function assertPageCandidates(
   pageIndex: number,
   candidates: readonly AnnotationCandidate[],
@@ -1135,9 +1281,13 @@ function assertPageCandidates(
 function preserveManualOverrides(
   detected: FigureResultRecord,
   existing: FigureResultRecord,
+  preserveLatex = true,
 ): FigureResultRecord {
   return {
     ...detected,
+    ...(preserveLatex && existing.latex !== undefined
+      ? { latex: existing.latex }
+      : {}),
     ...(existing.detectedComment === undefined
       ? {}
       : {
@@ -1153,6 +1303,13 @@ function preserveManualOverrides(
   };
 }
 
+function clearFormulaLatex(result: FigureResultRecord): FigureResultRecord {
+  if (result.latex === undefined) return result;
+  const updated = { ...result };
+  delete updated.latex;
+  return updated;
+}
+
 function figureResultRecordsMatch(
   first: FigureResultRecord,
   second: FigureResultRecord,
@@ -1164,6 +1321,7 @@ function figureResultRecordsMatch(
     first.id === second.id &&
     first.imageFile === second.imageFile &&
     first.kind === second.kind &&
+    first.latex === second.latex &&
     first.pageIndex === second.pageIndex &&
     first.pageLabel === second.pageLabel &&
     rectsExactlyMatch(first.rect, second.rect) &&

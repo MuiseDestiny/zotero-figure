@@ -5,7 +5,9 @@ const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
 export type FigureSidebarIconKind =
   | FigureResultKind
   | "annotation"
+  | "check"
   | "languages"
+  | "loading"
   | "menu"
   | "refresh"
   | "search"
@@ -93,6 +95,8 @@ export function getFigureSidebarIconParts(
         ["path", { d: "m22 22-5-10-5 10" }],
         ["path", { d: "M14 18h6" }],
       ];
+    case "check":
+      return [["path", { d: "M20 6 9 17l-5-5" }]];
     case "figure":
       return [
         [
@@ -123,6 +127,11 @@ export function getFigureSidebarIconParts(
         ["circle", { cx: "5", cy: "12", r: "1" }],
         ["circle", { cx: "12", cy: "12", r: "1" }],
         ["circle", { cx: "19", cy: "12", r: "1" }],
+      ];
+    case "loading":
+      return [
+        ["circle", { cx: "12", cy: "12", opacity: "0.25", r: "9" }],
+        ["path", { d: "M21 12a9 9 0 0 0-9-9" }],
       ];
     case "refresh":
       return [

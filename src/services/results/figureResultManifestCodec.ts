@@ -9,9 +9,9 @@ import {
 import type { Rect } from "../../domain/layout";
 
 // Owns the versioned on-disk contract; filesystem and host I/O stay in the store.
-export const FIGURE_RESULT_MANIFEST_SCHEMA_VERSION = 5;
+export const FIGURE_RESULT_MANIFEST_SCHEMA_VERSION = 6;
 
-const PREVIOUS_SCHEMA_VERSION = 4;
+const LATEX_SCHEMA_VERSION = 6;
 const IMAGE_CACHE_SCHEMA_VERSION = 3;
 const TRANSLATION_SCHEMA_VERSION = 2;
 const LEGACY_SCHEMA_VERSION = 1;
@@ -105,16 +105,18 @@ export function decodeFigureResultManifest(
   const results: FigureResultRecord[] = [];
   const resultIDs = new Set<string>();
   for (const candidate of value.results) {
-    if (!isFigureResultRecord(candidate)) {
+    if (!isFigureResultRecord(candidate, value.schemaVersion)) {
       throw new FigureResultManifestParseError(
         "contains an invalid result record",
       );
     }
-    if (resultIDs.has(candidate.id)) {
+    const result = { ...candidate };
+    if (value.schemaVersion < LATEX_SCHEMA_VERSION) delete result.latex;
+    if (resultIDs.has(result.id)) {
       throw new FigureResultManifestParseError("contains duplicate result IDs");
     }
-    resultIDs.add(candidate.id);
-    results.push(candidate);
+    resultIDs.add(result.id);
+    results.push(result);
   }
 
   return {
@@ -213,6 +215,18 @@ export function createFigureResultImageCacheEntry(
     fingerprint: getFigureResultImageFingerprint(result),
     sourceFingerprint,
   };
+}
+
+export function getFigureResultImageCacheIdentity(
+  entry: FigureResultImageCacheEntry,
+): string {
+  return JSON.stringify([
+    entry.analysisVersion,
+    entry.modelHash,
+    entry.previewVersion,
+    entry.fingerprint,
+    entry.sourceFingerprint,
+  ]);
 }
 
 export function isReusableFigureResultImageCacheEntry(
@@ -316,11 +330,9 @@ export function isFigureResultRect(value: unknown): value is Rect {
 
 function isSupportedSchemaVersion(value: unknown): value is number {
   return (
-    value === LEGACY_SCHEMA_VERSION ||
-    value === TRANSLATION_SCHEMA_VERSION ||
-    value === IMAGE_CACHE_SCHEMA_VERSION ||
-    value === PREVIOUS_SCHEMA_VERSION ||
-    value === FIGURE_RESULT_MANIFEST_SCHEMA_VERSION
+    Number.isInteger(value) &&
+    (value as number) >= LEGACY_SCHEMA_VERSION &&
+    (value as number) <= FIGURE_RESULT_MANIFEST_SCHEMA_VERSION
   );
 }
 
@@ -366,7 +378,10 @@ function parseImageCache(
   return pruneFigureResultImageCache(parsed, results);
 }
 
-function isFigureResultRecord(value: unknown): value is FigureResultRecord {
+function isFigureResultRecord(
+  value: unknown,
+  schemaVersion: number,
+): value is FigureResultRecord {
   if (!value || typeof value !== "object") return false;
   const result = value as Partial<FigureResultRecord>;
   return (
@@ -381,6 +396,11 @@ function isFigureResultRecord(value: unknown): value is FigureResultRecord {
     (result.kind === "figure" ||
       result.kind === "formula" ||
       result.kind === "table") &&
+    (schemaVersion < LATEX_SCHEMA_VERSION ||
+      result.latex === undefined ||
+      (result.kind === "formula" &&
+        typeof result.latex === "string" &&
+        result.latex.trim().length > 0)) &&
     typeof result.pageIndex === "number" &&
     Number.isInteger(result.pageIndex) &&
     result.pageIndex >= 0 &&

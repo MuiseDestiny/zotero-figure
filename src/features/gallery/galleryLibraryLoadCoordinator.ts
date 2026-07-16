@@ -20,6 +20,7 @@ export interface GalleryLibraryLoadPort<FilterOptions> {
  * the newest request is allowed to mutate the view.
  */
 export class GalleryLibraryLoadCoordinator<FilterOptions> {
+  private pendingLoad?: PendingGalleryLoad;
   private requestID = 0;
 
   constructor(private readonly port: GalleryLibraryLoadPort<FilterOptions>) {}
@@ -27,6 +28,8 @@ export class GalleryLibraryLoadCoordinator<FilterOptions> {
   public async load(libraryID: number): Promise<void> {
     if (!Number.isInteger(libraryID)) return;
     const requestID = ++this.requestID;
+    const pendingLoad: PendingGalleryLoad = { requestID, updates: [] };
+    this.pendingLoad = pendingLoad;
     let loadedSnapshot: FigureGallerySnapshot | undefined;
     this.port.setControlsDisabled(true);
     this.port.showLoading();
@@ -34,6 +37,9 @@ export class GalleryLibraryLoadCoordinator<FilterOptions> {
     try {
       const snapshot = await this.port.loadSnapshot(libraryID);
       loadedSnapshot = snapshot;
+      pendingLoad.snapshot = snapshot;
+      for (const update of pendingLoad.updates) update(snapshot);
+      pendingLoad.updates.length = 0;
       if (!this.canCommit(requestID, snapshot.libraryID)) return;
       const options = await this.port.buildFilterOptions(snapshot);
       if (!this.canCommit(requestID, snapshot.libraryID)) return;
@@ -43,6 +49,7 @@ export class GalleryLibraryLoadCoordinator<FilterOptions> {
         this.port.reportError(error, libraryID, loadedSnapshot);
       }
     } finally {
+      if (this.pendingLoad === pendingLoad) this.pendingLoad = undefined;
       if (requestID === this.requestID) {
         this.port.setControlsDisabled(false);
       }
@@ -51,6 +58,16 @@ export class GalleryLibraryLoadCoordinator<FilterOptions> {
 
   public cancel(): void {
     this.requestID++;
+    this.pendingLoad = undefined;
+  }
+
+  public updatePendingSnapshot(
+    update: (snapshot: FigureGallerySnapshot) => void,
+  ): void {
+    const pendingLoad = this.pendingLoad;
+    if (!pendingLoad || pendingLoad.requestID !== this.requestID) return;
+    if (pendingLoad.snapshot) update(pendingLoad.snapshot);
+    else pendingLoad.updates.push(update);
   }
 
   private canCommit(requestID: number, libraryID: number): boolean {
@@ -58,4 +75,10 @@ export class GalleryLibraryLoadCoordinator<FilterOptions> {
       requestID === this.requestID && this.port.isSelectedLibrary(libraryID)
     );
   }
+}
+
+interface PendingGalleryLoad {
+  requestID: number;
+  snapshot?: FigureGallerySnapshot;
+  updates: Array<(snapshot: FigureGallerySnapshot) => void>;
 }

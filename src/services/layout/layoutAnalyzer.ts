@@ -84,6 +84,8 @@ const SCAN_PROGRESS_WEIGHT = 0.2;
 const attachmentAnalysisLeases = new KeyedAsyncMutex<string>();
 
 export class LayoutAnalyzer {
+  private disposed = false;
+  private readonly lifecycleController = new AbortController();
   private readonly scheduledPages = new AsyncPermitPool(MAX_SCHEDULED_PAGES);
   private readonly openPdfDocuments = new AsyncPermitPool(
     MAX_OPEN_PDF_DOCUMENTS,
@@ -103,15 +105,24 @@ export class LayoutAnalyzer {
   ) {}
 
   public async prewarm(): Promise<void> {
+    throwIfAborted(this.lifecycleController.signal);
     const [validation] = await Promise.all([
-      modelManager.ensureRecommendedModel(),
-      this.pdfEngine.prepare(),
+      modelManager.ensureRecommendedModel({
+        signal: this.lifecycleController.signal,
+      }),
+      this.pdfEngine.prepare(this.lifecycleController.signal),
     ]);
+    throwIfAborted(this.lifecycleController.signal);
     if (validation.state !== "valid") return;
-    await this.getWorkerPool(validation.path, validation.variant).prepare();
+    await this.getWorkerPool(validation.path, validation.variant).prepare(
+      this.lifecycleController.signal,
+    );
   }
 
   public dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.lifecycleController.abort();
     this.workerPool?.dispose();
     this.workerPool = undefined;
     this.workerPoolKey = undefined;
@@ -123,27 +134,36 @@ export class LayoutAnalyzer {
     result: StoredFigureResult,
     signal?: AbortSignal,
   ): Promise<ResultCorrectionPreview> {
+    if (this.disposed) throw new OperationCancelledError();
     const releaseDocument = await this.openPdfDocuments.acquire(signal);
     let document: PdfAnalysisDocument | undefined;
     try {
       document = await this.pdfEngine.open(attachment, signal);
       const page = await document.getPageData(result.pageIndex, signal);
-      const releaseRender = await this.pdfRenders.acquire(signal);
+      const releasePreview = await this.previewPages.acquire(signal);
+      let releaseRender: (() => void) | undefined;
       try {
-        const rendered = await document.renderDetectionImage(
+        releaseRender = await this.pdfRenders.acquire(signal);
+        const rendered = await document.renderRegions(
           result.pageIndex,
+          [page.viewBox],
           signal,
         );
+        const image = rendered.images[0];
+        if (!image?.byteLength) {
+          throw new Error("Correction preview image was not rendered");
+        }
         return {
           detectedRect: normalizePdfRectForPage(
             result.detectedRect ?? result.rect,
             page,
           ),
-          image: rendered.image,
+          image,
           rect: normalizePdfRectForPage(result.rect, page),
         };
       } finally {
-        releaseRender();
+        releaseRender?.();
+        releasePreview();
       }
     } finally {
       await document?.close();
@@ -157,6 +177,7 @@ export class LayoutAnalyzer {
     normalizedRect: Rect,
     signal?: AbortSignal,
   ): Promise<StoredFigureResult | undefined> {
+    if (this.disposed) throw new OperationCancelledError();
     const releaseDocument = await this.openPdfDocuments.acquire(signal);
     let document: PdfAnalysisDocument | undefined;
     try {
@@ -208,6 +229,7 @@ export class LayoutAnalyzer {
     progress: AnalysisProgress,
     options: AnalysisOptions = {},
   ): Promise<AnalysisSummary> {
+    if (this.disposed) throw new OperationCancelledError();
     const releaseAnalysis = await attachmentAnalysisLeases.acquire(
       getAttachmentAnalysisKey(attachment),
       options.signal,
@@ -752,6 +774,7 @@ export class LayoutAnalyzer {
     modelPath: string,
     variant: ModelVariant,
   ): LayoutWorkerPool {
+    if (this.disposed) throw new OperationCancelledError();
     const key = `${modelPath}:${variant.id}`;
     if (
       !this.workerPool ||

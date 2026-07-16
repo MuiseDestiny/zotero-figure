@@ -9,6 +9,7 @@ import {
 } from "../src/domain/figureSidebar";
 
 interface Entry {
+  comment?: string;
   id: string;
   kind: "figure" | "formula" | "table";
   pageIndex: number;

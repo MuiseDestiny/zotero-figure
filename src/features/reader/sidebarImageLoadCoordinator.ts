@@ -27,6 +27,7 @@ interface SidebarImageEntry {
   image: HTMLImageElement;
   loadMonitor?: ImageLoadMonitor;
   result: SidebarImageSource;
+  releaseURL?: () => void;
   state: ImageLoadState;
   task?: AsyncTaskHandle;
 }
@@ -123,6 +124,16 @@ export class SidebarImageLoadCoordinator {
     }
   }
 
+  public unregister(resultID: string): void {
+    for (const entry of [...this.entries]) {
+      if (entry.result.id !== resultID) continue;
+      entry.task?.cancel();
+      entry.loadMonitor?.cancel();
+      this.entries.delete(entry);
+      if (entry.releaseURL) this.releaseBlobURL(entry.releaseURL);
+    }
+  }
+
   public setViewport(viewport: HTMLElement | undefined): void {
     if (this.viewport === viewport) return;
     this.viewport = viewport;
@@ -216,6 +227,7 @@ export class SidebarImageLoadCoordinator {
       if (!this.isCurrent(entry)) return;
       const blobURL = this.createBlobURL(entry.document, bytes);
       releaseURL = () => blobURL.release();
+      entry.releaseURL = releaseURL;
       this.blobURLReleasers.add(releaseURL);
       if (!this.isCurrent(entry)) {
         this.releaseBlobURL(releaseURL);
@@ -229,6 +241,7 @@ export class SidebarImageLoadCoordinator {
       if (entry.loadMonitor === loadMonitor) entry.loadMonitor = undefined;
       if (outcome === "cancelled" || !this.isCurrent(entry)) {
         this.releaseBlobURL(releaseURL);
+        entry.releaseURL = undefined;
         return;
       }
       if (outcome === "loaded") {
@@ -239,11 +252,13 @@ export class SidebarImageLoadCoordinator {
       }
       entry.state = "failed";
       this.releaseBlobURL(releaseURL);
+      entry.releaseURL = undefined;
       entry.container.replaceChildren(
         this.createPlaceholder(entry.document, "failed"),
       );
     } catch (error) {
       if (releaseURL) this.releaseBlobURL(releaseURL);
+      entry.releaseURL = undefined;
       if (!this.isCurrent(entry)) return;
       this.logError(toError(error));
       entry.state = "failed";

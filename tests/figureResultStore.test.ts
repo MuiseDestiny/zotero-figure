@@ -885,7 +885,7 @@ test("persists translations in the local manifest by target-language context", a
     const manifest = JSON.parse(
       harness.io.readText(getManifestPath())!,
     ) as Record<string, unknown>;
-    assert.equal(manifest.schemaVersion, 5);
+    assert.equal(manifest.schemaVersion, 6);
     assert.ok(manifest.analysisIdentity);
     assert.ok(manifest.imageCache);
     assert.ok(manifest.translations);
@@ -956,7 +956,7 @@ test("preserves manual captions across repeated analysis without rewriting PNGs"
     const manifest = JSON.parse(harness.io.readText(getManifestPath())!) as {
       schemaVersion: number;
     };
-    assert.equal(manifest.schemaVersion, 5);
+    assert.equal(manifest.schemaVersion, 6);
   } finally {
     harness.restore();
   }
@@ -1009,6 +1009,130 @@ test("persists manual crop corrections across repeated analysis", async () => {
     assert.deepEqual(reset?.rect, candidate.rect);
     assert.equal(reset?.detectedRect, undefined);
     assert.deepEqual(harness.io.readBytes(original.imagePath), [7]);
+  } finally {
+    harness.restore();
+  }
+});
+
+test("persists formula LaTeX, preserves it on cache hits, and clears it after a crop change", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  const candidate = makeCandidate({
+    comment: "Formula 1",
+    tag: "Formula 1",
+  });
+
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(1, 2, 3)],
+      "replace-page",
+    );
+    const original = seeded.results[0];
+    const recognitionInput = await store.readFormulaRecognitionInput(
+      harness.item,
+      original.id,
+    );
+    assert.deepEqual([...recognitionInput!.image], [1, 2, 3]);
+    const imageIdentity = recognitionInput!.imageIdentity;
+    const updated = await store.updateFormulaLatex(
+      harness.item,
+      original.id,
+      "  x^2 + y^2  ",
+      imageIdentity,
+    );
+    assert.equal(updated?.latex, "x^2 + y^2");
+    const editState = await store.readFormulaLatexState(
+      harness.item,
+      original.id,
+    );
+    assert.equal(editState?.imageIdentity, imageIdentity);
+    assert.equal(editState?.latex, "x^2 + y^2");
+    assert.equal(editState?.result.id, original.id);
+    assert.equal((await store.list(harness.item))[0].latex, "x^2 + y^2");
+    await assert.rejects(
+      store.updateFormulaLatex(
+        harness.item,
+        original.id,
+        "stale cloud result",
+        imageIdentity,
+        null,
+      ),
+      /LaTeX changed during recognition/,
+    );
+    assert.equal((await store.list(harness.item))[0].latex, "x^2 + y^2");
+
+    const repeated = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(9)],
+      "replace-page",
+    );
+    assert.equal(repeated.results[0].latex, "x^2 + y^2");
+
+    (harness.item as Zotero.Item & { version: number }).version = 2;
+    const refreshed = await store.reconcilePage(
+      harness.item,
+      0,
+      [candidate],
+      [bytes(6, 7)],
+      "replace-page",
+    );
+    assert.equal(refreshed.results[0].latex, undefined);
+    assert.deepEqual(harness.io.readBytes(original.imagePath), [6, 7]);
+    await assert.rejects(
+      store.updateFormulaLatex(
+        harness.item,
+        original.id,
+        "stale source result",
+        imageIdentity,
+      ),
+      /image changed/,
+    );
+
+    const corrected = await store.updateRegion(
+      harness.item,
+      original.id,
+      [2, 3, 11, 13],
+      bytes(8),
+    );
+    assert.equal(corrected?.latex, undefined);
+    await assert.rejects(
+      store.updateFormulaLatex(
+        harness.item,
+        original.id,
+        "stale",
+        imageIdentity,
+      ),
+      /image changed/,
+    );
+  } finally {
+    harness.restore();
+  }
+});
+
+test("rejects empty LaTeX and LaTeX updates for non-formula results", async () => {
+  const harness = installStoreHarness();
+  const store = new FigureResultStore();
+  try {
+    const seeded = await store.reconcilePage(
+      harness.item,
+      0,
+      [makeCandidate()],
+      [bytes(1)],
+      "replace-page",
+    );
+    await assert.rejects(
+      store.updateFormulaLatex(harness.item, seeded.results[0].id, "  "),
+      /LaTeX is empty/,
+    );
+    await assert.rejects(
+      store.updateFormulaLatex(harness.item, seeded.results[0].id, "x"),
+      /only be saved for formula/,
+    );
   } finally {
     harness.restore();
   }
@@ -1085,7 +1209,7 @@ test("migrates schema v1 without losing results or images", async () => {
     const upgraded = JSON.parse(harness.io.readText(getManifestPath())!) as {
       schemaVersion: number;
     };
-    assert.equal(upgraded.schemaVersion, 5);
+    assert.equal(upgraded.schemaVersion, 6);
 
     harness.io.operations.writes.length = 0;
     await store.reconcilePage(
@@ -1150,7 +1274,7 @@ test("migrates schema v2 translations and rebuilds missing image metadata", asyn
       imageCache?: unknown;
       schemaVersion: number;
     };
-    assert.equal(upgraded.schemaVersion, 5);
+    assert.equal(upgraded.schemaVersion, 6);
     assert.ok(upgraded.imageCache);
     assert.equal(
       (await store.getCachedTranslations(harness.item, contextKey)).get(

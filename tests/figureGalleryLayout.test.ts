@@ -40,6 +40,10 @@ test("opens the gallery through an isolated Zotero custom tab", () => {
   assert.match(hooks, /addon\.api\.gallery = \{/);
   assert.match(hooks, /galleryController\.start\(\)/);
   assert.match(hooks, /delete addon\.api\.gallery/);
+  assert.match(
+    markup,
+    /chrome:\/\/zotero-platform\/content\/zotero\.css[\s\S]*gallery\.css/,
+  );
 });
 
 test("exposes all requested cross-document filters", () => {
@@ -80,9 +84,20 @@ test("exposes all requested cross-document filters", () => {
   assert.doesNotMatch(markup, /class="gallery-logo/);
   assert.match(markup, /class="gallery-filters"[\s\S]*class="gallery-summary"/);
   assert.match(markup, /id="toolbar-toggle"/);
+  assert.match(markup, /id="reset-filters"/);
+  assert.match(markup, /data-l10n-id="gallery-reset-filters"/);
+  assert.match(markup, /M3 12a9 9 0 1 0 3-6\.7L3 8/);
   assert.match(markup, /class="gallery-toolbar-toggle-icon"/);
   assert.match(markup, /<path d="m6 9 6 6 6-6"/);
   assert.match(script, /classList\.toggle\("is-collapsed"\)/);
+  assert.match(
+    script,
+    /elements\.resetFilters\.addEventListener\("click", resetFilters\)/,
+  );
+  assert.match(
+    script,
+    /function resetFilters\(\): void \{[\s\S]*collectionFilter\.value = ""[\s\S]*documentFilter\.value = ""[\s\S]*yearFilter\.value = ""[\s\S]*typeFilter\.value = ""[\s\S]*keywordFilter\.value = ""[\s\S]*applyFilters\(\)/,
+  );
   assert.match(script, /setAttribute\("aria-expanded", String\(!collapsed\)\)/);
   assert.match(script, /if \(collapsed\) elements\.keywordFilter\.focus\(\)/);
 });
@@ -114,7 +129,7 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
     css,
     /\.gallery-toolbar\s*\{[^}]*position:\s*fixed[^}]*bottom:\s*18px[^}]*left:\s*50%/,
   );
-  assert.match(css, /width:\s*min\(calc\(100% - 36px\), 660px\)/);
+  assert.match(css, /width:\s*min\(calc\(100% - 36px\), 600px\)/);
   assert.match(css, /height:\s*126px/);
   assert.match(css, /height 220ms cubic-bezier\(0\.2, 0\.8, 0\.2, 1\)/);
   assert.match(css, /gallery-toolbar-expand-content 180ms ease-out/);
@@ -124,11 +139,30 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
     /grid-template-columns:\s*repeat\(9, minmax\(0, 1fr\)\) 30px/,
   );
   assert.match(css, /backdrop-filter:\s*blur\(18px\) saturate\(120%\)/);
-  assert.match(css, /--gallery-toolbar-surface:\s*rgb\(255 255 255 \/ 88%\)/);
+  assert.match(css, /--gallery-toolbar-surface:\s*var\(--material-menu\)/);
+  assert.match(css, /--gallery-control-surface:\s*var\(--material-button\)/);
+  assert.match(css, /--gallery-surface:\s*var\(--material-sidepane\)/);
+  assert.doesNotMatch(css, /#[\da-f]{3,8}\b|rgba?\(/i);
   assert.match(css, /\.gallery-field-library\s*\{[^}]*display:\s*none/);
   assert.match(
     css,
+    /\.gallery-field-document\s*\{[^}]*grid-column:\s*7 \/ span 3[^}]*grid-row:\s*1/,
+  );
+  assert.match(
+    css,
+    /\.gallery-field-year\s*\{[^}]*grid-column:\s*4 \/ span 3[^}]*grid-row:\s*1/,
+  );
+  assert.match(
+    css,
     /\.gallery-field-collection\s*\{[^}]*grid-column:\s*1 \/ span 3[^}]*grid-row:\s*1/,
+  );
+  assert.match(
+    css,
+    /\.gallery-reset-filters\s*\{[^}]*grid-column:\s*10[^}]*grid-row:\s*1/,
+  );
+  assert.match(
+    css,
+    /\.gallery-toolbar\.is-collapsed \.gallery-reset-filters\s*\{[^}]*display:\s*none/,
   );
   assert.match(css, /\.gallery-summary\s*\{[^}]*display:\s*none/);
   assert.match(css, /\.gallery-toolbar\.is-collapsed/);
@@ -139,6 +173,14 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
     /\.gallery-toolbar\.is-collapsed \.gallery-field-type\s*\{[^}]*grid-column:\s*1/,
   );
   assert.match(css, /transform:\s*translateX\(-50%\)/);
+  assert.match(
+    css,
+    /\.gallery-icon-button\s*\{[^}]*width:\s*30px[^}]*height:\s*30px[^}]*min-width:\s*30px[^}]*min-height:\s*30px[^}]*max-width:\s*30px[^}]*max-height:\s*30px/,
+  );
+  assert.match(
+    css,
+    /\.gallery-toolbar\.is-collapsed\s*\{[^}]*width:\s*min\(calc\(100% - 36px\), 400px\)/,
+  );
   assert.doesNotMatch(css, /\.gallery-toolbar\s*\{[^}]*position:\s*sticky/);
   assert.match(script, /media\?\.classList\.add\("is-loaded"\)/);
   assert.match(script, /getFigureGalleryImageAspectRatio\(entry\.rect\)/);
@@ -151,8 +193,10 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
   assert.match(css, /\.gallery-measurement\s*\{[^}]*position:\s*fixed/);
   assert.match(script, /media\.style\.aspectRatio/);
   assert.match(css, /\.gallery-media\.has-ratio \.gallery-image/);
-  assert.doesNotMatch(script, /classList\.remove\("has-ratio"\)/);
-  assert.doesNotMatch(script, /removeProperty\("aspect-ratio"\)/);
+  assert.match(script, /classList\.remove\("has-ratio", "is-failed"\)/);
+  assert.match(script, /removeProperty\("aspect-ratio"\)/);
+  assert.match(script, /renderLatex\(formula, latex\)/);
+  assert.match(script, /subscribeFormulaLatex/);
   assert.doesNotMatch(css, /\.gallery-media\.is-failed\s*\{[^}]*min-height/);
   assert.match(loadCoordinator, /const requestID = \+\+this\.requestID/);
   assert.match(

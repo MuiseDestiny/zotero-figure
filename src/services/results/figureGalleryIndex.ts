@@ -219,6 +219,7 @@ export class FigureGalleryIndex {
             documentTitle,
             id,
             kind: result.kind,
+            ...(result.latex === undefined ? {} : { latex: result.latex }),
             libraryID,
             pageIndex: result.pageIndex,
             pageLabel: result.pageLabel || String(result.pageIndex + 1),

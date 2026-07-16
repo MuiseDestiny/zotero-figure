@@ -3,6 +3,7 @@ export type FigureSidebarFilter = "all" | "figure" | "formula" | "table";
 export type FigureSidebarKind = "figure" | "formula" | "table";
 
 export interface FigureSidebarItemMetadata {
+  comment?: string;
   kind?: FigureSidebarKind;
   pageIndex?: number;
   rect?: readonly [number, number, number, number];

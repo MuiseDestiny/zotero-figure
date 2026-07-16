@@ -47,10 +47,12 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "katex": "^0.16.22",
     "mupdf": "1.28.0",
     "zotero-plugin-toolkit": "^5.1.0-beta.4"
   },
   "devDependencies": {
+    "@types/katex": "^0.16.7",
     "@types/node": "^20.10.4",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
@@ -63,7 +65,7 @@
     "prettier": "^3.1.1",
     "release-it": "^17.0.1",
     "replace-in-file": "^7.0.2",
-    "typescript": "^5.3.3",
+    "typescript": "5.3.3",
     "zotero-types": "^3.0.1"
   },
   "prettier": {

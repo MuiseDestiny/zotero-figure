@@ -1,11 +1,17 @@
 import type { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { config } from "../../../package.json";
 import { FigureOutputService } from "../../services/figureOutputService";
+import { FormulaLatexCoordinator } from "../../services/formula/formulaLatexCoordinator";
 import {
   type AnalysisProgress,
   LayoutAnalyzer,
 } from "../../services/layout/layoutAnalyzer";
 import { FigureResultStore } from "../../services/results/figureResultStore";
+import {
+  isCancellationError,
+  OperationCancelledError,
+  throwIfAborted,
+} from "../../utils/cancellation";
 import { getString } from "../../utils/locale";
 
 type BatchAction = "analyze" | "annotations" | "note";
@@ -25,11 +31,13 @@ export class FigureBatchController {
   private activePopup?: ProgressWindowHelper;
   private readonly outputService: FigureOutputService;
   private running = false;
+  private runController?: AbortController;
   private started = false;
 
   constructor(
     private readonly layoutAnalyzer: LayoutAnalyzer,
     private readonly resultStore: FigureResultStore,
+    private readonly formulaLatex: FormulaLatexCoordinator,
   ) {
     this.outputService = new FigureOutputService(resultStore);
   }
@@ -52,6 +60,7 @@ export class FigureBatchController {
   }
 
   public dispose(): void {
+    this.runController?.abort();
     if (!this.started) return;
     this.started = false;
     ztoolkit.Menu.unregister(MENU_ID);
@@ -66,6 +75,7 @@ export class FigureBatchController {
   }
 
   private async run(action: BatchAction): Promise<void> {
+    if (!this.started) return;
     if (this.running) {
       this.activePopup?.changeLine({
         text: getString("batch-progress-already-running"),
@@ -73,11 +83,14 @@ export class FigureBatchController {
       return;
     }
     this.running = true;
+    const controller = new AbortController();
+    this.runController = controller;
     const popup = this.createProgress();
     this.activePopup = popup;
     try {
       const selectedItems = getSelectedItems();
       const attachments = await resolvePdfAttachments(selectedItems);
+      throwIfAborted(controller.signal);
       if (attachments.length === 0) {
         popup
           .changeLine({
@@ -97,6 +110,7 @@ export class FigureBatchController {
         succeeded: 0,
       };
       for (let index = 0; index < attachments.length; index++) {
+        throwIfAborted(controller.signal);
         const attachment = attachments[index];
         const title = getAttachmentTitle(attachment);
         const progress = this.createAttachmentProgress(
@@ -109,9 +123,15 @@ export class FigureBatchController {
           const summary = await this.layoutAnalyzer.analyzeAttachment(
             attachment,
             progress,
-            { syncAnnotations: action === "annotations" },
+            {
+              signal: controller.signal,
+              syncAnnotations: action === "annotations",
+            },
           );
+          throwIfAborted(controller.signal);
           const results = await this.resultStore.list(attachment);
+          throwIfAborted(controller.signal);
+          this.formulaLatex.recognizeAttachment(attachment);
           totals.results += results.length;
           totals.annotations += summary.annotationsCreated;
           if (
@@ -123,8 +143,12 @@ export class FigureBatchController {
           ) {
             totals.notes++;
           }
+          throwIfAborted(controller.signal);
           totals.succeeded++;
         } catch (error) {
+          if (controller.signal.aborted || isCancellationError(error)) {
+            throw new OperationCancelledError();
+          }
           totals.failed++;
           ztoolkit.log("Batch layout analysis failed", {
             attachmentID: attachment.id,
@@ -149,6 +173,15 @@ export class FigureBatchController {
         })
         .startCloseTimer(totals.failed > 0 ? 5_000 : 3_000);
     } catch (error) {
+      if (isCancellationError(error)) {
+        if (this.started) {
+          popup.changeLine({
+            text: getString("progress-cancelled"),
+            type: "default",
+          });
+        }
+        return;
+      }
       const resolvedError = toError(error);
       Zotero.logError(resolvedError);
       popup.changeLine({
@@ -158,6 +191,7 @@ export class FigureBatchController {
         type: "fail",
       });
     } finally {
+      if (this.runController === controller) this.runController = undefined;
       if (this.activePopup === popup) this.activePopup = undefined;
       this.running = false;
     }
@@ -171,6 +205,7 @@ export class FigureBatchController {
   ): AnalysisProgress {
     return {
       update: (detail, pageProgress) => {
+        if (this.runController?.signal.aborted) return;
         popup.changeLine({
           progress: Math.round(
             ((attachmentIndex + pageProgress / 100) / attachmentCount) * 100,

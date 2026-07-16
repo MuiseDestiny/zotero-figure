@@ -16,15 +16,20 @@ test("shares one analyzer across main windows and disposes it at shutdown", () =
   );
   assert.match(
     hooksSource,
-    /new FigureReaderController\(win, \{\s*layoutAnalyzer,\s*resultStore,/,
+    /new FigureReaderController\(win, \{\s*formulaLatex,\s*layoutAnalyzer,\s*resultStore,/,
   );
   assert.match(hooksSource, /layoutAnalyzer\.dispose\(\)/);
   assert.match(
     hooksSource,
-    /new FigureBatchController\(layoutAnalyzer, resultStore\)/,
+    /new FigureBatchController\(\s*layoutAnalyzer,\s*resultStore,\s*formulaLatex,/,
   );
   assert.match(hooksSource, /batchController\.start\(\)/);
   assert.match(hooksSource, /batchController\.dispose\(\)/);
+  assert.match(hooksSource, /formulaLatex\.dispose\(\)/);
+  assert.match(
+    hooksSource,
+    /recognizeExistingFormulae: \(onProgress, signal\) =>\s*formulaLatex\.recognizeStoredFormulae\(onProgress, signal\)/,
+  );
   assert.match(controllerSource, /if \(this\.ownsLayoutAnalyzer\)/);
   assert.match(
     hooksSource,
@@ -48,4 +53,18 @@ test("shares one analyzer across main windows and disposes it at shutdown", () =
     /this\.activeAnalyses\.get\(reader\)\?\.abort/,
   );
   assert.match(controllerSource, /this\.sidebarPanels\.delete\(reader\)/);
+  assert.match(
+    controllerSource,
+    /if \(isCancellationError\(error\)\) throw error/,
+  );
+});
+
+test("defers browser-global-dependent services until after sandbox bootstrap", () => {
+  const moduleInitialization = hooksSource.slice(
+    0,
+    hooksSource.indexOf("async function onStartup"),
+  );
+  assert.doesNotMatch(moduleInitialization, /new LayoutAnalyzer/);
+  assert.doesNotMatch(moduleInitialization, /new FormulaLatexCoordinator/);
+  assert.match(hooksSource, /function ensureServices\(\): HookServices/);
 });

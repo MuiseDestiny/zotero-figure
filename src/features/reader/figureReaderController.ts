@@ -14,6 +14,12 @@ import {
 import { getReaderImageCropDataURL } from "../../platform/zotero/readerImageRenderer";
 import type { PdfReader } from "../../platform/zotero/reader";
 import { FigureOutputService } from "../../services/figureOutputService";
+import {
+  FormulaLatexCoordinator,
+  type FormulaLatexEditSnapshot,
+  type FormulaLatexUpdate,
+} from "../../services/formula/formulaLatexCoordinator";
+import { FormulaLatexServiceError } from "../../services/formula/formulaLatexService";
 import { LayoutAnalyzer } from "../../services/layout/layoutAnalyzer";
 import {
   FigureResultStore,
@@ -39,6 +45,9 @@ export class FigureReaderController {
   private readonly resultStore: FigureResultStore;
   private readonly layoutAnalyzer: LayoutAnalyzer;
   private readonly outputService: FigureOutputService;
+  private readonly formulaLatex: FormulaLatexCoordinator;
+  private readonly ownsFormulaLatex: boolean;
+  private readonly unsubscribeFormulaLatex: () => void;
   private readonly ownsLayoutAnalyzer: boolean;
   private readonly readerDocuments = new Map<
     PdfReader,
@@ -56,6 +65,7 @@ export class FigureReaderController {
   constructor(
     private readonly win: Window,
     dependencies?: {
+      formulaLatex?: FormulaLatexCoordinator;
       layoutAnalyzer: LayoutAnalyzer;
       resultStore: FigureResultStore;
     },
@@ -63,6 +73,13 @@ export class FigureReaderController {
     this.resultStore = dependencies?.resultStore ?? new FigureResultStore();
     this.layoutAnalyzer =
       dependencies?.layoutAnalyzer ?? new LayoutAnalyzer(this.resultStore);
+    this.formulaLatex =
+      dependencies?.formulaLatex ??
+      new FormulaLatexCoordinator(this.resultStore);
+    this.ownsFormulaLatex = dependencies?.formulaLatex === undefined;
+    this.unsubscribeFormulaLatex = this.formulaLatex.subscribe((update) =>
+      this.handleFormulaLatexUpdate(update),
+    );
     this.outputService = new FigureOutputService(this.resultStore);
     this.ownsLayoutAnalyzer = dependencies === undefined;
   }
@@ -87,6 +104,8 @@ export class FigureReaderController {
     );
     for (const controller of this.activeAnalyses.values()) controller.abort();
     this.activeAnalyses.clear();
+    this.unsubscribeFormulaLatex();
+    if (this.ownsFormulaLatex) this.formulaLatex.dispose();
     if (this.ownsLayoutAnalyzer) this.layoutAnalyzer.dispose();
     if (this.hydrateTimeoutID !== undefined) {
       this.win.clearTimeout(this.hydrateTimeoutID);
@@ -173,6 +192,7 @@ export class FigureReaderController {
       );
     } finally {
       this.activeAnalyses.delete(reader);
+      this.formulaLatex.recognizeAttachment(reader._item);
       this.refreshSidebarControls(reader);
       this.reloadSidebarResults(reader);
     }
@@ -277,6 +297,7 @@ export class FigureReaderController {
   private async prepareResultCorrection(
     reader: PdfReader,
     result: StoredFigureResult,
+    signal: AbortSignal,
   ): Promise<{
     detectedRect: [number, number, number, number];
     imageURL: string;
@@ -285,10 +306,11 @@ export class FigureReaderController {
     const preview = await this.layoutAnalyzer.createResultCorrectionPreview(
       reader._item,
       result,
+      signal,
     );
     return {
       detectedRect: preview.detectedRect,
-      imageURL: bytesToDataURL(new Uint8Array(preview.image), "image/jpeg"),
+      imageURL: bytesToDataURL(new Uint8Array(preview.image), "image/png"),
       rect: preview.rect,
     };
   }
@@ -297,6 +319,7 @@ export class FigureReaderController {
     reader: PdfReader,
     result: StoredFigureResult,
     rect: [number, number, number, number],
+    signal: AbortSignal,
   ): Promise<StoredFigureResult | undefined> {
     const popup = this.createProgress(getString("progress-correct-region"));
     try {
@@ -304,6 +327,7 @@ export class FigureReaderController {
         reader._item,
         result,
         rect,
+        signal,
       );
       if (!updated) {
         popup.close();
@@ -324,8 +348,13 @@ export class FigureReaderController {
           type: "success",
         })
         .startCloseTimer(1_000);
+      this.formulaLatex.publish(reader._item, updated);
       return updated;
     } catch (error) {
+      if (signal.aborted || isCancellationError(error)) {
+        popup.close();
+        throw error;
+      }
       popup.changeLine({ text: toError(error).message, type: "fail" });
       throw error;
     }
@@ -341,6 +370,74 @@ export class FigureReaderController {
       result.imagePath,
     );
     await copyReaderAnnotationImage(reader, image);
+  }
+
+  private async copyResultLatex(
+    reader: PdfReader,
+    result: StoredFigureResult,
+  ): Promise<StoredFigureResult> {
+    const updated = await this.recognizeResultLatex(reader, result);
+    Zotero.Utilities.Internal.copyTextToClipboard(
+      updated.latex ?? result.latex ?? "",
+    );
+    return updated;
+  }
+
+  private async rerecognizeResultLatex(
+    reader: PdfReader,
+    result: StoredFigureResult,
+  ): Promise<StoredFigureResult> {
+    return this.recognizeResultLatex(reader, result, true);
+  }
+
+  private async recognizeResultLatex(
+    reader: PdfReader,
+    result: StoredFigureResult,
+    force = false,
+  ): Promise<StoredFigureResult> {
+    try {
+      return await this.formulaLatex.recognize(reader._item, result, { force });
+    } catch (error) {
+      if (isCancellationError(error)) throw error;
+      throw this.localizeFormulaLatexError(error);
+    }
+  }
+
+  private async editResultLatex(
+    reader: PdfReader,
+    edit: FormulaLatexEditSnapshot,
+    latex: string,
+  ): Promise<StoredFigureResult | undefined> {
+    return this.formulaLatex.update(reader._item, edit.result.id, latex, edit);
+  }
+
+  private async prepareResultLatexEdit(
+    reader: PdfReader,
+    result: StoredFigureResult,
+  ): Promise<FormulaLatexEditSnapshot | undefined> {
+    return this.formulaLatex.prepareEdit(reader._item, result.id);
+  }
+
+  private localizeFormulaLatexError(value: unknown): Error {
+    if (!(value instanceof FormulaLatexServiceError)) {
+      return new Error(getString("error-formula-api-failed"));
+    }
+    switch (value.code) {
+      case "missing-key":
+        return new Error(getString("error-formula-api-key-missing"));
+      case "http":
+        return new Error(
+          getString("error-formula-api-http", {
+            args: { status: value.status ?? "-" },
+          }),
+        );
+      case "network":
+        return new Error(getString("error-formula-api-network"));
+      case "timeout":
+        return new Error(getString("error-formula-api-timeout"));
+      case "invalid-response":
+        return new Error(getString("error-formula-api-response"));
+    }
   }
 
   private async saveResultImage(
@@ -402,14 +499,22 @@ export class FigureReaderController {
           this.resultStore.saveTranslations(reader._item, contextKey, updates),
         onClear: () => this.clearResults(reader),
         onCopyImage: (result) => this.copyResultImage(reader, result),
-        onCorrectRegion: (result, rect) =>
-          this.correctResultRegion(reader, result, rect),
+        onCopyLatex: (result) => this.copyResultLatex(reader, result),
+        onCorrectRegion: (result, rect, signal) =>
+          this.correctResultRegion(reader, result, rect, signal),
         onEditComment: (result, comment) =>
           this.editResultComment(reader, result, comment),
+        onEditLatex: (edit, latex) => this.editResultLatex(reader, edit, latex),
         onGoToPage: (result) => this.navigateToResult(reader, result),
         onRemove: (result) => this.removeResult(reader, result),
-        onPrepareCorrection: (result) =>
-          this.prepareResultCorrection(reader, result),
+        onRerecognizeLatex: (result) =>
+          this.rerecognizeResultLatex(reader, result),
+        onResultsDisplayed: () =>
+          this.formulaLatex.recognizeAttachment(reader._item),
+        onPrepareCorrection: (result, signal) =>
+          this.prepareResultCorrection(reader, result, signal),
+        onPrepareLatexEdit: (result) =>
+          this.prepareResultLatexEdit(reader, result),
         onSaveImage: (result) => this.saveResultImage(reader, result),
         onSyncAnnotations: () => this.syncResultsToAnnotations(reader),
         ownerWindow: this.win,
@@ -419,6 +524,17 @@ export class FigureReaderController {
     }
     panel.attach(doc);
     this.schedulePrewarm();
+  }
+
+  private handleFormulaLatexUpdate(update: FormulaLatexUpdate): void {
+    for (const [reader, panel] of this.sidebarPanels) {
+      if (
+        reader._item.libraryID === update.libraryID &&
+        reader._item.key === update.attachmentKey
+      ) {
+        panel.updateFormulaLatex(update.result);
+      }
+    }
   }
 
   private registerReaderDocument(reader: PdfReader, document: Document): void {
@@ -439,7 +555,10 @@ export class FigureReaderController {
         panel.dispose();
       }
     };
-    this.readerDocuments.set(reader, { document, handlePageHide });
+    this.readerDocuments.set(reader, {
+      document,
+      handlePageHide,
+    });
     document.defaultView?.addEventListener("pagehide", handlePageHide, {
       once: true,
     });
@@ -473,9 +592,9 @@ export class FigureReaderController {
       this.prewarmIdleID = undefined;
       this.prewarmTimeoutID = undefined;
       if (!this.started) return;
-      void this.layoutAnalyzer
-        .prewarm()
-        .catch((error) => Zotero.logError(toError(error)));
+      void this.layoutAnalyzer.prewarm().catch((error) => {
+        if (!isCancellationError(error)) Zotero.logError(toError(error));
+      });
     };
     if (typeof this.win.requestIdleCallback === "function") {
       this.prewarmIdleID = this.win.requestIdleCallback(run, {

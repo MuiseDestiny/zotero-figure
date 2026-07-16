@@ -1,9 +1,21 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getPinnedCardRenderStyles,
   PinnedCardSnapshotSlot,
   type PinnedCardSnapshot,
 } from "../src/features/reader/pinnedFigureCardView";
+
+test("resizes pinned media without scaling card chrome", () => {
+  const styles = getPinnedCardRenderStyles({ scale: 2, x: 40, y: 60 }, 320);
+
+  assert.deepEqual(styles, {
+    latexFontSize: "2em",
+    transform: "translate3d(40px, 60px, 0)",
+    width: "640px",
+  });
+  assert.doesNotMatch(styles.transform, /scale/);
+});
 
 test("replaces a same-card snapshot and releases its superseded Blob URL", async () => {
   let displayed = "old";

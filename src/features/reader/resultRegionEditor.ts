@@ -15,35 +15,43 @@ export interface ResultRegionDialogData {
   rect: Rect;
 }
 
+export interface ResultRegionEditorSession {
+  dispose(): void;
+  reset(): void;
+}
+
 export function installResultRegionEditor(
   document: Document,
   host: HTMLElement,
   preview: ResultCorrectionPreview,
   dialogData: ResultRegionDialogData,
-): () => void {
+): ResultRegionEditorSession {
   const style = document.createElement("style");
   style.textContent = `
     #zoterofigure-region-editor {
       align-items: center;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      max-width: 80vw;
-      min-width: 420px;
+      height: calc(100vh - 72px);
+      min-height: 0;
+      min-width: 0;
+      overflow: hidden;
+      padding: 8px 8px 0;
+      width: calc(100vw - 24px);
     }
     #zoterofigure-region-stage {
       background: var(--material-mix-quinary);
-      display: inline-block;
+      flex: 0 0 auto;
       line-height: 0;
       overflow: hidden;
       position: relative;
     }
     #zoterofigure-region-page {
       display: block;
-      height: auto;
-      max-height: 68vh;
-      max-width: min(720px, 78vw);
+      height: 100%;
       user-select: none;
-      width: auto;
+      width: 100%;
     }
     #zoterofigure-region-selection {
       background: color-mix(in srgb, var(--accent-blue, #3b82f6) 14%, transparent);
@@ -65,10 +73,6 @@ export function installResultRegionEditor(
     .zoterofigure-region-handle[data-handle="ne"] { cursor: nesw-resize; right: 0; top: 0; transform: translate(50%, -50%); }
     .zoterofigure-region-handle[data-handle="sw"] { bottom: 0; cursor: nesw-resize; left: 0; transform: translate(-50%, 50%); }
     .zoterofigure-region-handle[data-handle="se"] { bottom: 0; cursor: nwse-resize; right: 0; transform: translate(50%, 50%); }
-    #zoterofigure-region-reset {
-      align-self: flex-start;
-      margin-top: 8px;
-    }
   `;
 
   const stage = document.createElement("div");
@@ -77,7 +81,6 @@ export function installResultRegionEditor(
   image.id = "zoterofigure-region-page";
   image.alt = "";
   image.draggable = false;
-  image.src = preview.imageURL;
   const selection = document.createElement("div");
   selection.id = "zoterofigure-region-selection";
   selection.setAttribute(
@@ -92,11 +95,26 @@ export function installResultRegionEditor(
     selection.append(node);
   }
   stage.append(image, selection);
-  const reset = document.createElement("button");
-  reset.id = "zoterofigure-region-reset";
-  reset.type = "button";
-  reset.textContent = getString("sidebar-correct-region-reset");
-  host.replaceChildren(style, stage, reset);
+  host.replaceChildren(style, stage);
+
+  const fitPage = () => {
+    if (image.naturalWidth <= 0 || image.naturalHeight <= 0) return;
+    const availableWidth = Math.max(1, host.clientWidth - 16);
+    const availableHeight = Math.max(1, host.clientHeight - 16);
+    const { height, width } = getFittedResultRegionPageSize(
+      image.naturalWidth,
+      image.naturalHeight,
+      availableWidth,
+      availableHeight,
+    );
+    stage.style.width = `${width}px`;
+    stage.style.height = `${height}px`;
+  };
+  const view = document.defaultView;
+  image.addEventListener("load", fitPage);
+  view?.addEventListener("resize", fitPage);
+  image.src = preview.imageURL;
+  if (image.complete) fitPage();
 
   const detectedRect = [...preview.detectedRect] as Rect;
   const render = () => {
@@ -108,7 +126,6 @@ export function installResultRegionEditor(
   };
   render();
 
-  const view = document.defaultView;
   let pointerID: number | undefined;
   let pointerStartX = 0;
   let pointerStartY = 0;
@@ -158,18 +175,43 @@ export function installResultRegionEditor(
   view?.addEventListener("pointermove", handlePointerMove);
   view?.addEventListener("pointerup", finishPointerInteraction);
   view?.addEventListener("pointercancel", finishPointerInteraction);
-  reset.addEventListener("click", handleReset);
+  return {
+    dispose: () => {
+      selection.removeEventListener("pointerdown", handlePointerDown);
+      selection.removeEventListener(
+        "lostpointercapture",
+        handleLostPointerCapture,
+      );
+      image.removeEventListener("load", fitPage);
+      view?.removeEventListener("resize", fitPage);
+      view?.removeEventListener("pointermove", handlePointerMove);
+      view?.removeEventListener("pointerup", finishPointerInteraction);
+      view?.removeEventListener("pointercancel", finishPointerInteraction);
+    },
+    reset: handleReset,
+  };
+}
 
-  return () => {
-    selection.removeEventListener("pointerdown", handlePointerDown);
-    selection.removeEventListener(
-      "lostpointercapture",
-      handleLostPointerCapture,
-    );
-    view?.removeEventListener("pointermove", handlePointerMove);
-    view?.removeEventListener("pointerup", finishPointerInteraction);
-    view?.removeEventListener("pointercancel", finishPointerInteraction);
-    reset.removeEventListener("click", handleReset);
+export function getFittedResultRegionPageSize(
+  naturalWidth: number,
+  naturalHeight: number,
+  availableWidth: number,
+  availableHeight: number,
+): { height: number; width: number } {
+  if (
+    ![naturalWidth, naturalHeight, availableWidth, availableHeight].every(
+      (value) => Number.isFinite(value) && value > 0,
+    )
+  ) {
+    return { height: 1, width: 1 };
+  }
+  const scale = Math.min(
+    availableWidth / naturalWidth,
+    availableHeight / naturalHeight,
+  );
+  return {
+    height: Math.max(1, Math.floor(naturalHeight * scale)),
+    width: Math.max(1, Math.floor(naturalWidth * scale)),
   };
 }
 

@@ -113,6 +113,35 @@ test("cancels monitoring and releases the URL when assigning src fails", async (
   assert.deepEqual(failed, ["broken"]);
 });
 
+test("unregistering an active image releases its queue slot", async () => {
+  const runtime = new FakeImageRuntime();
+  const readIDs: string[] = [];
+  const loaded: string[] = [];
+  const coordinator = new GalleryImageLoadCoordinator(
+    async (entryID) => {
+      readIDs.push(entryID);
+      return payload;
+    },
+    { concurrency: 1, runtime },
+  );
+  const generation = coordinator.beginGeneration();
+  const formulaImage = new FakeImage();
+  const nextImage = new FakeImage();
+  coordinator.enqueue(request(formulaImage, "formula", generation, loaded, []));
+  coordinator.enqueue(request(nextImage, "next", generation, loaded, []));
+  await waitFor(() => runtime.hasMonitor(formulaImage));
+
+  coordinator.unregister(formulaImage as unknown as HTMLImageElement);
+  await waitFor(() => runtime.hasMonitor(nextImage));
+
+  assert.equal(runtime.cancelCalls, 1);
+  assert.deepEqual(runtime.revokedURLs, ["blob:0"]);
+  assert.deepEqual(readIDs, ["formula", "next"]);
+  runtime.complete(nextImage, "loaded");
+  await waitFor(() => loaded.length === 1);
+  assert.deepEqual(loaded, ["next"]);
+});
+
 function request(
   image: FakeImage,
   entryID: string,
