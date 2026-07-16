@@ -2,6 +2,7 @@ import * as assert from "node:assert/strict";
 import test from "node:test";
 import type { FigureGalleryEntry } from "../src/domain/figureGallery";
 import {
+  buildGalleryFacetState,
   buildGalleryFilterOptions,
   filterGalleryEntries,
   formatGalleryOptionLabel,
@@ -87,6 +88,51 @@ test("combines gallery filters and matches keywords case-insensitively", () => {
   assert.equal(matchesGalleryKeyword(entries[2], "alpha METHODS"), true);
   assert.equal(matchesGalleryKeyword(entries[2], "missing"), false);
   assert.deepEqual(entries, sourceSnapshot);
+});
+
+test("recomputes each facet from the other active filters", () => {
+  const labels = {
+    figure: "Figure",
+    formula: "Formula",
+    table: "Table",
+  };
+  const state = buildGalleryFacetState(
+    entries,
+    {
+      collectionID: "11",
+      documentID: "",
+      keyword: "",
+      kind: "",
+      year: "",
+    },
+    labels,
+  );
+
+  assert.equal(state.filters.collectionID, "11");
+  assert.deepEqual(state.documents, [
+    ["2", "Alpha methods", 1],
+    ["1", "Zebra study", 1],
+  ]);
+  assert.deepEqual(state.years, [["2024", "2024", 2]]);
+  assert.deepEqual(state.kinds, [
+    ["figure", "Figure", 1],
+    ["formula", "Formula", 1],
+  ]);
+  assert.deepEqual(state.totals, {
+    collections: 3,
+    documents: 2,
+    kinds: 2,
+    years: 2,
+  });
+
+  const incompatible = buildGalleryFacetState(
+    entries,
+    { ...state.filters, year: "2023" },
+    labels,
+  );
+  assert.equal(incompatible.filters.collectionID, "");
+  assert.equal(incompatible.filters.year, "");
+  assert.equal(filterGalleryEntries(entries, incompatible.filters).length, 3);
 });
 
 function galleryEntry(

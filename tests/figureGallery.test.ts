@@ -1,8 +1,29 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
+import {
+  findShortestFigureGalleryColumn,
+  getFigureGalleryColumnCount,
+  getFigureGalleryImageAspectRatio,
+} from "../src/domain/figureGallery";
 import type { FigureGalleryPlatform } from "../src/platform/zotero/figureGallery";
 import { FigureGalleryIndex } from "../src/services/results/figureGalleryIndex";
 import type { StoredFigureResult } from "../src/services/results/figureResultStore";
+
+test("derives a stable preview ratio from the stored crop", () => {
+  assert.equal(getFigureGalleryImageAspectRatio([10, 20, 110, 70]), 2);
+  assert.equal(getFigureGalleryImageAspectRatio([10, 20, 10, 70]), undefined);
+  assert.equal(
+    getFigureGalleryImageAspectRatio([10, 20, Number.NaN, 70]),
+    undefined,
+  );
+});
+
+test("sizes and balances explicit waterfall columns", () => {
+  assert.equal(getFigureGalleryColumnCount(1_000, 230, 14), 4);
+  assert.equal(getFigureGalleryColumnCount(200, 230, 14), 1);
+  assert.equal(getFigureGalleryColumnCount(0, 230, 14), 1);
+  assert.equal(findShortestFigureGalleryColumn([120, 40, 40, 90]), 1);
+});
 
 test("builds a library snapshot without exposing local image paths", async () => {
   const opened: unknown[][] = [];

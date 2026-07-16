@@ -1,6 +1,5 @@
 import type { FigureGalleryLibrary } from "../../domain/figureGallery";
 import type { Rect } from "../../domain/layout";
-import { getPdfReader } from "./reader";
 
 export interface FigureGalleryPlatform {
   getAttachment(libraryID: number, key: string): Promise<Zotero.Item | false>;
@@ -30,8 +29,11 @@ export function createZoteroFigureGalleryPlatform(): FigureGalleryPlatform {
         .map(({ libraryID, name }) => ({ id: libraryID, name })),
     logError: (error) => Zotero.logError(error),
     openPdf: async (attachmentID, pageIndex, rect) => {
-      const reader = await getPdfReader(attachmentID, true);
-      await reader.navigate({ position: { pageIndex, rects: [rect] } });
+      await Zotero.Reader.open(
+        attachmentID,
+        { position: { pageIndex, rects: [rect] } },
+        { openInBackground: false },
+      );
     },
     readFile: (path) => IOUtils.read(path),
   };

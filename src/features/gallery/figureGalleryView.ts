@@ -6,13 +6,18 @@ import type {
   FigureGalleryLibrary,
   FigureGallerySnapshot,
 } from "../../domain/figureGallery";
+import {
+  findShortestFigureGalleryColumn,
+  getFigureGalleryColumnCount,
+  getFigureGalleryImageAspectRatio,
+} from "../../domain/figureGallery";
 import type { FigureResultKind } from "../../domain/figureResults";
 import {
-  buildGalleryFilterOptions,
+  buildGalleryFacetState,
   filterGalleryEntries,
   formatGalleryOptionLabel,
   type CountedGalleryFilterOption,
-  type GalleryFilterOptions,
+  type GalleryFacetState,
 } from "./galleryFilters";
 import { GalleryImageLoadCoordinator } from "./galleryImageLoadCoordinator";
 import { GalleryLibraryLoadCoordinator } from "./galleryLibraryLoadCoordinator";
@@ -20,6 +25,9 @@ import { GalleryLibraryLoadCoordinator } from "./galleryLibraryLoadCoordinator";
 const PAGE_SIZE = 60;
 const L10N_PREFIX = `${config.addonRef}-`;
 const SVG_NAMESPACE = "http://www.w3.org/2000/svg";
+const GALLERY_COLUMN_GAP = 14;
+const GALLERY_DEFAULT_COLUMN_WIDTH = 230;
+const GALLERY_RESIZE_DEBOUNCE_MS = 120;
 
 interface FigureGalleryApi {
   getBootstrap(): FigureGalleryBootstrap | Promise<FigureGalleryBootstrap>;
@@ -63,8 +71,9 @@ interface GalleryLocalization {
   ): void;
 }
 
-interface EntryFilterOptions extends GalleryFilterOptions {
+interface EntryFilterLabels {
   allLabels: readonly [string, string, string, string];
+  kindLabels: Readonly<Record<FigureResultKind, string>>;
 }
 
 interface SvgPart {
@@ -112,9 +121,8 @@ const KIND_ICON_PARTS: Readonly<Record<FigureResultKind, readonly SvgPart[]>> =
 let galleryApi: FigureGalleryApi | undefined;
 let elements: GalleryElements;
 let imageLoader: GalleryImageLoadCoordinator | undefined;
-let libraryLoader:
-  | GalleryLibraryLoadCoordinator<EntryFilterOptions>
-  | undefined;
+let libraryLoader: GalleryLibraryLoadCoordinator<EntryFilterLabels> | undefined;
+let filterLabels: EntryFilterLabels | undefined;
 let allEntries: FigureGalleryEntry[] = [];
 let filteredEntries: FigureGalleryEntry[] = [];
 let entriesByID = new Map<string, FigureGalleryEntry>();
@@ -123,6 +131,13 @@ let renderedCount = 0;
 let renderVersion = 0;
 let imageObserver: IntersectionObserver | undefined;
 let sentinelObserver: IntersectionObserver | undefined;
+let galleryResizeObserver: ResizeObserver | undefined;
+let galleryResizeTimer: number | undefined;
+let galleryColumnCount = 0;
+let galleryColumns: HTMLElement[] = [];
+let galleryColumnHeights: number[] = [];
+let galleryColumnCardCounts: number[] = [];
+let galleryRenderedCards: HTMLElement[] = [];
 let filterUpdateScheduled = false;
 let searchTimer: number | undefined;
 let committedLibraryID: number | undefined;
@@ -134,6 +149,7 @@ window.addEventListener("unload", dispose);
 async function initialize(): Promise<void> {
   elements = collectElements();
   bindControls();
+  installGalleryResizeObserver();
   galleryApi = resolveGalleryApi();
   if (!galleryApi) {
     showState("error", "gallery-api-unavailable");
@@ -164,14 +180,14 @@ async function initialize(): Promise<void> {
 
 function createLibraryLoader(
   api: FigureGalleryApi,
-): GalleryLibraryLoadCoordinator<EntryFilterOptions> {
+): GalleryLibraryLoadCoordinator<EntryFilterLabels> {
   return new GalleryLibraryLoadCoordinator({
-    buildFilterOptions: ({ entries }) => buildEntryFilterOptions(entries),
-    commit: ({ entries, libraryID }, options) => {
+    buildFilterOptions: () => buildEntryFilterLabels(),
+    commit: ({ entries, libraryID }, labels) => {
       committedLibraryID = libraryID;
       allEntries = entries;
       entriesByID = new Map(entries.map((entry) => [entry.id, entry]));
-      populateEntryFilters(entries, options);
+      filterLabels = labels;
       applyFilters();
     },
     isSelectedLibrary: (libraryID) =>
@@ -253,7 +269,6 @@ function bindControls(): void {
     elements.typeFilter,
   ]) {
     select.addEventListener("change", scheduleFilterUpdate);
-    select.addEventListener("input", scheduleFilterUpdate);
   }
   elements.keywordFilter.addEventListener("input", () => {
     window.clearTimeout(searchTimer);
@@ -301,9 +316,7 @@ function populateLibraries(
   }
 }
 
-async function buildEntryFilterOptions(
-  entries: readonly FigureGalleryEntry[],
-): Promise<EntryFilterOptions> {
+async function buildEntryFilterLabels(): Promise<EntryFilterLabels> {
   const [
     figureLabel,
     tableLabel,
@@ -321,56 +334,48 @@ async function buildEntryFilterOptions(
     localize("gallery-filter-all-years"),
     localize("gallery-filter-all-types"),
   ]);
-  const options = buildGalleryFilterOptions(entries, {
-    figure: figureLabel,
-    formula: formulaLabel,
-    table: tableLabel,
-  });
-
   return {
     allLabels: [allDocuments, allCollections, allYears, allTypes],
-    ...options,
+    kindLabels: {
+      figure: figureLabel,
+      formula: formulaLabel,
+      table: tableLabel,
+    },
   };
 }
 
 function populateEntryFilters(
-  entries: readonly FigureGalleryEntry[],
-  options: EntryFilterOptions,
+  state: Readonly<GalleryFacetState>,
+  labels: Readonly<EntryFilterLabels>,
 ): void {
-  const previous = {
-    collection: elements.collectionFilter.value,
-    document: elements.documentFilter.value,
-    type: elements.typeFilter.value,
-    year: elements.yearFilter.value,
-  };
-  const [allDocuments, allCollections, allYears, allTypes] = options.allLabels;
+  const [allDocuments, allCollections, allYears, allTypes] = labels.allLabels;
   populateSelect(
     elements.documentFilter,
-    options.documents,
+    state.documents,
     allDocuments,
-    previous.document,
-    entries.length,
+    state.filters.documentID,
+    state.totals.documents,
   );
   populateSelect(
     elements.collectionFilter,
-    options.collections,
+    state.collections,
     allCollections,
-    previous.collection,
-    entries.length,
+    state.filters.collectionID,
+    state.totals.collections,
   );
   populateSelect(
     elements.yearFilter,
-    options.years,
+    state.years,
     allYears,
-    previous.year,
-    entries.length,
+    state.filters.year,
+    state.totals.years,
   );
   populateSelect(
     elements.typeFilter,
-    options.kinds,
+    state.kinds,
     allTypes,
-    previous.type,
-    entries.length,
+    state.filters.kind,
+    state.totals.kinds,
   );
 }
 
@@ -414,14 +419,22 @@ function scheduleFilterUpdate(): void {
 }
 
 function applyFilters(): void {
-  activeKeyword = elements.keywordFilter.value.trim();
-  filteredEntries = filterGalleryEntries(allEntries, {
-    collectionID: elements.collectionFilter.value,
-    documentID: elements.documentFilter.value,
-    keyword: activeKeyword,
-    kind: elements.typeFilter.value,
-    year: elements.yearFilter.value,
-  });
+  const labels = filterLabels;
+  if (!labels) return;
+  const facets = buildGalleryFacetState(
+    allEntries,
+    {
+      collectionID: elements.collectionFilter.value,
+      documentID: elements.documentFilter.value,
+      keyword: elements.keywordFilter.value.trim(),
+      kind: elements.typeFilter.value,
+      year: elements.yearFilter.value,
+    },
+    labels.kindLabels,
+  );
+  populateEntryFilters(facets, labels);
+  activeKeyword = facets.filters.keyword;
+  filteredEntries = filterGalleryEntries(allEntries, facets.filters);
   renderResults();
 }
 
@@ -431,6 +444,10 @@ function renderResults(): void {
   imageObserver?.disconnect();
   sentinelObserver?.disconnect();
   elements.galleryGrid.replaceChildren();
+  galleryColumns = [];
+  galleryColumnHeights = [];
+  galleryColumnCardCounts = [];
+  galleryRenderedCards = [];
   setLocalizedText(elements.resultCount, "gallery-result-count", {
     filtered: filteredEntries.length,
     total: allEntries.length,
@@ -446,8 +463,110 @@ function renderResults(): void {
 
   setVisible(elements.state, false);
   setVisible(elements.galleryGrid, true);
+  createGalleryColumns();
   createObservers(renderVersion);
   appendNextPage(renderVersion);
+}
+
+function createGalleryColumns(
+  columnCount = calculateGalleryColumnCount(),
+): void {
+  galleryColumnCount = columnCount;
+  elements.galleryGrid.style.setProperty(
+    "--gallery-column-count",
+    String(galleryColumnCount),
+  );
+  galleryColumns = Array.from({ length: galleryColumnCount }, () => {
+    const column = document.createElement("div");
+    column.className = "gallery-column";
+    return column;
+  });
+  galleryColumnHeights = galleryColumns.map(() => 0);
+  galleryColumnCardCounts = galleryColumns.map(() => 0);
+  elements.galleryGrid.replaceChildren(...galleryColumns);
+}
+
+function calculateGalleryColumnCount(): number {
+  const width = elements.galleryGrid.getBoundingClientRect().width;
+  const computedStyle = getComputedStyle(elements.galleryGrid);
+  const configuredWidth = Number.parseFloat(
+    computedStyle?.getPropertyValue("--gallery-column-width") ?? "",
+  );
+  return getFigureGalleryColumnCount(
+    width,
+    Number.isFinite(configuredWidth)
+      ? configuredWidth
+      : GALLERY_DEFAULT_COLUMN_WIDTH,
+    GALLERY_COLUMN_GAP,
+  );
+}
+
+function installGalleryResizeObserver(): void {
+  galleryResizeObserver = new ResizeObserver(() => {
+    const nextColumnCount = calculateGalleryColumnCount();
+    if (
+      disposed ||
+      elements.galleryGrid.hidden ||
+      filteredEntries.length === 0 ||
+      nextColumnCount === galleryColumnCount
+    ) {
+      return;
+    }
+    window.clearTimeout(galleryResizeTimer);
+    galleryResizeTimer = window.setTimeout(() => {
+      galleryResizeTimer = undefined;
+      if (
+        disposed ||
+        elements.galleryGrid.hidden ||
+        filteredEntries.length === 0
+      ) {
+        return;
+      }
+      const resizedColumnCount = calculateGalleryColumnCount();
+      if (resizedColumnCount !== galleryColumnCount) {
+        reflowGalleryColumns(resizedColumnCount);
+      }
+    }, GALLERY_RESIZE_DEBOUNCE_MS);
+  });
+  galleryResizeObserver.observe(elements.galleryGrid);
+}
+
+function reflowGalleryColumns(columnCount: number): void {
+  const scrollAnchor = captureGalleryScrollAnchor();
+  removePaginationSentinel();
+  createGalleryColumns(columnCount);
+  appendCardsToGalleryColumns(galleryRenderedCards);
+  installPaginationSentinel();
+  restoreGalleryScrollAnchor(scrollAnchor);
+}
+
+interface GalleryScrollAnchor {
+  card: HTMLElement;
+  top: number;
+}
+
+function captureGalleryScrollAnchor(): GalleryScrollAnchor | undefined {
+  let anchor: GalleryScrollAnchor | undefined;
+  let closestDistance = Number.POSITIVE_INFINITY;
+  for (const card of galleryRenderedCards) {
+    const rect = card.getBoundingClientRect();
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
+    const distance = Math.abs(rect.top);
+    if (distance >= closestDistance) continue;
+    closestDistance = distance;
+    anchor = { card, top: rect.top };
+  }
+  return anchor;
+}
+
+function restoreGalleryScrollAnchor(
+  anchor: GalleryScrollAnchor | undefined,
+): void {
+  if (!anchor?.card.isConnected) return;
+  const offset = anchor.card.getBoundingClientRect().top - anchor.top;
+  if (Number.isFinite(offset) && Math.abs(offset) >= 0.5) {
+    window.scrollBy(0, offset);
+  }
 }
 
 function createObservers(version: number): void {
@@ -475,25 +594,75 @@ function appendNextPage(version: number): void {
   if (version !== renderVersion || renderedCount >= filteredEntries.length) {
     return;
   }
-  const existingSentinel =
-    elements.galleryGrid.querySelector(".gallery-sentinel");
-  if (existingSentinel) sentinelObserver?.unobserve(existingSentinel);
-  existingSentinel?.remove();
+  removePaginationSentinel();
   const nextEntries = filteredEntries.slice(
     renderedCount,
     renderedCount + PAGE_SIZE,
   );
-  const fragment = document.createDocumentFragment();
-  for (const entry of nextEntries) fragment.append(createCard(entry, version));
+  const nextCards = nextEntries.map((entry) => createCard(entry, version));
+  appendCardsToGalleryColumns(nextCards);
+  galleryRenderedCards.push(...nextCards);
   renderedCount += nextEntries.length;
-  elements.galleryGrid.append(fragment);
+  installPaginationSentinel();
+}
 
+function installPaginationSentinel(): void {
   if (renderedCount < filteredEntries.length) {
     const sentinel = document.createElement("div");
     sentinel.className = "gallery-sentinel";
     sentinel.setAttribute("aria-hidden", "true");
     elements.galleryGrid.append(sentinel);
     sentinelObserver?.observe(sentinel);
+  }
+}
+
+function removePaginationSentinel(): void {
+  const sentinel = elements.galleryGrid.querySelector(".gallery-sentinel");
+  if (sentinel) sentinelObserver?.unobserve(sentinel);
+  sentinel?.remove();
+}
+
+function appendCardsToGalleryColumns(cards: readonly HTMLElement[]): void {
+  if (!cards.length) return;
+  const cardHeights = measureGalleryCards(cards);
+  const fragments = galleryColumns.map(() => document.createDocumentFragment());
+  for (let index = 0; index < cards.length; index++) {
+    const card = cards[index];
+    const cardHeight = cardHeights[index];
+    if (!card || cardHeight === undefined) continue;
+    const columnIndex = findShortestFigureGalleryColumn(galleryColumnHeights);
+    const fragment = fragments[columnIndex];
+    if (!fragment) throw new Error("Gallery masonry column is unavailable");
+    fragment.append(card);
+    if (galleryColumnCardCounts[columnIndex] > 0) {
+      galleryColumnHeights[columnIndex] += GALLERY_COLUMN_GAP;
+    }
+    galleryColumnHeights[columnIndex] += cardHeight;
+    galleryColumnCardCounts[columnIndex]++;
+  }
+  for (let index = 0; index < galleryColumns.length; index++) {
+    const column = galleryColumns[index];
+    const fragment = fragments[index];
+    if (column && fragment) column.append(fragment);
+  }
+}
+
+function measureGalleryCards(cards: readonly HTMLElement[]): number[] {
+  const measurementColumn = document.createElement("div");
+  measurementColumn.className = "gallery-column gallery-measurement";
+  const availableWidth = elements.galleryGrid.getBoundingClientRect().width;
+  const columnWidth = Math.max(
+    1,
+    (availableWidth - GALLERY_COLUMN_GAP * (galleryColumnCount - 1)) /
+      galleryColumnCount,
+  );
+  measurementColumn.style.width = `${columnWidth}px`;
+  measurementColumn.append(...cards);
+  document.body.append(measurementColumn);
+  try {
+    return cards.map((card) => card.getBoundingClientRect().height);
+  } finally {
+    measurementColumn.remove();
   }
 }
 
@@ -507,6 +676,11 @@ function createCard(entry: FigureGalleryEntry, version: number): HTMLElement {
 
   const media = document.createElement("div");
   media.className = "gallery-media";
+  const imageAspectRatio = getFigureGalleryImageAspectRatio(entry.rect);
+  if (imageAspectRatio !== undefined) {
+    media.classList.add("has-ratio");
+    media.style.aspectRatio = String(imageAspectRatio);
+  }
   const image = document.createElement("img");
   image.className = "gallery-image";
   image.alt = entry.comment || entry.tag;
@@ -565,16 +739,18 @@ function enqueueImage(
   version: number,
 ): void {
   const status = image.nextElementSibling as HTMLElement | null;
+  const media = image.parentElement;
   imageLoader?.enqueue({
     entryID: entry.id,
     generation: version,
     image,
     onFailed: () => {
+      media?.classList.add("is-failed");
       if (status) setLocalizedText(status, "gallery-image-error");
     },
     onLoaded: () => {
       image.classList.add("is-loaded");
-      image.parentElement?.classList.add("is-loaded");
+      media?.classList.add("is-loaded");
     },
   });
 }
@@ -606,11 +782,13 @@ async function openSource(
 function dispose(): void {
   disposed = true;
   window.clearTimeout(searchTimer);
+  window.clearTimeout(galleryResizeTimer);
   libraryLoader?.cancel();
   renderVersion++;
   imageLoader?.dispose();
   imageObserver?.disconnect();
   sentinelObserver?.disconnect();
+  galleryResizeObserver?.disconnect();
 }
 
 function showState(kind: string, messageID: string): void {

@@ -60,6 +60,10 @@ test("exposes all requested cross-document filters", () => {
   assert.match(filters, /entry\.comment, entry\.tag, entry\.documentTitle/);
   assert.match(
     script,
+    /select\.addEventListener\("change", scheduleFilterUpdate\)/,
+  );
+  assert.doesNotMatch(
+    script,
     /select\.addEventListener\("input", scheduleFilterUpdate\)/,
   );
   assert.match(filters, /function countOptions\(/);
@@ -92,9 +96,17 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
   assert.match(imageCoordinator, /URL\.revokeObjectURL/);
   assert.match(script, /api\.openSource\(entryID\)/);
   assert.match(script, /style\.setProperty\("display", "none", "important"\)/);
-  assert.match(css, /column-width:\s*230px/);
-  assert.match(css, /column-gap:\s*14px/);
-  assert.match(css, /break-inside:\s*avoid/);
+  assert.match(
+    css,
+    /\.gallery-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\([^)]*--gallery-column-count/,
+  );
+  assert.match(css, /\.gallery-grid\s*\{[^}]*column-gap:\s*14px/);
+  assert.match(
+    css,
+    /\.gallery-column\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column[^}]*gap:\s*14px/,
+  );
+  assert.doesNotMatch(css, /(?:^|\n)\s*column-width\s*:/);
+  assert.doesNotMatch(css, /break-inside\s*:/);
   assert.match(css, /\.gallery-image\s*\{[^}]*height:\s*auto/);
   assert.doesNotMatch(css, /aspect-ratio:\s*4 \/ 3/);
   assert.doesNotMatch(css, /\.gallery-caption\s*\{[^}]*min-height/);
@@ -128,7 +140,20 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
   );
   assert.match(css, /transform:\s*translateX\(-50%\)/);
   assert.doesNotMatch(css, /\.gallery-toolbar\s*\{[^}]*position:\s*sticky/);
-  assert.match(script, /parentElement\?\.classList\.add\("is-loaded"\)/);
+  assert.match(script, /media\?\.classList\.add\("is-loaded"\)/);
+  assert.match(script, /getFigureGalleryImageAspectRatio\(entry\.rect\)/);
+  assert.match(script, /getFigureGalleryColumnCount\(/);
+  assert.match(script, /findShortestFigureGalleryColumn\(/);
+  assert.match(script, /appendCardsToGalleryColumns\(nextCards\)/);
+  assert.match(script, /reflowGalleryColumns\(resizedColumnCount\)/);
+  assert.match(script, /captureGalleryScrollAnchor\(\)/);
+  assert.match(script, /measurementColumn\.append\(\.\.\.cards\)/);
+  assert.match(css, /\.gallery-measurement\s*\{[^}]*position:\s*fixed/);
+  assert.match(script, /media\.style\.aspectRatio/);
+  assert.match(css, /\.gallery-media\.has-ratio \.gallery-image/);
+  assert.doesNotMatch(script, /classList\.remove\("has-ratio"\)/);
+  assert.doesNotMatch(script, /removeProperty\("aspect-ratio"\)/);
+  assert.doesNotMatch(css, /\.gallery-media\.is-failed\s*\{[^}]*min-height/);
   assert.match(loadCoordinator, /const requestID = \+\+this\.requestID/);
   assert.match(
     loadCoordinator,
@@ -142,6 +167,9 @@ test("bounds rendering and lazy image work while revoking blob URLs", () => {
   );
   assert.match(script, /catch \{[\s\S]*return messageID/);
   assert.match(script, /committedLibraryID === libraryID/);
+  assert.match(filters, /function buildFacetOptions\(/);
+  assert.match(script, /buildGalleryFacetState\(/);
+  assert.match(script, /state\.totals\.years/);
   assert.match(
     script,
     /if \(committedLibraryID === libraryID\)[\s\S]*applyFilters\(\)/,
