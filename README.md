@@ -13,12 +13,12 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 ## Features
 
 - Analyze PDFs locally without uploading pages or downloading a model at runtime.
-- Review results in a dedicated Reader sidebar with type filters and analysis progress.
-- Copy, save, or pin an image; edit its caption or crop; open its PDF page; add it to a note; or remove it.
-- Browse results from multiple documents in **PDF Figure Library**, with library, document, year, category, type, and caption filters.
+- Review results in a dedicated Reader sidebar with combinable type filters that hide unavailable kinds, plus analysis progress.
+- Copy, save, or pin an image; edit its caption or correct its crop in a dialog sized to the PDF page; open its PDF page; add it to a note; or remove it.
+- Browse results from multiple documents in **PDF Figure Library**, with document, year, category, type, and caption filters. Switch between the remembered waterfall and document-column views; in document columns, results stay in stable page order across aligned, optionally named comparison rows. Drag document headers to reorder columns and cards within a document to rearrange rows, or right-click an image to add it to a comparison group. When one document contributes multiple images to a group, its cell shows a primary image with thumbnails on the left; select a thumbnail to make it primary. Dissolve a group to remove its comparison row, and use the toolbar scale control to resize all previews.
 - Batch-analyze selected library items or PDF attachments, with optional note or Zotero annotation output.
 - Translate captions when Zotero PDF Translate is installed.
-- Optionally recognize formula LaTeX with SiliconFlow `Qwen/Qwen3.6-35B-A3B`, render it locally with KaTeX, and copy, re-recognize, or edit it with Zotero's Monaco editor.
+- Optionally recognize formula LaTeX with SiliconFlow `Qwen/Qwen3.6-35B-A3B`, render it locally with KaTeX, and copy, re-recognize, or edit it with a CodeMirror source editor and live KaTeX preview.
 - Create Zotero notes with embedded PNG images that link back to the source PDF.
 - Optionally mirror local results to Zotero image annotations for synchronization and interoperability.
 - Use the interface in English, Simplified Chinese, Italian, or Russian.
@@ -40,9 +40,9 @@ Java and `pdffigures2.jar` are not required.
 ## Entry Points
 
 - **PDF Reader:** Open a PDF, select the Zotero Figure icon in the left sidebar, and choose **Analyze figures, tables, and formulae**.
-- **Figure Library:** Open `Tools > PDF Figure Library` to browse results across documents. Select a card to open its source PDF.
+- **Figure Library:** Open `Tools > PDF Figure Library` to browse results across documents. Double-click a card to open its source PDF.
 - **Batch Processing:** Select library items or PDF attachments, right-click, and open `PDF Figure >` to analyze them, add results to notes, or create annotations.
-- **Preferences:** Open the PDF Figure preferences pane to manage the bundled model, annotation synchronization, and SiliconFlow formula OCR. Use **Convert existing formulae** to recognize uncached formulae across libraries.
+- **Preferences:** Open the PDF Figure preferences pane to manage the bundled model, annotation synchronization, and SiliconFlow formula OCR, or to open the Figure Library directly. Use **Convert existing formulae** to recognize uncached formulae across libraries.
 
 ## Privacy
 
