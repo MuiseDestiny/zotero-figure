@@ -29,7 +29,40 @@ gallery-toolbar-collapse =
 gallery-toolbar-expand =
     .title = Show all filters
     .aria-label = Show all filters
-gallery-filter-library = Library
+gallery-view-switch-to-documents =
+    .title = Switch to document columns
+    .aria-label = Switch to document columns
+gallery-view-switch-to-waterfall =
+    .title = Switch to waterfall view
+    .aria-label = Switch to waterfall view
+gallery-scale-toggle =
+    .title = Adjust image size
+    .aria-label = Adjust image size
+gallery-scale-label = Image size
+gallery-scale-range =
+    .aria-label = Image size
+gallery-comparison-rows = Comparison dimensions
+gallery-comparison-result-count = { $count } results
+gallery-comparison-name-row =
+    .title = Name comparison row
+    .aria-label = Name comparison row
+gallery-comparison-row-label =
+    .placeholder = Row label
+    .aria-label = Comparison row label
+gallery-comparison-add-row =
+    .title = Add comparison row
+    .aria-label = Add comparison row
+gallery-comparison-add-to-group = Add to group
+gallery-comparison-group-default = Group { $index }
+gallery-comparison-no-other-groups = No other groups
+gallery-comparison-dissolve-group = Dissolve group
+gallery-comparison-make-primary = Make { $tag } the primary image
+gallery-comparison-previous =
+    .title = Previous comparison image
+    .aria-label = Previous comparison image
+gallery-comparison-next =
+    .title = Next comparison image
+    .aria-label = Next comparison image
 gallery-filter-document = Document
 gallery-filter-year = Year
 gallery-filter-collection = Category
@@ -60,8 +93,6 @@ sidebar-analyze = Analyze figures, tables, and formulae
 sidebar-cancel = Cancel analysis
 sidebar-translate = Translate captions
 sidebar-show-original = Show original captions
-sidebar-expand-caption = Expand caption
-sidebar-collapse-caption = Collapse caption
 sidebar-translation-error = Some captions could not be translated; original text is shown
 sidebar-sync-annotations = Convert local results to Zotero annotations
 sidebar-add-all-to-note = Add all results to a note
@@ -69,10 +100,21 @@ sidebar-clear = Clear local results
 sidebar-loading = Loading local results...
 sidebar-load-error = Could not load local results
 sidebar-analysis-progress-title = Analyzing document
-sidebar-filter-figure = Figures ({ $count })
-sidebar-filter-table = Tables ({ $count })
-sidebar-filter-formula = Formulae ({ $count })
-sidebar-filter-all = All ({ $count })
+sidebar-filter-figure =
+    { $count ->
+        [one] Figure
+       *[other] Figures
+    }
+sidebar-filter-table =
+    { $count ->
+        [one] Table
+       *[other] Tables
+    }
+sidebar-filter-formula =
+    { $count ->
+        [one] Formula
+       *[other] Formulae
+    }
 sidebar-refresh = Refresh figures, tables, and formulae
 sidebar-empty = No generated figures, tables, or formulae
 sidebar-start-analysis = Start analysis
@@ -103,6 +145,9 @@ sidebar-edit-latex = Edit LaTeX
 sidebar-edit-latex-title = Edit formula LaTeX
 sidebar-edit-latex-description = Edit the locally cached LaTeX source. Saving updates every open formula view.
 sidebar-edit-latex-failed = Could not open the LaTeX editor: { $message }
+sidebar-edit-latex-source = LaTeX source
+sidebar-edit-latex-preview = Preview
+sidebar-edit-latex-invalid = Could not render this LaTeX
 sidebar-edit-latex-save = Save
 sidebar-edit-latex-cancel = Cancel
 sidebar-correct-region = Correct region
@@ -169,3 +214,4 @@ preferences-existing-formulae-progress = Converting { $completed } of { $total }
 preferences-existing-formulae-complete = Finished { $total } formulae (succeeded: { $succeeded }, failed: { $failed }).
 preferences-existing-formulae-empty = Every detected formula already has cached LaTeX.
 preferences-existing-formulae-failed = Conversion failed: { $message }
+preferences-about-version = Version { $version }

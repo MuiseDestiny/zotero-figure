@@ -33,6 +33,22 @@ test("translated Fluent messages preserve the same variables", () => {
   }
 });
 
+test("labels comparison rows as dimensions in every runtime locale", () => {
+  const labels: Record<string, string> = {
+    "en-US": "Comparison dimensions",
+    "it-IT": "Dimensioni di confronto",
+    "ru-RU": "Параметры сравнения",
+    "zh-CN": "对比维度",
+  };
+  for (const [locale, label] of Object.entries(labels)) {
+    const lines = readFileSync(
+      `addon/locale/${locale}/addon.ftl`,
+      "utf8",
+    ).split("\n");
+    assert.ok(lines.includes(`gallery-comparison-rows = ${label}`), locale);
+  }
+});
+
 test("runtime Fluent contains every message requested by source code", () => {
   const runtimeKeys = new Set(readKeys("addon/locale/en-US/addon.ftl"));
   const requestedKeys = findTypeScriptFiles("src")

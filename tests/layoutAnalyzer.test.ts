@@ -361,6 +361,7 @@ test("maps a corrected preview rectangle back to PDF coordinates", async () => {
       harness.reader._item,
       seeded.results[0],
     );
+    assert.equal(preview.pageAspectRatio, 1);
     assert.deepEqual(preview.rect, [0.01, 0.88, 0.1, 0.98]);
 
     const updated = await analyzer.correctResultRegion(

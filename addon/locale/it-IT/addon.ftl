@@ -29,7 +29,40 @@ gallery-toolbar-collapse =
 gallery-toolbar-expand =
     .title = Mostra tutti i filtri
     .aria-label = Mostra tutti i filtri
-gallery-filter-library = Biblioteca
+gallery-view-switch-to-documents =
+    .title = Passa alle colonne per documento
+    .aria-label = Passa alle colonne per documento
+gallery-view-switch-to-waterfall =
+    .title = Passa alla vista a cascata
+    .aria-label = Passa alla vista a cascata
+gallery-scale-toggle =
+    .title = Regola la dimensione delle immagini
+    .aria-label = Regola la dimensione delle immagini
+gallery-scale-label = Dimensione immagini
+gallery-scale-range =
+    .aria-label = Dimensione immagini
+gallery-comparison-rows = Dimensioni di confronto
+gallery-comparison-result-count = { $count } risultati
+gallery-comparison-name-row =
+    .title = Assegna un nome alla riga di confronto
+    .aria-label = Assegna un nome alla riga di confronto
+gallery-comparison-row-label =
+    .placeholder = Etichetta della riga
+    .aria-label = Etichetta della riga di confronto
+gallery-comparison-add-row =
+    .title = Aggiungi una riga di confronto
+    .aria-label = Aggiungi una riga di confronto
+gallery-comparison-add-to-group = Aggiungi al gruppo
+gallery-comparison-group-default = Gruppo { $index }
+gallery-comparison-no-other-groups = Nessun altro gruppo
+gallery-comparison-dissolve-group = Sciogli il gruppo
+gallery-comparison-make-primary = Imposta { $tag } come immagine principale
+gallery-comparison-previous =
+    .title = Immagine di confronto precedente
+    .aria-label = Immagine di confronto precedente
+gallery-comparison-next =
+    .title = Immagine di confronto successiva
+    .aria-label = Immagine di confronto successiva
 gallery-filter-document = Documento
 gallery-filter-year = Anno
 gallery-filter-collection = Categoria
@@ -60,8 +93,6 @@ sidebar-analyze = Analizza figure, tabelle e formule
 sidebar-cancel = Annulla analisi
 sidebar-translate = Traduci le didascalie
 sidebar-show-original = Mostra le didascalie originali
-sidebar-expand-caption = Espandi la didascalia
-sidebar-collapse-caption = Comprimi la didascalia
 sidebar-translation-error = Alcune didascalie non sono state tradotte; viene mostrato il testo originale
 sidebar-sync-annotations = Converti i risultati locali in annotazioni Zotero
 sidebar-add-all-to-note = Aggiungi tutti i risultati a una nota
@@ -69,10 +100,21 @@ sidebar-clear = Cancella i risultati locali
 sidebar-loading = Caricamento dei risultati locali...
 sidebar-load-error = Impossibile caricare i risultati locali
 sidebar-analysis-progress-title = Analisi del documento
-sidebar-filter-figure = Figure ({ $count })
-sidebar-filter-table = Tabelle ({ $count })
-sidebar-filter-formula = Formule ({ $count })
-sidebar-filter-all = Tutto ({ $count })
+sidebar-filter-figure =
+    { $count ->
+        [one] Figura
+       *[other] Figure
+    }
+sidebar-filter-table =
+    { $count ->
+        [one] Tabella
+       *[other] Tabelle
+    }
+sidebar-filter-formula =
+    { $count ->
+        [one] Formula
+       *[other] Formule
+    }
 sidebar-refresh = Aggiorna figure, tabelle e formule
 sidebar-empty = Nessuna figura, tabella o formula generata
 sidebar-start-analysis = Avvia analisi
@@ -103,6 +145,9 @@ sidebar-edit-latex = Modifica LaTeX
 sidebar-edit-latex-title = Modifica il LaTeX della formula
 sidebar-edit-latex-description = Modifica il sorgente LaTeX memorizzato localmente. Il salvataggio aggiorna tutte le viste della formula aperte.
 sidebar-edit-latex-failed = Impossibile aprire l'editor LaTeX: { $message }
+sidebar-edit-latex-source = Sorgente LaTeX
+sidebar-edit-latex-preview = Anteprima
+sidebar-edit-latex-invalid = Impossibile renderizzare questo LaTeX
 sidebar-edit-latex-save = Salva
 sidebar-edit-latex-cancel = Annulla
 sidebar-correct-region = Correggi area
@@ -169,3 +214,4 @@ preferences-existing-formulae-progress = Conversione di { $completed } su { $tot
 preferences-existing-formulae-complete = Elaborate { $total } formule (riuscite: { $succeeded }, non riuscite: { $failed }).
 preferences-existing-formulae-empty = Tutte le formule rilevate hanno già LaTeX nella cache.
 preferences-existing-formulae-failed = Conversione non riuscita: { $message }
+preferences-about-version = Versione { $version }

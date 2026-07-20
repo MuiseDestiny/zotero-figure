@@ -64,6 +64,7 @@ export interface AnalysisOptions {
 export interface ResultCorrectionPreview {
   detectedRect: Rect;
   image: ArrayBuffer;
+  pageAspectRatio: number;
   rect: Rect;
 }
 
@@ -159,6 +160,7 @@ export class LayoutAnalyzer {
             page,
           ),
           image,
+          pageAspectRatio: getPageAspectRatio(page.pageBounds),
           rect: normalizePdfRectForPage(result.rect, page),
         };
       } finally {
@@ -791,6 +793,20 @@ export class LayoutAnalyzer {
     }
     return this.workerPool;
   }
+}
+
+function getPageAspectRatio(pageBounds: Rect): number {
+  const width = pageBounds[2] - pageBounds[0];
+  const height = pageBounds[3] - pageBounds[1];
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    throw new Error("Correction preview page has invalid dimensions");
+  }
+  return width / height;
 }
 
 function logAnalysisCompletion(

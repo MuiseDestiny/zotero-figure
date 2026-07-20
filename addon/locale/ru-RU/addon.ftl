@@ -29,7 +29,40 @@ gallery-toolbar-collapse =
 gallery-toolbar-expand =
     .title = Показать все фильтры
     .aria-label = Показать все фильтры
-gallery-filter-library = Библиотека
+gallery-view-switch-to-documents =
+    .title = Переключиться на колонки документов
+    .aria-label = Переключиться на колонки документов
+gallery-view-switch-to-waterfall =
+    .title = Переключиться на каскадный вид
+    .aria-label = Переключиться на каскадный вид
+gallery-scale-toggle =
+    .title = Изменить размер изображений
+    .aria-label = Изменить размер изображений
+gallery-scale-label = Размер изображений
+gallery-scale-range =
+    .aria-label = Размер изображений
+gallery-comparison-rows = Параметры сравнения
+gallery-comparison-result-count = Результатов: { $count }
+gallery-comparison-name-row =
+    .title = Назвать строку сравнения
+    .aria-label = Назвать строку сравнения
+gallery-comparison-row-label =
+    .placeholder = Название строки
+    .aria-label = Название строки сравнения
+gallery-comparison-add-row =
+    .title = Добавить строку сравнения
+    .aria-label = Добавить строку сравнения
+gallery-comparison-add-to-group = Добавить в группу
+gallery-comparison-group-default = Группа { $index }
+gallery-comparison-no-other-groups = Нет других групп
+gallery-comparison-dissolve-group = Расформировать группу
+gallery-comparison-make-primary = Сделать { $tag } главным изображением
+gallery-comparison-previous =
+    .title = Предыдущее изображение сравнения
+    .aria-label = Предыдущее изображение сравнения
+gallery-comparison-next =
+    .title = Следующее изображение сравнения
+    .aria-label = Следующее изображение сравнения
 gallery-filter-document = Документ
 gallery-filter-year = Год
 gallery-filter-collection = Категория
@@ -60,8 +93,6 @@ sidebar-analyze = Анализировать рисунки, таблицы и �
 sidebar-cancel = Отменить анализ
 sidebar-translate = Перевести подписи
 sidebar-show-original = Показать оригинал
-sidebar-expand-caption = Развернуть подпись
-sidebar-collapse-caption = Свернуть подпись
 sidebar-translation-error = Не удалось перевести некоторые подписи; показан исходный текст
 sidebar-sync-annotations = Преобразовать локальные результаты в аннотации Zotero
 sidebar-add-all-to-note = Добавить все результаты в заметку
@@ -69,10 +100,27 @@ sidebar-clear = Очистить локальные результаты
 sidebar-loading = Загрузка локальных результатов...
 sidebar-load-error = Не удалось загрузить локальные результаты
 sidebar-analysis-progress-title = Анализ документа
-sidebar-filter-figure = Рисунки ({ $count })
-sidebar-filter-table = Таблицы ({ $count })
-sidebar-filter-formula = Формулы ({ $count })
-sidebar-filter-all = Все ({ $count })
+sidebar-filter-figure =
+    { $count ->
+        [one] Рисунок
+        [few] Рисунка
+        [many] Рисунков
+       *[other] Рисунка
+    }
+sidebar-filter-table =
+    { $count ->
+        [one] Таблица
+        [few] Таблицы
+        [many] Таблиц
+       *[other] Таблицы
+    }
+sidebar-filter-formula =
+    { $count ->
+        [one] Формула
+        [few] Формулы
+        [many] Формул
+       *[other] Формулы
+    }
 sidebar-refresh = Обновить рисунки, таблицы и формулы
 sidebar-empty = Нет созданных рисунков, таблиц или формул
 sidebar-start-analysis = Начать анализ
@@ -103,6 +151,9 @@ sidebar-edit-latex = Изменить LaTeX
 sidebar-edit-latex-title = Изменить LaTeX формулы
 sidebar-edit-latex-description = Измените локально сохранённый исходный код LaTeX. После сохранения обновятся все открытые представления формулы.
 sidebar-edit-latex-failed = Не удалось открыть редактор LaTeX: { $message }
+sidebar-edit-latex-source = Исходный код LaTeX
+sidebar-edit-latex-preview = Предпросмотр
+sidebar-edit-latex-invalid = Не удалось отобразить этот LaTeX
 sidebar-edit-latex-save = Сохранить
 sidebar-edit-latex-cancel = Отмена
 sidebar-correct-region = Исправить область
@@ -169,3 +220,4 @@ preferences-existing-formulae-progress = Преобразовано { $completed
 preferences-existing-formulae-complete = Обработано формул: { $total } (успешно: { $succeeded }, ошибок: { $failed }).
 preferences-existing-formulae-empty = Для всех распознанных формул LaTeX уже сохранён в кэше.
 preferences-existing-formulae-failed = Ошибка преобразования: { $message }
+preferences-about-version = Версия { $version }

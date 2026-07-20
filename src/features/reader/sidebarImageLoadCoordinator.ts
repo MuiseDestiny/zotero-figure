@@ -12,6 +12,7 @@ import { monitorImageLoad, type ImageLoadMonitor } from "./imageLoadMonitor";
 
 export const SIDEBAR_IMAGE_LOAD_CONCURRENCY = 3;
 export const SIDEBAR_IMAGE_PRELOAD_VIEWPORTS = 1;
+const SIDEBAR_IMAGE_MOUNT_RETRY_MS = 16;
 
 export interface SidebarImageSource {
   id: string;
@@ -143,17 +144,24 @@ export class SidebarImageLoadCoordinator {
   public setActive(active: boolean): void {
     this.active = active;
     if (active) this.refresh();
-    else this.cancelQueuedLoads();
+    else {
+      this.clearVisibilityTimer();
+      this.cancelQueuedLoads();
+    }
   }
 
   public refresh(): void {
+    this.scheduleVisibilityScan(0);
+  }
+
+  private scheduleVisibilityScan(delay: number): void {
     if (this.disposed || !this.active || this.visibilityTimerID !== undefined) {
       return;
     }
     this.visibilityTimerID = this.ownerWindow.setTimeout(() => {
       this.visibilityTimerID = undefined;
       this.scanVisibility();
-    }, 0);
+    }, delay);
   }
 
   /** Invalidates one render generation while keeping the coordinator reusable. */
@@ -172,11 +180,20 @@ export class SidebarImageLoadCoordinator {
 
   private scanVisibility(): void {
     if (this.disposed || !this.active) return;
-    const viewport = this.viewport;
-    if (!viewport?.isConnected) return;
-    const candidates = [...this.entries].filter(
-      (entry) => entry.state === "pending" && this.isCurrent(entry),
+    const pending = [...this.entries].filter(
+      (entry) => entry.state === "pending" && this.isOwned(entry),
     );
+    if (pending.length === 0) return;
+
+    const viewport = this.viewport;
+    if (!viewport?.isConnected) {
+      this.scheduleVisibilityScan(SIDEBAR_IMAGE_MOUNT_RETRY_MS);
+      return;
+    }
+    const candidates = pending.filter((entry) => entry.container.isConnected);
+    if (candidates.length < pending.length) {
+      this.scheduleVisibilityScan(SIDEBAR_IMAGE_MOUNT_RETRY_MS);
+    }
     if (candidates.length === 0) return;
 
     const bounds = viewport.getBoundingClientRect();
@@ -236,7 +253,6 @@ export class SidebarImageLoadCoordinator {
       const loadMonitor = this.monitorImage(entry.image);
       entry.loadMonitor = loadMonitor;
       entry.image.src = blobURL.url;
-      entry.container.replaceChildren(entry.image);
       const outcome = await loadMonitor.promise;
       if (entry.loadMonitor === loadMonitor) entry.loadMonitor = undefined;
       if (outcome === "cancelled" || !this.isCurrent(entry)) {
@@ -248,6 +264,7 @@ export class SidebarImageLoadCoordinator {
         entry.state = "loaded";
         entry.container.style.aspectRatio = "";
         entry.container.classList.add("is-loaded");
+        entry.container.replaceChildren(entry.image);
         return;
       }
       entry.state = "failed";
@@ -285,10 +302,7 @@ export class SidebarImageLoadCoordinator {
 
   private clearEntries(): void {
     this.generation++;
-    if (this.visibilityTimerID !== undefined) {
-      this.ownerWindow.clearTimeout(this.visibilityTimerID);
-      this.visibilityTimerID = undefined;
-    }
+    this.clearVisibilityTimer();
     this.loadQueue.cancelPending();
     for (const entry of this.entries) entry.loadMonitor?.cancel();
     this.entries.clear();
@@ -298,12 +312,21 @@ export class SidebarImageLoadCoordinator {
   }
 
   private isCurrent(entry: SidebarImageEntry): boolean {
+    return this.isOwned(entry) && entry.container.isConnected;
+  }
+
+  private isOwned(entry: SidebarImageEntry): boolean {
     return (
       !this.disposed &&
       entry.generation === this.generation &&
-      this.entries.has(entry) &&
-      entry.container.isConnected
+      this.entries.has(entry)
     );
+  }
+
+  private clearVisibilityTimer(): void {
+    if (this.visibilityTimerID === undefined) return;
+    this.ownerWindow.clearTimeout(this.visibilityTimerID);
+    this.visibilityTimerID = undefined;
   }
 
   private releaseBlobURL(release: () => void): void {

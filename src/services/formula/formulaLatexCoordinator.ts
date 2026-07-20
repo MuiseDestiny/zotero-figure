@@ -124,7 +124,6 @@ export class FormulaLatexCoordinator {
         if (this.lifecycleController.signal.aborted) return;
         for (const result of results) {
           if (result.kind !== "formula") continue;
-          this.notify(item, result);
           if (!result.latex && this.isAutoEnabled()) {
             void this.recognize(item, result).catch((error) => {
               if (!isCancellationError(error)) {

@@ -9,6 +9,14 @@ import { FigureReaderController } from "./features/reader/figureReaderController
 import { LayoutAnalyzer } from "./services/layout/layoutAnalyzer";
 import { FormulaLatexCoordinator } from "./services/formula/formulaLatexCoordinator";
 import { FigureGalleryIndex } from "./services/results/figureGalleryIndex";
+import {
+  getFigureGalleryComparisonLayout,
+  getFigureGalleryImageScale,
+  getFigureGalleryViewMode,
+  setFigureGalleryComparisonLayout,
+  setFigureGalleryImageScale,
+  setFigureGalleryViewMode,
+} from "./services/results/figureGalleryPreferences";
 import { FigureResultStore } from "./services/results/figureResultStore";
 import { initLocale } from "./utils/locale";
 
@@ -23,9 +31,16 @@ async function onStartup(): Promise<void> {
   const { batchController, formulaLatex, galleryIndex } = ensureServices();
   addon.api.gallery = {
     getBootstrap: () => galleryIndex.getBootstrap(),
+    getComparisonLayout: (libraryID: number) =>
+      getFigureGalleryComparisonLayout(libraryID),
+    getImageScale: () => getFigureGalleryImageScale(),
+    getViewMode: () => getFigureGalleryViewMode(),
     loadLibrary: (libraryID: number) => galleryIndex.loadLibrary(libraryID),
     openSource: (entryID: string) => galleryIndex.openSource(entryID),
     readImage: (entryID: string) => galleryIndex.readImage(entryID),
+    setComparisonLayout: setFigureGalleryComparisonLayout,
+    setImageScale: setFigureGalleryImageScale,
+    setViewMode: setFigureGalleryViewMode,
     subscribeFormulaLatex: (
       listener: (entryID: string, latex: string) => void,
     ) =>
@@ -98,10 +113,20 @@ async function onPrefsEvent(
   if (type === "load") {
     const { formulaLatex } = ensureServices();
     registerPrefsScripts(data.window, {
+      openGallery: openFigureGallery,
       recognizeExistingFormulae: (onProgress, signal) =>
         formulaLatex.recognizeStoredFormulae(onProgress, signal),
     });
   }
+}
+
+function openFigureGallery(): void {
+  const mainWindow = Zotero.getMainWindow();
+  if (!mainWindow) return;
+  const controller = galleryControllers.get(mainWindow);
+  if (!controller) return;
+  controller.open();
+  mainWindow.focus();
 }
 
 interface HookServices {

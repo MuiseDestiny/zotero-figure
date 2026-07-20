@@ -46,7 +46,10 @@
     "node": ">=20.10"
   },
   "dependencies": {
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/legacy-modes": "^6.5.3",
     "@huggingface/transformers": "^3.8.1",
+    "codemirror": "^6.0.2",
     "katex": "^0.16.22",
     "mupdf": "1.28.0",
     "zotero-plugin-toolkit": "^5.1.0-beta.4"

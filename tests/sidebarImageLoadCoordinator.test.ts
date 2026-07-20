@@ -33,6 +33,75 @@ test("loads only previews inside the configured viewport margin", async () => {
   harness.coordinator.dispose();
 });
 
+test("keeps the placeholder visible until an image is ready", async () => {
+  const outcome = createDeferred<"cancelled" | "failed" | "loaded">();
+  let monitorCreated = false;
+  const harness = createHarness({
+    monitorImage: () => {
+      monitorCreated = true;
+      return {
+        cancel: () => outcome.resolve("cancelled"),
+        promise: outcome.promise,
+      };
+    },
+  });
+  const container = harness.createContainer({ bottom: 200, top: 150 });
+  harness.coordinator.register(container.element, createSource("visible"), "A");
+
+  harness.activate({ bottom: 500, top: 100 });
+  await waitFor(() => monitorCreated);
+  assert.equal(container.childState, "pending");
+
+  outcome.resolve("loaded");
+  await waitFor(() => container.childState === "image");
+  harness.coordinator.dispose();
+});
+
+test("retries the initial scan until the sidebar cards are mounted", async () => {
+  const harness = createHarness();
+  const container = harness.createContainer({ bottom: 200, top: 150 });
+  container.isConnected = false;
+  harness.coordinator.register(container.element, createSource("delayed"), "A");
+
+  const viewport = harness.activate({ bottom: 500, top: 100 });
+  viewport.isConnected = false;
+  harness.timers.flush();
+  assert.deepEqual(harness.reads, []);
+  assert.equal(harness.timers.pendingCount, 1);
+
+  viewport.isConnected = true;
+  harness.timers.flush();
+  assert.deepEqual(harness.reads, []);
+  assert.equal(harness.timers.pendingCount, 1);
+
+  container.isConnected = true;
+  harness.timers.flush();
+  await waitFor(() => container.childState === "image");
+  harness.timers.flush();
+  assert.deepEqual(harness.reads, ["/delayed.png"]);
+  assert.equal(harness.timers.pendingCount, 0);
+  harness.coordinator.dispose();
+});
+
+test("stops mount retries while inactive and resumes when shown", async () => {
+  const harness = createHarness();
+  const container = harness.createContainer({ bottom: 200, top: 150 });
+  container.isConnected = false;
+  harness.coordinator.register(container.element, createSource("delayed"), "A");
+
+  harness.activate({ bottom: 500, top: 100 });
+  assert.equal(harness.timers.pendingCount, 1);
+  harness.coordinator.setActive(false);
+  assert.equal(harness.timers.pendingCount, 0);
+
+  container.isConnected = true;
+  harness.coordinator.setActive(true);
+  harness.timers.flush();
+  await waitFor(() => container.childState === "image");
+  assert.deepEqual(harness.reads, ["/delayed.png"]);
+  harness.coordinator.dispose();
+});
+
 test("cancels queued work while hidden and queues it again when shown", async () => {
   const reads = new Map<string, Deferred<Uint8Array>>();
   const harness = createHarness({
@@ -262,7 +331,7 @@ interface HarnessOptions {
 }
 
 function createHarness(options: HarnessOptions = {}): {
-  activate(bounds: Bounds): void;
+  activate(bounds: Bounds): FakeViewport;
   coordinator: SidebarImageLoadCoordinator;
   createContainer(bounds: Bounds): FakeContainer;
   reads: string[];
@@ -305,11 +374,11 @@ function createHarness(options: HarnessOptions = {}): {
   });
   return {
     activate: (bounds) => {
-      coordinator.setViewport(
-        new FakeViewport(bounds) as unknown as HTMLElement,
-      );
+      const viewport = new FakeViewport(bounds);
+      coordinator.setViewport(viewport as unknown as HTMLElement);
       coordinator.setActive(true);
       timers.flush();
+      return viewport;
     },
     coordinator,
     createContainer: (bounds) => new FakeContainer(document, bounds),
@@ -399,6 +468,10 @@ class FakeClassList {
 class FakeTimers {
   private callbacks = new Map<number, () => void>();
   private nextID = 1;
+
+  public get pendingCount(): number {
+    return this.callbacks.size;
+  }
 
   public clearTimeout(id: number): void {
     this.callbacks.delete(id);

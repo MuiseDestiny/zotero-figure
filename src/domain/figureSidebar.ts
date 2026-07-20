@@ -1,6 +1,8 @@
-export type FigureSidebarFilter = "all" | "figure" | "formula" | "table";
-
 export type FigureSidebarKind = "figure" | "formula" | "table";
+
+export type FigureSidebarFilter = FigureSidebarKind;
+
+export type FigureSidebarFilters = ReadonlySet<FigureSidebarFilter>;
 
 export interface FigureSidebarItemMetadata {
   comment?: string;
@@ -10,7 +12,7 @@ export interface FigureSidebarItemMetadata {
   tag: string;
 }
 
-export type FigureSidebarCounts = Record<FigureSidebarFilter, number>;
+export type FigureSidebarCounts = Record<FigureSidebarKind, number>;
 
 export interface VerticalBounds {
   bottom: number;
@@ -63,7 +65,6 @@ export function countFigureSidebarItems<T>(
   getMetadata: (item: T) => FigureSidebarItemMetadata,
 ): FigureSidebarCounts {
   const counts: FigureSidebarCounts = {
-    all: items.length,
     figure: 0,
     formula: 0,
     table: 0,
@@ -82,12 +83,16 @@ export function countFigureSidebarItems<T>(
  */
 export function filterAndSortFigureSidebarItems<T>(
   items: readonly T[],
-  filter: FigureSidebarFilter,
+  filters: FigureSidebarFilters,
   getMetadata: (item: T) => FigureSidebarItemMetadata,
 ): T[] {
   return items
     .map((item, index) => ({ item, index, metadata: getMetadata(item) }))
-    .filter(({ metadata }) => filter === "all" || metadata.kind === filter)
+    .filter(
+      ({ metadata }) =>
+        filters.size === 0 ||
+        (metadata.kind !== undefined && filters.has(metadata.kind)),
+    )
     .sort((first, second) => {
       const pageDifference =
         (first.metadata.pageIndex ?? 0) - (second.metadata.pageIndex ?? 0);
@@ -112,6 +117,23 @@ export function filterAndSortFigureSidebarItems<T>(
       return tagDifference !== 0 ? tagDifference : first.index - second.index;
     })
     .map(({ item }) => item);
+}
+
+export function toggleFigureSidebarFilter(
+  filters: FigureSidebarFilters,
+  filter: FigureSidebarFilter,
+): Set<FigureSidebarFilter> {
+  const next = new Set(filters);
+  if (next.has(filter)) next.delete(filter);
+  else next.add(filter);
+  return next;
+}
+
+export function pruneUnavailableFigureSidebarFilters(
+  filters: FigureSidebarFilters,
+  counts: FigureSidebarCounts,
+): Set<FigureSidebarFilter> {
+  return new Set([...filters].filter((filter) => counts[filter] > 0));
 }
 
 function normalizeLabel(value: string): string {

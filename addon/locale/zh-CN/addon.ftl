@@ -29,7 +29,40 @@ gallery-toolbar-collapse =
 gallery-toolbar-expand =
     .title = 展开全部筛选
     .aria-label = 展开全部筛选
-gallery-filter-library = 资料库
+gallery-view-switch-to-documents =
+    .title = 切换到文献分栏
+    .aria-label = 切换到文献分栏
+gallery-view-switch-to-waterfall =
+    .title = 切换到瀑布流
+    .aria-label = 切换到瀑布流
+gallery-scale-toggle =
+    .title = 调整图片大小
+    .aria-label = 调整图片大小
+gallery-scale-label = 图片大小
+gallery-scale-range =
+    .aria-label = 图片大小
+gallery-comparison-rows = 对比维度
+gallery-comparison-result-count = { $count } 项结果
+gallery-comparison-name-row =
+    .title = 命名对比行
+    .aria-label = 命名对比行
+gallery-comparison-row-label =
+    .placeholder = 对比行名称
+    .aria-label = 对比行名称
+gallery-comparison-add-row =
+    .title = 添加对比行
+    .aria-label = 添加对比行
+gallery-comparison-add-to-group = 添加到分组
+gallery-comparison-group-default = 第 { $index } 组
+gallery-comparison-no-other-groups = 没有其他分组
+gallery-comparison-dissolve-group = 解散分组
+gallery-comparison-make-primary = 将 { $tag } 设为主图
+gallery-comparison-previous =
+    .title = 上一张对比图片
+    .aria-label = 上一张对比图片
+gallery-comparison-next =
+    .title = 下一张对比图片
+    .aria-label = 下一张对比图片
 gallery-filter-document = 文献
 gallery-filter-year = 年份
 gallery-filter-collection = 分类
@@ -60,8 +93,6 @@ sidebar-analyze = 解析图、表和公式
 sidebar-cancel = 取消解析
 sidebar-translate = 翻译图表说明
 sidebar-show-original = 显示原文说明
-sidebar-expand-caption = 展开说明
-sidebar-collapse-caption = 折叠说明
 sidebar-translation-error = 部分说明翻译失败，当前显示原文
 sidebar-sync-annotations = 将本地结果转换为 Zotero 标注
 sidebar-add-all-to-note = 将全部结果保存到笔记
@@ -69,10 +100,18 @@ sidebar-clear = 清空本地结果
 sidebar-loading = 正在加载本地结果...
 sidebar-load-error = 无法加载本地结果
 sidebar-analysis-progress-title = 正在解析文档
-sidebar-filter-figure = 图（{ $count }）
-sidebar-filter-table = 表（{ $count }）
-sidebar-filter-formula = 公式（{ $count }）
-sidebar-filter-all = 全部（{ $count }）
+sidebar-filter-figure =
+    { $count ->
+       *[other] 图片
+    }
+sidebar-filter-table =
+    { $count ->
+       *[other] 表格
+    }
+sidebar-filter-formula =
+    { $count ->
+       *[other] 公式
+    }
 sidebar-refresh = 刷新图、表和公式
 sidebar-empty = 暂无生成的图、表或公式
 sidebar-start-analysis = 开始解析
@@ -103,6 +142,9 @@ sidebar-edit-latex = 编辑 LaTeX
 sidebar-edit-latex-title = 编辑公式 LaTeX
 sidebar-edit-latex-description = 编辑本地缓存的 LaTeX 源码。保存后会更新所有已打开的公式视图。
 sidebar-edit-latex-failed = 无法打开 LaTeX 编辑器：{ $message }
+sidebar-edit-latex-source = LaTeX 源码
+sidebar-edit-latex-preview = 预览
+sidebar-edit-latex-invalid = 无法渲染此 LaTeX
 sidebar-edit-latex-save = 保存
 sidebar-edit-latex-cancel = 取消
 sidebar-correct-region = 校正区域
@@ -169,3 +211,4 @@ preferences-existing-formulae-progress = 正在转换 { $completed }/{ $total }�
 preferences-existing-formulae-complete = 已处理 { $total } 个公式（成功 { $succeeded }，失败 { $failed }）。
 preferences-existing-formulae-empty = 所有已识别公式均已有缓存的 LaTeX。
 preferences-existing-formulae-failed = 转换失败：{ $message }
+preferences-about-version = 版本 { $version }

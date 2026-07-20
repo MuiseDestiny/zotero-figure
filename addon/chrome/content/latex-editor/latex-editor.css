@@ -1,0 +1,107 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--material-background, Canvas);
+  color: var(--fill-primary, CanvasText);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.latex-workspace {
+  display: grid;
+  grid-template-rows: minmax(150px, 2fr) minmax(180px, 3fr);
+  min-height: 0;
+}
+
+.latex-pane {
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.latex-source-pane {
+  border-bottom: 1px solid var(--fill-quaternary, #c7c7c7);
+}
+
+.latex-pane-label {
+  align-items: center;
+  background: var(--material-sidepane, Field);
+  color: var(--fill-secondary, GrayText);
+  display: flex;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+  user-select: none;
+}
+
+.latex-editor {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.latex-preview-content {
+  display: grid;
+  min-height: 0;
+  overflow: auto;
+  padding: 20px;
+  place-items: center;
+}
+
+.latex-preview {
+  max-width: 100%;
+  overflow: auto;
+  padding: 8px;
+}
+
+.latex-preview math {
+  font-size: 1.5rem;
+}
+
+.latex-preview-error {
+  color: var(--color-red-60, #c62828);
+  font-size: 13px;
+  line-height: 1.45;
+  margin: 0;
+  max-width: 720px;
+  overflow-wrap: anywhere;
+}
+
+.latex-actions {
+  align-items: center;
+  background: var(--material-background, Canvas);
+  border-top: 1px solid var(--fill-quaternary, #c7c7c7);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  min-height: 52px;
+  padding: 9px 12px;
+}
+
+.latex-actions button {
+  min-width: 72px;
+}
+
+@media (max-height: 520px) {
+  .latex-workspace {
+    grid-template-rows: minmax(120px, 1fr) minmax(140px, 1fr);
+  }
+
+  .latex-preview-content {
+    padding: 12px;
+  }
+}

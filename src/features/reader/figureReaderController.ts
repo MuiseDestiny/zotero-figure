@@ -301,6 +301,7 @@ export class FigureReaderController {
   ): Promise<{
     detectedRect: [number, number, number, number];
     imageURL: string;
+    pageAspectRatio: number;
     rect: [number, number, number, number];
   }> {
     const preview = await this.layoutAnalyzer.createResultCorrectionPreview(
@@ -311,6 +312,7 @@ export class FigureReaderController {
     return {
       detectedRect: preview.detectedRect,
       imageURL: bytesToDataURL(new Uint8Array(preview.image), "image/png"),
+      pageAspectRatio: preview.pageAspectRatio,
       rect: preview.rect,
     };
   }

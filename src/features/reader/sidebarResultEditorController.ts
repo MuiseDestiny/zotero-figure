@@ -10,19 +10,21 @@ import {
   type ResultRegionEditorSession,
 } from "./resultRegionEditor";
 import {
-  openMonacoLatexEditor,
-  type MonacoLatexEditorSession,
-} from "./monacoLatexEditor";
+  openCodeMirrorLatexEditor,
+  type CodeMirrorLatexEditorSession,
+} from "./codeMirrorLatexEditor";
 
 const COMMENT_EDITOR_MAX_LENGTH = 10_000;
 const CORRECTION_DIALOG_FALLBACK_WIDTH = 840;
 const CORRECTION_DIALOG_FALLBACK_HEIGHT = 760;
-const CORRECTION_DIALOG_MIN_WIDTH = 640;
+const CORRECTION_DIALOG_MIN_WIDTH = 520;
 const CORRECTION_DIALOG_MIN_HEIGHT = 560;
 const CORRECTION_DIALOG_MAX_WIDTH = 900;
 const CORRECTION_DIALOG_MAX_HEIGHT = 900;
 const CORRECTION_DIALOG_SCREEN_RATIO = 0.86;
 const CORRECTION_DIALOG_WIDTH_SCREEN_RATIO = 0.62;
+const CORRECTION_DIALOG_CONTENT_HEIGHT_OFFSET = 88;
+const CORRECTION_DIALOG_CONTENT_WIDTH_OFFSET = 40;
 
 interface DialogUnloadLock {
   promise: Promise<void>;
@@ -43,7 +45,7 @@ interface CorrectionDialogData extends ResultRegionDialogData {
 type CreateDialog = () => DialogHelper;
 type FormatString = (key: string) => string;
 type InstallRegionEditor = typeof installResultRegionEditor;
-type OpenLatexEditor = typeof openMonacoLatexEditor;
+type OpenLatexEditor = typeof openCodeMirrorLatexEditor;
 
 export interface SidebarResultEditorControllerOptions {
   createDialog?: CreateDialog;
@@ -82,7 +84,7 @@ export class SidebarResultEditorController {
   private correctionDialog?: DialogHelper;
   private correctionController?: AbortController;
   private correctionGeneration = 0;
-  private latexEditor?: MonacoLatexEditorSession;
+  private latexEditor?: CodeMirrorLatexEditorSession;
   private latexGeneration = 0;
   private readonly createDialog: CreateDialog;
   private disposed = false;
@@ -99,7 +101,7 @@ export class SidebarResultEditorController {
       options.installRegionEditor ?? installResultRegionEditor;
     this.logError =
       options.logError ?? ((error) => Zotero.logError(toError(error)));
-    this.openLatexEditor = options.openLatexEditor ?? openMonacoLatexEditor;
+    this.openLatexEditor = options.openLatexEditor ?? openCodeMirrorLatexEditor;
   }
 
   public setContext(document: Document | undefined): void {
@@ -216,7 +218,10 @@ export class SidebarResultEditorController {
       return undefined;
     }
     const dialogData: CorrectionDialogData = { rect: [...preview.rect] };
-    const dialogSize = getCorrectionDialogSize(context);
+    const dialogSize = getCorrectionDialogSize(
+      context,
+      preview.pageAspectRatio,
+    );
     let regionEditor: ResultRegionEditorSession | undefined;
     const dialog = this.createDialog()
       .setDialogData(dialogData)
@@ -316,7 +321,10 @@ export class SidebarResultEditorController {
     const editor = this.openLatexEditor(ownerWindow, {
       cancelLabel: this.formatString("sidebar-edit-latex-cancel"),
       initialValue: edit.latex,
+      invalidLabel: this.formatString("sidebar-edit-latex-invalid"),
+      previewLabel: this.formatString("sidebar-edit-latex-preview"),
       saveLabel: this.formatString("sidebar-edit-latex-save"),
+      sourceLabel: this.formatString("sidebar-edit-latex-source"),
       title: this.formatString("sidebar-edit-latex-title"),
     });
     this.latexEditor = editor;
@@ -444,7 +452,7 @@ export class SidebarResultEditorController {
   private isCurrentLatexRequest(
     context: Document,
     generation: number,
-    editor?: MonacoLatexEditorSession,
+    editor?: CodeMirrorLatexEditorSession,
   ): boolean {
     return (
       !this.disposed &&
@@ -464,25 +472,46 @@ export class SidebarResultEditorController {
   }
 }
 
-export function getCorrectionDialogSize(document: Document): {
+export function getCorrectionDialogSize(
+  document: Document,
+  pageAspectRatio?: number,
+): {
   height: number;
   width: number;
 } {
   const screen = document.defaultView?.screen;
+  const height = getAdaptiveDialogDimension(
+    screen?.availHeight,
+    CORRECTION_DIALOG_FALLBACK_HEIGHT,
+    CORRECTION_DIALOG_MIN_HEIGHT,
+    CORRECTION_DIALOG_MAX_HEIGHT,
+  );
+  const validPageAspectRatio =
+    typeof pageAspectRatio === "number" &&
+    Number.isFinite(pageAspectRatio) &&
+    pageAspectRatio > 0
+      ? pageAspectRatio
+      : undefined;
   return {
-    height: getAdaptiveDialogDimension(
-      screen?.availHeight,
-      CORRECTION_DIALOG_FALLBACK_HEIGHT,
-      CORRECTION_DIALOG_MIN_HEIGHT,
-      CORRECTION_DIALOG_MAX_HEIGHT,
-    ),
-    width: getAdaptiveDialogDimension(
-      screen?.availWidth,
-      CORRECTION_DIALOG_FALLBACK_WIDTH,
-      CORRECTION_DIALOG_MIN_WIDTH,
-      CORRECTION_DIALOG_MAX_WIDTH,
-      CORRECTION_DIALOG_WIDTH_SCREEN_RATIO,
-    ),
+    height,
+    width: validPageAspectRatio
+      ? getBoundedDialogDimension(
+          screen?.availWidth,
+          Math.round(
+            Math.max(1, height - CORRECTION_DIALOG_CONTENT_HEIGHT_OFFSET) *
+              validPageAspectRatio +
+              CORRECTION_DIALOG_CONTENT_WIDTH_OFFSET,
+          ),
+          CORRECTION_DIALOG_MIN_WIDTH,
+          CORRECTION_DIALOG_MAX_WIDTH,
+        )
+      : getAdaptiveDialogDimension(
+          screen?.availWidth,
+          CORRECTION_DIALOG_FALLBACK_WIDTH,
+          CORRECTION_DIALOG_MIN_WIDTH,
+          CORRECTION_DIALOG_MAX_WIDTH,
+          CORRECTION_DIALOG_WIDTH_SCREEN_RATIO,
+        ),
   };
 }
 
@@ -496,8 +525,24 @@ function getAdaptiveDialogDimension(
   if (!Number.isFinite(available) || (available as number) <= 0) {
     return fallback;
   }
+  return getBoundedDialogDimension(
+    available,
+    Math.round((available as number) * ratio),
+    minimum,
+    maximum,
+  );
+}
+
+function getBoundedDialogDimension(
+  available: number | undefined,
+  target: number,
+  minimum: number,
+  maximum: number,
+): number {
+  if (!Number.isFinite(available) || (available as number) <= 0) {
+    return Math.max(minimum, Math.min(maximum, target));
+  }
   const boundedAvailable = Math.max(320, Math.floor(available as number) - 32);
-  const target = Math.round((available as number) * ratio);
   return Math.min(
     boundedAvailable,
     Math.max(minimum, Math.min(maximum, target)),

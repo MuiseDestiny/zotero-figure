@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LaTeX</title>
+    <link rel="stylesheet" href="chrome://zotero-platform/content/zotero.css" />
+    <link rel="stylesheet" href="latex-editor.css?v=__buildTimestamp__" />
+    <script defer src="latex-editor.js?v=__buildTimestamp__"></script>
+  </head>
+  <body>
+    <main class="latex-workspace">
+      <section
+        class="latex-pane latex-source-pane"
+        aria-labelledby="latex-source-label"
+      >
+        <header id="latex-source-label" class="latex-pane-label"></header>
+        <div id="latex-editor" class="latex-editor"></div>
+      </section>
+      <section
+        class="latex-pane latex-preview-pane"
+        aria-labelledby="latex-preview-label"
+      >
+        <header id="latex-preview-label" class="latex-pane-label"></header>
+        <div class="latex-preview-content">
+          <div
+            id="latex-preview"
+            class="latex-preview"
+            aria-live="polite"
+          ></div>
+          <p
+            id="latex-preview-error"
+            class="latex-preview-error"
+            role="alert"
+            hidden
+          ></p>
+        </div>
+      </section>
+    </main>
+    <footer class="latex-actions">
+      <button id="latex-cancel" type="button"></button>
+      <button id="latex-save" type="button"></button>
+    </footer>
+  </body>
+</html>

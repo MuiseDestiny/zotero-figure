@@ -429,6 +429,7 @@ function createPreview(): ResultCorrectionPreview {
   return {
     detectedRect: [0.1, 0.1, 0.9, 0.9],
     imageURL: "data:image/jpeg;base64,",
+    pageAspectRatio: 0.75,
     rect: [0.1, 0.1, 0.9, 0.9],
   };
 }

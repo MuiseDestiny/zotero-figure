@@ -8,6 +8,7 @@ import { getString } from "../../utils/locale";
 export interface ResultCorrectionPreview {
   detectedRect: Rect;
   imageURL: string;
+  pageAspectRatio: number;
   rect: Rect;
 }
 

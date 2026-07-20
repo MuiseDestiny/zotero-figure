@@ -65,6 +65,7 @@ export const esbuildOptions = {
   },
   entryPoints: {
     "gallery/gallery": "src/features/gallery/figureGalleryView.ts",
+    "latex-editor/latex-editor": "src/features/latex-editor/latexEditorView.ts",
     [`scripts/${config.addonRef}`]: "src/index.ts",
   },
   outdir: path.join(BUILD_DIR, "addon/chrome/content"),
@@ -111,6 +112,8 @@ function validateSourceAssets() {
     "addon/bootstrap.js",
     "addon/chrome/content/gallery/gallery.css",
     "addon/chrome/content/gallery/index.html",
+    "addon/chrome/content/latex-editor/index.html",
+    "addon/chrome/content/latex-editor/latex-editor.css",
     "addon/chrome/content/preferences.xhtml",
     "addon/chrome/content/mupdf-worker.js",
     "addon/chrome/content/yolo-worker.js",
@@ -120,7 +123,11 @@ function validateSourceAssets() {
     "addon/manifest.json",
     "scripts/update-template.json",
     "src/features/gallery/figureGalleryView.ts",
+    "src/features/latex-editor/latexEditorView.ts",
+    "node_modules/@codemirror/language/LICENSE",
+    "node_modules/@codemirror/legacy-modes/LICENSE",
     "node_modules/@huggingface/transformers/LICENSE",
+    "node_modules/codemirror/LICENSE",
     "node_modules/mupdf/LICENSE",
     "node_modules/katex/LICENSE",
     ...MUPDF_DIST_FILES.map((file) => `node_modules/mupdf/dist/${file}`),
@@ -167,6 +174,24 @@ function prepareRuntimeAssets() {
   const katexTarget = path.join(BUILD_DIR, "addon/chrome/content/katex");
   clearFolder(katexTarget);
   copyFileSync("node_modules/katex/LICENSE", katexTarget);
+
+  const codeMirrorTarget = path.join(
+    BUILD_DIR,
+    "addon/chrome/content/codemirror",
+  );
+  clearFolder(codeMirrorTarget);
+  copyFileSync(
+    "node_modules/codemirror/LICENSE",
+    path.join(codeMirrorTarget, "codemirror-LICENSE"),
+  );
+  copyFileSync(
+    "node_modules/@codemirror/language/LICENSE",
+    path.join(codeMirrorTarget, "language-LICENSE"),
+  );
+  copyFileSync(
+    "node_modules/@codemirror/legacy-modes/LICENSE",
+    path.join(codeMirrorTarget, "legacy-modes-LICENSE"),
+  );
 }
 
 function removeLegacyAssets() {

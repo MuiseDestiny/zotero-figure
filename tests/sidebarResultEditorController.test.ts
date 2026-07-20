@@ -14,9 +14,9 @@ import {
 import type { StoredFigureResult } from "../src/services/results/figureResultStore";
 import type { FormulaLatexEditSnapshot } from "../src/services/formula/formulaLatexCoordinator";
 import type {
-  MonacoLatexEditorOptions,
-  MonacoLatexEditorSession,
-} from "../src/features/reader/monacoLatexEditor";
+  CodeMirrorLatexEditorOptions,
+  CodeMirrorLatexEditorSession,
+} from "../src/features/reader/codeMirrorLatexEditor";
 
 test("builds the comment dialog and returns the saved result", async () => {
   const edited = { ...createResult("comment"), comment: "edited" };
@@ -109,7 +109,10 @@ test("edits cached formula LaTeX in a dedicated source dialog", async () => {
   assert.deepEqual(editor.options, {
     cancelLabel: "sidebar-edit-latex-cancel",
     initialValue: "x^2",
+    invalidLabel: "sidebar-edit-latex-invalid",
+    previewLabel: "sidebar-edit-latex-preview",
     saveLabel: "sidebar-edit-latex-save",
+    sourceLabel: "sidebar-edit-latex-source",
     title: "sidebar-edit-latex-title",
   });
   assert.equal(editor.ownerWindow, harness.mainWindow);
@@ -119,7 +122,7 @@ test("edits cached formula LaTeX in a dedicated source dialog", async () => {
   harness.controller.dispose();
 });
 
-test("cancels a superseded Monaco editor without saving stale LaTeX", async () => {
+test("cancels a superseded CodeMirror editor without saving stale LaTeX", async () => {
   const harness = createHarness();
   const first = harness.controller.editLatex(createFormula("first", "x"));
   await waitFor(() => harness.latexEditors.length === 1);
@@ -184,7 +187,7 @@ test("ignores an out-of-order region preview and cleans the installed editor", a
     height: 760,
     noDialogMode: true,
     resizable: true,
-    width: 840,
+    width: 544,
   });
   dialog.windowTarget.dispatchEvent(new Event("load"));
   assert.equal(installCalls, 1);
@@ -201,7 +204,7 @@ test("ignores an out-of-order region preview and cleans the installed editor", a
   harness.controller.dispose();
 });
 
-test("sizes the correction window to the screen and enlarges dense previews", () => {
+test("sizes the correction window to the page aspect ratio and screen", () => {
   const largeDocument = {
     defaultView: { screen: { availHeight: 1000, availWidth: 1600 } },
   } as unknown as Document;
@@ -213,13 +216,21 @@ test("sizes the correction window to the screen and enlarges dense previews", ()
     height: 760,
     width: 840,
   });
-  assert.deepEqual(getCorrectionDialogSize(largeDocument), {
+  assert.deepEqual(getCorrectionDialogSize({} as Document, 0.75), {
+    height: 760,
+    width: 544,
+  });
+  assert.deepEqual(getCorrectionDialogSize(largeDocument, 0.75), {
+    height: 860,
+    width: 619,
+  });
+  assert.deepEqual(getCorrectionDialogSize(smallDocument, 0.75), {
+    height: 468,
+    width: 520,
+  });
+  assert.deepEqual(getCorrectionDialogSize(largeDocument, 16 / 9), {
     height: 860,
     width: 900,
-  });
-  assert.deepEqual(getCorrectionDialogSize(smallDocument), {
-    height: 468,
-    width: 640,
   });
   assert.deepEqual(getFittedResultRegionPageSize(158, 212, 1000, 700), {
     height: 700,
@@ -506,7 +517,7 @@ class FakeDialogDocument {
   }
 }
 
-class FakeLatexEditor implements MonacoLatexEditorSession {
+class FakeLatexEditor implements CodeMirrorLatexEditorSession {
   public closeCalls = 0;
   private readonly deferred = createDeferred<string | undefined>();
   private settled = false;
@@ -514,7 +525,7 @@ class FakeLatexEditor implements MonacoLatexEditorSession {
 
   constructor(
     public readonly ownerWindow: Window,
-    public readonly options: MonacoLatexEditorOptions,
+    public readonly options: CodeMirrorLatexEditorOptions,
   ) {}
 
   public close(): void {
@@ -597,6 +608,7 @@ function createFormula(id: string, latex: string): StoredFigureResult {
 const secondPreviewValue: ResultCorrectionPreview = {
   detectedRect: [0.1, 0.1, 0.9, 0.9],
   imageURL: "data:image/jpeg;base64,second",
+  pageAspectRatio: 0.75,
   rect: [0.15, 0.15, 0.85, 0.85],
 };
 
@@ -604,6 +616,7 @@ function createPreview(): ResultCorrectionPreview {
   return {
     detectedRect: [0.1, 0.1, 0.9, 0.9],
     imageURL: "data:image/jpeg;base64,",
+    pageAspectRatio: 0.75,
     rect: [0.1, 0.1, 0.9, 0.9],
   };
 }

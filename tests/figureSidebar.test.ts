@@ -4,7 +4,9 @@ import {
   countFigureSidebarItems,
   filterAndSortFigureSidebarItems,
   getFigureSidebarNavigationLabel,
+  pruneUnavailableFigureSidebarFilters,
   shouldShowFigureSidebarEmptyState,
+  toggleFigureSidebarFilter,
   type FigureSidebarFilter,
 } from "../src/domain/figureSidebar";
 
@@ -28,7 +30,6 @@ test("counts all result kinds independently of filtering", () => {
   ];
 
   assert.deepEqual(countFigureSidebarItems(entries, metadata), {
-    all: 4,
     figure: 2,
     formula: 1,
     table: 1,
@@ -43,7 +44,7 @@ test("filters sidebar entries by kind and preserves the source array", () => {
 
   const filtered = filterAndSortFigureSidebarItems(
     entries,
-    "figure" satisfies FigureSidebarFilter,
+    new Set(["figure" satisfies FigureSidebarFilter]),
     metadata,
   );
 
@@ -56,23 +57,76 @@ test("filters sidebar entries by kind and preserves the source array", () => {
     ["table", "figure"],
   );
   assert.deepEqual(
-    filterAndSortFigureSidebarItems(entries, "all", metadata).map(
+    filterAndSortFigureSidebarItems(entries, new Set(), metadata).map(
       ({ id }) => id,
     ),
     ["figure", "table"],
   );
   assert.deepEqual(
-    filterAndSortFigureSidebarItems(entries, "table", metadata).map(
+    filterAndSortFigureSidebarItems(entries, new Set(["table"]), metadata).map(
       ({ id }) => id,
     ),
     ["table"],
   );
   assert.deepEqual(
-    filterAndSortFigureSidebarItems(entries, "formula", metadata).map(
-      ({ id }) => id,
-    ),
+    filterAndSortFigureSidebarItems(
+      entries,
+      new Set(["formula"]),
+      metadata,
+    ).map(({ id }) => id),
     [],
   );
+});
+
+test("combines selected kinds and restores all results when none are selected", () => {
+  const entries: Entry[] = [
+    { id: "figure", kind: "figure", pageIndex: 0, tag: "Figure 1" },
+    { id: "table", kind: "table", pageIndex: 1, tag: "Table 1" },
+    { id: "formula", kind: "formula", pageIndex: 2, tag: "Formula 1" },
+  ];
+  let filters = new Set<FigureSidebarFilter>();
+
+  assert.deepEqual(
+    filterAndSortFigureSidebarItems(entries, filters, metadata).map(
+      ({ id }) => id,
+    ),
+    ["figure", "table", "formula"],
+  );
+
+  const figureFilters = toggleFigureSidebarFilter(filters, "figure");
+  assert.equal(filters.size, 0);
+  filters = figureFilters;
+  filters = toggleFigureSidebarFilter(filters, "table");
+  assert.deepEqual(
+    filterAndSortFigureSidebarItems(entries, filters, metadata).map(
+      ({ id }) => id,
+    ),
+    ["figure", "table"],
+  );
+
+  filters = toggleFigureSidebarFilter(filters, "formula");
+  assert.equal(
+    filterAndSortFigureSidebarItems(entries, filters, metadata).length,
+    entries.length,
+  );
+
+  filters = toggleFigureSidebarFilter(filters, "formula");
+  filters = toggleFigureSidebarFilter(filters, "figure");
+  filters = toggleFigureSidebarFilter(filters, "table");
+  assert.equal(filters.size, 0);
+  assert.equal(
+    filterAndSortFigureSidebarItems(entries, filters, metadata).length,
+    entries.length,
+  );
+});
+
+test("drops selected kinds that no longer have results", () => {
+  const filters = pruneUnavailableFigureSidebarFilters(
+    new Set<FigureSidebarFilter>(["figure", "table", "formula"]),
+    { figure: 0, formula: 0, table: 6 },
+  );
+
+  assert.deepEqual([...filters], ["table"]);
 });
 
 test("restores the empty state after analysis for an empty active filter", () => {
@@ -107,7 +161,7 @@ test("sorts by page and visual position before using the tag", () => {
     },
   ];
 
-  const sorted = filterAndSortFigureSidebarItems(entries, "all", metadata);
+  const sorted = filterAndSortFigureSidebarItems(entries, new Set(), metadata);
 
   assert.deepEqual(
     sorted.map(({ id }) => id),

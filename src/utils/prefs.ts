@@ -3,6 +3,9 @@ import { config } from "../../package.json";
 export interface PreferenceSchema {
   autoRecognizeFormula: boolean;
   duplicateMode: "replace-page" | "skip-existing";
+  galleryComparisonLayouts: string;
+  galleryImageScale: number;
+  galleryViewMode: "document-columns" | "waterfall";
   siliconFlowApiKey: string;
   siliconFlowApiKeyValidated: boolean;
   syncAnnotations: boolean;

@@ -23,8 +23,20 @@ const resultEditorSource = readFileSync(
   "src/features/reader/sidebarResultEditorController.ts",
   "utf8",
 );
-const monacoLatexEditorSource = readFileSync(
-  "src/features/reader/monacoLatexEditor.ts",
+const codeMirrorLatexEditorSource = readFileSync(
+  "src/features/reader/codeMirrorLatexEditor.ts",
+  "utf8",
+);
+const latexEditorViewSource = readFileSync(
+  "src/features/latex-editor/latexEditorView.ts",
+  "utf8",
+);
+const latexEditorMarkup = readFileSync(
+  "addon/chrome/content/latex-editor/index.html",
+  "utf8",
+);
+const latexEditorCSS = readFileSync(
+  "addon/chrome/content/latex-editor/latex-editor.css",
   "utf8",
 );
 const controllerSource = readFileSync(
@@ -36,14 +48,23 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   const wrapper = getRule("#zoterofigure-sidebar-panel");
   const panel = getRule(".zoterofigure-sidebar-panel");
   const controls = getRule(".zoterofigure-sidebar-controls");
+  const actions = getRule(".zoterofigure-sidebar-actions");
   const filters = getRule(".zoterofigure-sidebar-filters");
   const filterSlot = getRule(".zoterofigure-sidebar-filter-slot");
   const filterButton = getRule(".zoterofigure-sidebar-filter");
+  const hoveredFilter = getRule(".zoterofigure-sidebar-filter:hover");
+  const filterIcon = getRule(".zoterofigure-sidebar-filter-icon");
+  const selectedFilter = getRule(".zoterofigure-sidebar-filter.selected");
   const list = getRule(".zoterofigure-sidebar-list");
   const cardHeader = getRule(".zoterofigure-sidebar-card > header");
+  const focusedCard = getRule(".zoterofigure-sidebar-card:focus");
   const cardPage = getRule(".zoterofigure-card-page");
   const cardImage = getExactRule(".zoterofigure-card-image");
+  const latexCardImage = getExactRule(".zoterofigure-card-image.is-latex");
   const cardImageElement = getExactRule(".zoterofigure-card-image img");
+  const renderedLatex = getExactRule(".zoterofigure-rendered-latex");
+  const cardComment = getExactRule(".zoterofigure-card-comment");
+  const cardCommentText = getExactRule(".zoterofigure-card-comment-text");
   const pinnedLatex = getRule(
     ".zoterofigure-pinned-card .zoterofigure-card-image.is-latex",
   );
@@ -64,22 +85,51 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(controls, /top\s*:\s*0/);
   assert.match(controls, /background\s*:\s*var\(--material-sidepane/);
   assert.doesNotMatch(controls, /--material-background/);
+  assert.match(actions, /background\s*:\s*var\(--material-mix-quarternary\)/);
   assert.match(filters, /display\s*:\s*flex/);
   assert.match(filters, /flex-direction\s*:\s*row/);
-  assert.match(filters, /height\s*:\s*25px/);
-  assert.match(filters, /justify-content\s*:\s*space-around/);
+  assert.match(filters, /gap\s*:\s*6px/);
+  assert.match(filters, /height\s*:\s*30px/);
+  assert.match(filters, /justify-content\s*:\s*flex-start/);
   assert.match(filters, /margin\s*:\s*0\.5em 1em/);
-  assert.match(filterSlot, /flex\s*:\s*1 1 0/);
+  assert.match(filterSlot, /flex\s*:\s*0 1 max-content/);
+  assert.match(filterSlot, /align-items\s*:\s*center/);
+  assert.match(filterSlot, /max-width\s*:\s*100%/);
   assert.match(filterSlot, /position\s*:\s*relative/);
-  assert.match(filterButton, /color\s*:\s*var\(--fill-primary\)/);
+  assert.match(filterSlot, /width\s*:\s*max-content/);
+  assert.doesNotMatch(filterSlot, /width\s*:\s*\d+px/);
+  assert.match(filterButton, /--zoterofigure-filter-accent/);
+  assert.match(
+    filterButton,
+    /background\s*:\s*var\(--material-mix-quarternary\)/,
+  );
+  assert.match(filterButton, /border\s*:\s*1px solid transparent/);
+  assert.match(filterButton, /border-radius\s*:\s*20px/);
+  assert.match(filterButton, /display\s*:\s*flex/);
   assert.match(filterButton, /font\s*:\s*inherit/);
-  assert.doesNotMatch(filterButton, /font-size\s*:\s*11px/);
+  assert.match(filterButton, /font-size\s*:\s*12px/);
+  assert.match(filterButton, /height\s*:\s*26px/);
+  assert.match(filterButton, /padding\s*:\s*1px 5px/);
   assert.match(filterButton, /width\s*:\s*100%/);
+  assert.match(filterIcon, /background\s*:\s*transparent/);
+  assert.match(filterIcon, /color\s*:\s*var\(--zoterofigure-filter-accent\)/);
+  assert.match(selectedFilter, /background\s*:\s*color-mix/);
+  assert.match(selectedFilter, /--zoterofigure-filter-accent\) 12%/);
+  assert.match(selectedFilter, /border-color\s*:\s*color-mix/);
+  assert.match(hoveredFilter, /background\s*:\s*color-mix/);
+  assert.match(hoveredFilter, /--material-mix-quarternary\) 92%/);
+  assert.match(hoveredFilter, /--fill-primary\) 8%/);
   assert.match(cardHeader, /color\s*:\s*var\(--fill-secondary\)/);
+  assert.match(focusedCard, /outline\s*:\s*2px solid var\(--accent-blue/);
+  assert.match(focusedCard, /outline-offset\s*:\s*-2px/);
   assert.match(cardPage, /color\s*:\s*var\(--fill-secondary\)/);
   assert.match(cardImage, /background\s*:\s*var\(--material-background\)/);
   assert.match(cardImage, /overflow\s*:\s*hidden/);
   assert.match(cardImage, /padding\s*:\s*0/);
+  assert.match(latexCardImage, /justify-content\s*:\s*flex-start/);
+  assert.match(latexCardImage, /overflow\s*:\s*auto/);
+  assert.match(renderedLatex, /margin-inline\s*:\s*auto/);
+  assert.match(renderedLatex, /min-width\s*:\s*max-content/);
   assert.match(cardImageElement, /height\s*:\s*auto\s*!important/);
   assert.match(cardImageElement, /max-height\s*:\s*none\s*!important/);
   assert.match(cardImageElement, /max-width\s*:\s*100%\s*!important/);
@@ -89,6 +139,13 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
     pinnedLatex,
     /font-size\s*:\s*var\(--zoterofigure-pinned-latex-font-size, 1em\)/,
   );
+  assert.match(cardComment, /max-height\s*:\s*calc\(2\.7em \+ 15px\)/);
+  assert.match(cardComment, /overflow\s*:\s*hidden/);
+  assert.match(cardComment, /white-space\s*:\s*normal/);
+  assert.match(cardCommentText, /text-overflow\s*:\s*ellipsis/);
+  assert.match(cardCommentText, /overflow-wrap\s*:\s*anywhere/);
+  assert.match(cardCommentText, /-webkit-line-clamp\s*:\s*2/);
+  assert.doesNotMatch(css, /\.zoterofigure-card-comment\.expanded/);
   assert.match(noteIcon, /height\s*:\s*16px/);
   assert.match(noteIcon, /width\s*:\s*16px/);
   assert.doesNotMatch(noteIcon, /mask\s*:/);
@@ -179,6 +236,11 @@ test("navigates hover result menus without rebuilding the active filter", () => 
   const openPopover = getSourceSection(
     panelSource,
     "  private openFilterPopover(",
+    "  private positionFilterPopover(",
+  );
+  const positionPopover = getSourceSection(
+    panelSource,
+    "  private positionFilterPopover(",
     "  private handleFilterPopoverKeydown(",
   );
   const selectResult = getSourceSection(
@@ -199,24 +261,55 @@ test("navigates hover result menus without rebuilding the active filter", () => 
   const filters = getRule(".zoterofigure-sidebar-filters");
   const filterSlot = getRule(".zoterofigure-sidebar-filter-slot");
   const popover = getRule(".zoterofigure-filter-results");
+  const result = getRule(".zoterofigure-filter-result");
+  const hoveredResult = getRule(".zoterofigure-filter-result:focus-visible");
   const resultLabel = getRule(".zoterofigure-filter-result-label");
+  const resultPage = getRule(".zoterofigure-filter-result-page");
 
   assert.match(createFilters, /filterAndSortFigureSidebarItems\(/);
-  assert.match(createFilters, /"all", "figure", "table", "formula"/);
+  assert.match(createFilters, /"figure", "table", "formula"/);
+  assert.doesNotMatch(createFilters, /"all"/);
+  assert.match(createFilters, /if \(counts\[filter\] === 0\) continue/);
+  assert.match(createFilters, /toggleFigureSidebarFilter\(/);
+  assert.match(createFilters, /this\.filters\.has\(filter\)/);
+  assert.match(createFilters, /setAttribute\("aria-pressed"/);
+  assert.match(createFilters, /args: \{ count: counts\[filter\] \}/);
+  assert.match(createFilters, /event\.detail === 0/);
+  assert.match(createFilters, /data-filter="\$\{filter\}"/);
+  assert.match(createFilters, /createFigureSidebarIcon\(document, filter\)/);
+  assert.match(createFilters, /content\.append\(icon, count, label\)/);
   assert.match(createFilters, /slot\.append\(button\)/);
   assert.match(createFilters, /document,\s+slot,\s+button/);
   assert.match(createFilters, /addEventListener\("mouseenter"/);
   assert.match(createFilters, /addEventListener\("focus"/);
   assert.match(createFilters, /setAttribute\("aria-haspopup", "menu"\)/);
   assert.match(openPopover, /setAttribute\("role", "menu"\)/);
+  assert.match(openPopover, /popover\.dataset\.filter = filter/);
   assert.match(openPopover, /setAttribute\("role", "menuitem"\)/);
-  assert.match(openPopover, /item\.title = label/);
+  assert.match(openPopover, /item\.tabIndex = -1/);
+  assert.match(openPopover, /getString\("sidebar-page"/);
+  assert.match(openPopover, /item\.append\(text, page\)/);
   assert.match(openPopover, /getFigureSidebarNavigationLabel\(/);
+  assert.match(openPopover, /this\.positionFilterPopover\(host, popover\)/);
+  assert.match(
+    positionPopover,
+    /this\.scrollContainer \?\? this\.panelContent/,
+  );
+  assert.match(positionPopover, /popover\.style\.maxWidth/);
+  assert.match(positionPopover, /boundaryBounds\.right - popoverBounds\.width/);
+  assert.match(positionPopover, /Math\.min\(Math\.max\(hostBounds\.left/);
+  assert.match(positionPopover, /popover\.style\.insetInlineStart/);
 
-  const filterAssignment = selectResult.indexOf("this.filter = filter");
-  const render = selectResult.indexOf("if (filterChanged) this.render()");
+  const preserveFilters = selectResult.indexOf(
+    "this.filters = new Set(this.filters).add(filter)",
+  );
+  const render = selectResult.indexOf("this.render()");
   const scroll = selectResult.indexOf("this.scheduleResultScroll(resultID)");
-  assert.ok(filterAssignment >= 0 && filterAssignment < render);
+  assert.match(
+    selectResult,
+    /this\.filters\.size > 0 && !this\.filters\.has\(filter\)/,
+  );
+  assert.ok(preserveFilters >= 0 && preserveFilters < render);
   assert.ok(render < scroll);
   assert.match(scrollResult, /this\.resultCards\.get\(resultID\)/);
   assert.match(scrollResult, /this\.scrollContainer/);
@@ -229,12 +322,22 @@ test("navigates hover result menus without rebuilding the active filter", () => 
   assert.match(filters, /position\s*:\s*relative/);
   assert.match(filterSlot, /position\s*:\s*relative/);
   assert.match(popover, /position\s*:\s*absolute/);
-  assert.match(popover, /inset-inline\s*:\s*0/);
-  assert.match(popover, /max-height\s*:\s*min\(320px, 45vh\)/);
+  assert.match(popover, /width\s*:\s*min\(260px, calc\(100vw - 24px\)\)/);
+  assert.match(popover, /max-height\s*:\s*min\(360px, 50vh\)/);
   assert.match(popover, /overflow-y\s*:\s*auto/);
-  assert.match(resultLabel, /overflow\s*:\s*hidden/);
-  assert.match(resultLabel, /text-overflow\s*:\s*ellipsis/);
-  assert.match(resultLabel, /white-space\s*:\s*nowrap/);
+  assert.match(popover, /inset-inline-start\s*:\s*0/);
+  assert.match(popover, /inset-inline-end\s*:\s*auto/);
+  assert.match(result, /align-items\s*:\s*baseline/);
+  assert.match(
+    hoveredResult,
+    /background\s*:\s*var\(--material-mix-quarternary\)/,
+  );
+  assert.match(resultLabel, /overflow-wrap\s*:\s*anywhere/);
+  assert.match(resultLabel, /white-space\s*:\s*normal/);
+  assert.doesNotMatch(resultLabel, /text-overflow\s*:\s*ellipsis/);
+  assert.doesNotMatch(resultLabel, /white-space\s*:\s*nowrap/);
+  assert.match(resultPage, /color\s*:\s*var\(--fill-secondary\)/);
+  assert.match(resultPage, /white-space\s*:\s*nowrap/);
 });
 
 test("pins a complete card with an independent image URL", () => {
@@ -452,27 +555,29 @@ test("pins a complete card with an independent image URL", () => {
   assert.match(resultEditorSource, /COMMENT_EDITOR_MAX_LENGTH/);
   assert.match(resultEditorSource, /rows: 2/);
   assert.match(resultEditorSource, /resize: "none"/);
-  assert.match(resultEditorSource, /openMonacoLatexEditor/);
+  assert.match(resultEditorSource, /openCodeMirrorLatexEditor/);
   assert.match(resultEditorSource, /latexEditor\?\.close/);
   assert.doesNotMatch(resultEditorSource, /"data-bind": "latex"/);
   assert.match(
-    monacoLatexEditorSource,
-    /chrome:\/\/scaffold\/content\/monaco\/monaco\.html/,
+    codeMirrorLatexEditorSource,
+    /chrome:\/\/zoterofigure\/content\/latex-editor\/index\.html/,
   );
-  assert.match(monacoLatexEditorSource, /"monaco"/);
-  assert.match(monacoLatexEditorSource, /scrollbars=yes,width=800,height=600/);
-  assert.match(monacoLatexEditorSource, /editorWindow\.focus\(\)/);
-  assert.match(monacoLatexEditorSource, /language: "plaintext"/);
-  assert.match(monacoLatexEditorSource, /theme: `vs-/);
+  assert.doesNotMatch(codeMirrorLatexEditorSource, /chrome:\/\/scaffold/);
+  assert.match(codeMirrorLatexEditorSource, /dialogData/);
+  assert.match(codeMirrorLatexEditorSource, /settle\(undefined\)/);
+  assert.match(latexEditorViewSource, /StreamLanguage\.define\(stexMath\)/);
+  assert.match(latexEditorViewSource, /EditorView\.lineWrapping/);
+  assert.match(latexEditorViewSource, /EditorView\.updateListener/);
+  assert.match(latexEditorViewSource, /throwOnError: true/);
+  assert.match(latexEditorViewSource, /saveButton\.disabled/);
+  assert.match(latexEditorMarkup, /id="latex-editor"/);
+  assert.match(latexEditorMarkup, /id="latex-preview"/);
+  assert.match(latexEditorMarkup, /id="latex-cancel"/);
+  assert.match(latexEditorMarkup, /id="latex-save"/);
   assert.match(
-    monacoLatexEditorSource,
-    /editor\.setValue\(options\.initialValue\)/,
+    latexEditorCSS,
+    /grid-template-rows:\s*minmax\(150px, 2fr\) minmax\(180px, 3fr\)/,
   );
-  assert.match(monacoLatexEditorSource, /loadedEditor\.getValue\(\)/);
-  assert.match(monacoLatexEditorSource, /options\.saveLabel/);
-  assert.match(monacoLatexEditorSource, /options\.cancelLabel/);
-  assert.match(monacoLatexEditorSource, /settle\(undefined\)/);
-  assert.doesNotMatch(monacoLatexEditorSource, /editor\.addCommand/);
   assert.match(openCommentEditor, /this\.options\.onEditComment\(/);
   assert.match(openCommentEditor, /\+\+this\.commentGeneration/);
   assert.match(openCommentEditor, /isCurrentCommentRequest/);
@@ -498,9 +603,11 @@ test("pins a complete card with an independent image URL", () => {
   );
   assert.match(applyUpdatedResult, /this\.createComment\(document, updated\)/);
   assert.match(applyUpdatedResult, /this\.refreshControls\(\)/);
-  assert.match(createComment, /!comment\.classList\.contains\("expanded"\)/);
-  assert.match(createComment, /this\.resultCards\.get\(resultID\)/);
-  assert.match(createComment, /this\.pinnedCards\.get\(resultID\)/);
+  assert.match(createComment, /document\.createElement\("div"\)/);
+  assert.match(createComment, /comment\.title = text/);
+  assert.doesNotMatch(createComment, /addEventListener\("click"/);
+  assert.doesNotMatch(panelSource, /expandedComments/);
+  assert.doesNotMatch(panelSource, /applyCommentExpansion/);
   assert.match(pinnedCard, /position\s*:\s*fixed/);
   assert.doesNotMatch(pinnedCard, /transform-origin/);
   assert.doesNotMatch(

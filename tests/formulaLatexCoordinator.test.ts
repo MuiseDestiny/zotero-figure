@@ -477,15 +477,19 @@ test("aborts recognition when its final waiter is cancelled", async () => {
   assert.equal(recognitionSignal?.aborted, true);
 });
 
-test("publishes stored formula state when automatic recognition is disabled", async () => {
+test("does not republish unchanged formula snapshots when recognition is disabled", async () => {
   const item = attachment(1, "FIRST");
   const empty = formula("empty", 1);
   const cached = { ...formula("cached", 2), latex: "x" };
   const figure = { ...formula("figure", 3), kind: "figure" as const };
   const published: string[] = [];
+  let listed = false;
   const coordinator = new FormulaLatexCoordinator(
     {
-      list: async () => [empty, cached, figure],
+      list: async () => {
+        listed = true;
+        return [empty, cached, figure];
+      },
       listIndexedAttachmentKeys: async () => [],
       readFormulaLatexState: async () => undefined,
       readFormulaRecognitionInput: async () =>
@@ -502,9 +506,9 @@ test("publishes stored formula state when automatic recognition is disabled", as
   coordinator.subscribe(({ result }) => published.push(result.id));
 
   coordinator.recognizeAttachment(item);
-  await waitFor(() => published.length === 2);
+  await waitFor(() => listed);
 
-  assert.deepEqual(published, ["empty", "cached"]);
+  assert.deepEqual(published, []);
 });
 
 function attachment(libraryID: number, key: string): Zotero.Item {

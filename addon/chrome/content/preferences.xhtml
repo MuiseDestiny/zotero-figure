@@ -17,6 +17,52 @@
       padding: 0;
     }
 
+    #zotero-prefpane-__addonRef__ .preferences-section + .preferences-section {
+      margin-top: 26px;
+    }
+
+    #zotero-prefpane-__addonRef__ .section-heading {
+      color: var(--fill-primary, #222);
+      font-size: 1.15em;
+      font-weight: 600;
+      margin: 0 0 12px;
+    }
+
+    #zotero-prefpane-__addonRef__ .interface-entry + .interface-entry {
+      margin-top: 14px;
+    }
+
+    #zotero-prefpane-__addonRef__ .interface-entry-title {
+      color: var(--fill-primary, #222);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    #zotero-prefpane-__addonRef__ .interface-entry-description {
+      color: var(--fill-secondary, #666);
+      line-height: 1.45;
+      margin-top: 3px;
+      max-width: 600px;
+    }
+
+    #zotero-prefpane-__addonRef__ .interface-gallery-entry {
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      margin-top: 3px;
+    }
+
+    #zotero-prefpane-__addonRef__ .interface-gallery-description {
+      flex: 0 1 auto;
+      margin-top: 0;
+      min-width: 0;
+    }
+
+    #zotero-prefpane-__addonRef__ #open-figure-gallery {
+      flex: none;
+      margin-inline-start: 0;
+    }
+
     #zotero-prefpane-__addonRef__ .help-icon {
       color: var(--fill-secondary, #666);
       cursor: help;
@@ -74,7 +120,6 @@
     }
 
     #zotero-prefpane-__addonRef__ .api-key-field {
-      margin-top: 20px;
       min-width: 0;
     }
 
@@ -112,11 +157,8 @@
       color: #c62828;
     }
 
-    #zotero-prefpane-__addonRef__ .api-key-help {
-      color: var(--fill-secondary, #666);
-      line-height: 1.4;
-      margin-top: 6px;
-      max-width: 560px;
+    #zotero-prefpane-__addonRef__ .api-key-help-icon {
+      margin-inline-start: 0;
     }
 
     #zotero-prefpane-__addonRef__ .button-row {
@@ -134,6 +176,10 @@
       margin-inline-start: 12px;
     }
 
+    #zotero-prefpane-__addonRef__ .other-field-row {
+      margin-top: 0;
+    }
+
     #zotero-prefpane-__addonRef__ #existing-formula-status {
       color: var(--fill-secondary, #666);
       font-size: 12px;
@@ -149,6 +195,48 @@
       color: #c62828;
     }
 
+    #zotero-prefpane-__addonRef__ .about-section {
+      border-top: 1px solid var(--material-border, rgba(0, 0, 0, 0.16));
+
+      padding: 18px 2px 0;
+    }
+
+    #zotero-prefpane-__addonRef__ .about-heading {
+      color: var(--fill-primary, #222);
+      font-size: 1.15em;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    #zotero-prefpane-__addonRef__ .about-intro {
+      line-height: 1.5;
+      margin-top: 8px;
+      max-width: 640px;
+    }
+
+    #zotero-prefpane-__addonRef__ .about-links {
+      align-items: flex-start;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    #zotero-prefpane-__addonRef__ .about-link {
+      margin: 0;
+      text-decoration: none;
+    }
+
+    #zotero-prefpane-__addonRef__ .pro-plugins-link {
+      font-weight: 600;
+    }
+
+    #zotero-prefpane-__addonRef__ .about-version {
+      color: var(--fill-secondary, #666);
+      font-size: 12px;
+      margin-top: 14px;
+    }
+
     @media (max-width: 620px) {
       #zotero-prefpane-__addonRef__ .field-row {
         align-items: stretch;
@@ -160,10 +248,59 @@
       #zotero-prefpane-__addonRef__ .help-icon {
         align-self: flex-start;
       }
+
+      #zotero-prefpane-__addonRef__ .interface-gallery-entry {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      #zotero-prefpane-__addonRef__ .interface-gallery-description {
+        flex: none;
+      }
+
+      #zotero-prefpane-__addonRef__ #open-figure-gallery {
+        align-self: flex-start;
+        margin-inline-start: 0;
+      }
     }
   </html:style>
 
-  <groupbox class="preferences-section">
+  <groupbox id="interface-preferences" class="preferences-section">
+    <html:h2
+      class="section-heading"
+      data-l10n-id="preferences-section-interface"
+    />
+    <vbox class="interface-entry">
+      <html:span
+        class="interface-entry-title"
+        data-l10n-id="preferences-interface-reader-title"
+      />
+      <html:span
+        class="interface-entry-description"
+        data-l10n-id="preferences-interface-reader-description"
+      />
+    </vbox>
+    <vbox class="interface-entry">
+      <html:span
+        class="interface-entry-title"
+        data-l10n-id="preferences-interface-gallery-title"
+      />
+      <hbox class="interface-gallery-entry" align="center">
+        <html:span
+          class="interface-entry-description interface-gallery-description"
+          data-l10n-id="preferences-interface-gallery-description"
+        />
+        <button
+          id="open-figure-gallery"
+          data-l10n-id="preferences-interface-gallery-open"
+        />
+      </hbox>
+    </vbox>
+  </groupbox>
+
+  <groupbox id="model-preferences" class="preferences-section">
+    <html:h2 class="section-heading" data-l10n-id="preferences-section-model" />
     <hbox
       id="model-status-row"
       class="status-row"
@@ -193,8 +330,84 @@
         data-l10n-id="preferences-reveal"
       />
     </hbox>
+  </groupbox>
 
-    <hbox class="field-row" align="center">
+  <groupbox id="formula-recognition-preferences" class="preferences-section">
+    <html:h2
+      class="section-heading"
+      data-l10n-id="preferences-section-formula-recognition"
+    />
+    <vbox class="api-key-field">
+      <html:label
+        class="api-key-label"
+        for="siliconflow-api-key"
+        data-l10n-id="preferences-siliconflow-api-key"
+      />
+      <hbox class="api-key-control" align="center">
+        <html:input
+          id="siliconflow-api-key"
+          type="password"
+          autocomplete="off"
+          spellcheck="false"
+          data-l10n-id="preferences-siliconflow-api-key-input"
+        />
+        <button
+          id="verify-siliconflow-api-key"
+          data-l10n-id="preferences-siliconflow-api-key-verify"
+        />
+        <button
+          id="get-siliconflow-api-key"
+          data-l10n-id="preferences-siliconflow-api-key-get"
+        />
+        <hbox
+          class="help-icon api-key-help-icon"
+          role="img"
+          align="center"
+          data-l10n-id="preferences-siliconflow-api-key-help"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+            <path d="M12 17h.01" />
+          </svg>
+        </hbox>
+      </hbox>
+      <html:span id="siliconflow-api-status" data-state="idle" />
+    </vbox>
+    <hbox
+      id="auto-recognize-formula-row"
+      class="field-row"
+      align="center"
+      hidden="true"
+    >
+      <checkbox
+        id="auto-recognize-formula"
+        native="true"
+        data-l10n-id="preferences-auto-recognize-formula"
+      />
+      <button
+        id="recognize-existing-formulae"
+        class="existing-formula-button"
+        data-l10n-id="preferences-recognize-existing-formulae"
+      />
+    </hbox>
+    <html:span id="existing-formula-status" data-state="idle" hidden="true" />
+  </groupbox>
+
+  <groupbox id="other-preferences" class="preferences-section">
+    <html:h2 class="section-heading" data-l10n-id="preferences-section-other" />
+    <hbox class="field-row other-field-row" align="center">
       <checkbox
         id="sync-annotations"
         native="true"
@@ -224,53 +437,37 @@
         </svg>
       </hbox>
     </hbox>
+  </groupbox>
 
-    <vbox class="api-key-field">
-      <html:label
-        class="api-key-label"
-        for="siliconflow-api-key"
-        data-l10n-id="preferences-siliconflow-api-key"
+  <vbox class="about-section">
+    <html:h2 class="about-heading" data-l10n-id="preferences-about-title" />
+    <html:span class="about-intro" data-l10n-id="preferences-about-intro" />
+    <vbox class="about-links">
+      <label
+        class="about-link zotero-text-link"
+        is="zotero-text-link"
+        href="https://github.com/MuiseDestiny/zotero-figure"
+        data-l10n-id="preferences-about-star"
       />
-      <hbox class="api-key-control" align="center">
-        <html:input
-          id="siliconflow-api-key"
-          type="password"
-          autocomplete="off"
-          spellcheck="false"
-          data-l10n-id="preferences-siliconflow-api-key-input"
-        />
-        <button
-          id="verify-siliconflow-api-key"
-          data-l10n-id="preferences-siliconflow-api-key-verify"
-        />
-        <button
-          id="get-siliconflow-api-key"
-          data-l10n-id="preferences-siliconflow-api-key-get"
-        />
-      </hbox>
-      <html:span id="siliconflow-api-status" data-state="idle" />
-      <html:span
-        class="api-key-help"
-        data-l10n-id="preferences-siliconflow-api-key-help"
+      <label
+        class="about-link zotero-text-link"
+        is="zotero-text-link"
+        href="https://github.com/MuiseDestiny"
+        data-l10n-id="preferences-about-github"
+      />
+      <label
+        class="about-link zotero-text-link"
+        is="zotero-text-link"
+        href="https://space.bilibili.com/13557814"
+        data-l10n-id="preferences-about-bilibili"
+      />
+      <label
+        class="about-link pro-plugins-link zotero-text-link"
+        is="zotero-text-link"
+        href="https://x9l8rgumba.feishu.cn/docx/CbvCdvc27opfDwxvTddcfJvDnDf"
+        data-l10n-id="preferences-about-pro-plugins"
       />
     </vbox>
-    <hbox
-      id="auto-recognize-formula-row"
-      class="field-row"
-      align="center"
-      hidden="true"
-    >
-      <checkbox
-        id="auto-recognize-formula"
-        native="true"
-        data-l10n-id="preferences-auto-recognize-formula"
-      />
-      <button
-        id="recognize-existing-formulae"
-        class="existing-formula-button"
-        data-l10n-id="preferences-recognize-existing-formulae"
-      />
-    </hbox>
-    <html:span id="existing-formula-status" data-state="idle" hidden="true" />
-  </groupbox>
+    <html:span id="about-version" class="about-version" />
+  </vbox>
 </vbox>

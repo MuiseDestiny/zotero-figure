@@ -1,4 +1,4 @@
-import { config } from "../../../package.json";
+import { config, version } from "../../../package.json";
 import {
   formatFileSize,
   RECOMMENDED_MODEL,
@@ -25,7 +25,8 @@ const SILICONFLOW_API_KEY_URL = "https://cloud.siliconflow.cn/i/3Xa4I0X8";
 let preferencePaneID: string | undefined;
 const controllers = new WeakMap<Window, ModelPreferencesController>();
 
-export interface FormulaPreferencesOptions {
+export interface PreferencesOptions {
+  openGallery(): void;
   recognizeExistingFormulae(
     onProgress: (progress: FormulaLatexBatchProgress) => void,
     signal?: AbortSignal,
@@ -44,7 +45,7 @@ export async function registerPrefs(): Promise<void> {
 
 export function registerPrefsScripts(
   window: Window,
-  options: FormulaPreferencesOptions,
+  options: PreferencesOptions,
 ): void {
   if (controllers.has(window)) return;
   const controller = new ModelPreferencesController(window, options);
@@ -53,6 +54,7 @@ export function registerPrefsScripts(
 }
 
 class ModelPreferencesController {
+  private readonly aboutVersion: Element;
   private readonly apiKeyInput: HTMLInputElement;
   private readonly apiKeyStatus: Element;
   private readonly apiKeyVerifyButton: Element;
@@ -65,6 +67,7 @@ class ModelPreferencesController {
   private existingFormulaController?: AbortController;
   private readonly existingFormulaStatus: Element;
   private readonly getApiKeyButton: Element;
+  private readonly openGalleryButton: Element;
   private readonly syncAnnotations: Element & { checked: boolean };
   private installController?: AbortController;
   private readonly revealButton: Element;
@@ -76,9 +79,10 @@ class ModelPreferencesController {
 
   constructor(
     private readonly window: Window,
-    private readonly options: FormulaPreferencesOptions,
+    private readonly options: PreferencesOptions,
   ) {
     const doc = window.document;
+    this.aboutVersion = requireElement(doc, "#about-version");
     this.apiKeyInput = requireElement(doc, "#siliconflow-api-key");
     this.apiKeyStatus = requireElement(doc, "#siliconflow-api-status");
     this.apiKeyVerifyButton = requireElement(
@@ -99,6 +103,7 @@ class ModelPreferencesController {
       "#existing-formula-status",
     );
     this.getApiKeyButton = requireElement(doc, "#get-siliconflow-api-key");
+    this.openGalleryButton = requireElement(doc, "#open-figure-gallery");
     this.syncAnnotations = requireElement(doc, "#sync-annotations");
     this.revealButton = requireElement(doc, "#reveal-model");
     this.restoreButton = requireElement(doc, "#restore-model");
@@ -108,6 +113,9 @@ class ModelPreferencesController {
   }
 
   public start(): void {
+    this.aboutVersion.textContent = getString("preferences-about-version", {
+      args: { version },
+    });
     this.apiKeyInput.addEventListener("input", () => {
       this.apiValidationController?.abort();
       this.apiValidationController = undefined;
@@ -127,6 +135,9 @@ class ModelPreferencesController {
     });
     this.getApiKeyButton.addEventListener("command", () => {
       Zotero.launchURL(SILICONFLOW_API_KEY_URL);
+    });
+    this.openGalleryButton.addEventListener("command", () => {
+      this.options.openGallery();
     });
     this.autoRecognizeFormula.addEventListener("command", () => {
       setPref("autoRecognizeFormula", this.autoRecognizeFormula.checked);

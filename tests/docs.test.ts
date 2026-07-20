@@ -95,7 +95,7 @@ test("all README translations document the same user entry points", () => {
       "Qwen/Qwen3.6-35B-A3B",
       "KaTeX",
       "LaTeX",
-      "Monaco",
+      "CodeMirror",
     ]) {
       assert.ok(content.includes(token), `${file} -> ${token}`);
     }

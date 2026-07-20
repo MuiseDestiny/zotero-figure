@@ -6,9 +6,9 @@ export interface ImageLoadMonitor {
 }
 
 /**
- * Observe an image before assigning its src. The load outcome is delayed until
- * Firefox has also finished decoding, so queue capacity reflects real image
- * work rather than only the preceding file read.
+ * Observe an image before assigning its src. A load event already means the
+ * resource is ready to display. Do not await decode(): Firefox can leave that
+ * promise pending for Blob URLs in Reader documents and stall the whole queue.
  */
 export function monitorImageLoad(image: HTMLImageElement): ImageLoadMonitor {
   let resolveOutcome!: (outcome: ImageLoadOutcome) => void;
@@ -24,22 +24,7 @@ export function monitorImageLoad(image: HTMLImageElement): ImageLoadMonitor {
     image.removeEventListener("error", handleError);
     resolveOutcome(outcome);
   };
-  const handleLoad = (): void => {
-    let decoded: Promise<void>;
-    try {
-      decoded = image.decode();
-    } catch {
-      settle("loaded");
-      return;
-    }
-    // A load event already proves the resource is usable. Some Firefox builds
-    // reject decode() after displaying the image, so decode failure is not an
-    // image failure here.
-    void decoded.then(
-      () => settle("loaded"),
-      () => settle("loaded"),
-    );
-  };
+  const handleLoad = (): void => settle("loaded");
   const handleError = (): void => settle("failed");
 
   image.addEventListener("load", handleLoad);

@@ -26,6 +26,8 @@ const requiredInputs = [
   "src/features/gallery/galleryImageLoadCoordinator.ts",
   "src/features/gallery/figureGalleryView.ts",
   "src/features/gallery/galleryLibraryLoadCoordinator.ts",
+  "src/features/latex-editor/latexEditorView.ts",
+  "src/features/reader/codeMirrorLatexEditor.ts",
   "src/features/reader/figureSidebarPanel.ts",
   "src/features/reader/imageLoadMonitor.ts",
   "src/features/reader/figureReaderController.ts",
@@ -57,6 +59,7 @@ const outputPaths = new Set(
 );
 for (const output of [
   `/build/addon/chrome/content/gallery/gallery.js`,
+  `/build/addon/chrome/content/latex-editor/latex-editor.js`,
   `/build/addon/chrome/content/scripts/${details.config.addonRef}.js`,
 ]) {
   if (![...outputPaths].some((path) => path.endsWith(output))) {
@@ -68,11 +71,16 @@ const requiredAssets = [
   "addon/chrome/content/figure-sidebar.css",
   "addon/chrome/content/gallery/gallery.css",
   "addon/chrome/content/gallery/index.html",
+  "addon/chrome/content/latex-editor/index.html",
+  "addon/chrome/content/latex-editor/latex-editor.css",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/config.json",
   "addon/chrome/content/models/darknoah99/DocLayout-YOLO-DocStructBench-onnx/preprocessor_config.json",
   "node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.mjs",
   "node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.wasm",
   "node_modules/@huggingface/transformers/dist/transformers.js",
+  "node_modules/@codemirror/language/LICENSE",
+  "node_modules/@codemirror/legacy-modes/LICENSE",
+  "node_modules/codemirror/LICENSE",
   "node_modules/mupdf/dist/mupdf-wasm.js",
   "node_modules/mupdf/dist/mupdf-wasm.wasm",
   "node_modules/mupdf/dist/mupdf.js",
@@ -89,6 +97,7 @@ const embeddedModel = validateModelManifest();
 validateEmbeddedModel(embeddedModel);
 validatePreferencesMarkup();
 validateGalleryMarkup();
+validateLatexEditorMarkup();
 
 await transform(readFileSync("addon/chrome/content/yolo-worker.js", "utf8"), {
   loader: "js",
@@ -242,7 +251,6 @@ function validateGalleryMarkup() {
     "document-filter",
     "gallery-grid",
     "keyword-filter",
-    "library-filter",
     "type-filter",
     "year-filter",
   ]) {
@@ -256,6 +264,30 @@ function validateGalleryMarkup() {
     !markup.includes('href="gallery.css?v=__buildTimestamp__"')
   ) {
     throw new Error("Gallery must load the Zotero bridge and local assets");
+  }
+}
+
+function validateLatexEditorMarkup() {
+  const markup = readFileSync(
+    "addon/chrome/content/latex-editor/index.html",
+    "utf8",
+  );
+  for (const id of [
+    "latex-cancel",
+    "latex-editor",
+    "latex-preview",
+    "latex-preview-error",
+    "latex-save",
+  ]) {
+    if (!markup.includes(`id="${id}"`)) {
+      throw new Error(`LaTeX editor markup is missing #${id}`);
+    }
+  }
+  if (
+    !markup.includes('src="latex-editor.js?v=__buildTimestamp__"') ||
+    !markup.includes('href="latex-editor.css?v=__buildTimestamp__"')
+  ) {
+    throw new Error("LaTeX editor must load its bundled local assets");
   }
 }
 

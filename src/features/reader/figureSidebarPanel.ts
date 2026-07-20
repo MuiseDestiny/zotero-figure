@@ -3,8 +3,11 @@ import {
   countFigureSidebarItems,
   filterAndSortFigureSidebarItems,
   getFigureSidebarNavigationLabel,
+  pruneUnavailableFigureSidebarFilters,
   shouldShowFigureSidebarEmptyState,
+  toggleFigureSidebarFilter,
   type FigureSidebarFilter as DomainFigureSidebarFilter,
+  type FigureSidebarFilters,
 } from "../../domain/figureSidebar";
 import {
   getPdfTranslateContext,
@@ -140,7 +143,7 @@ export class FigureSidebarPanel {
   private analysisProgress?: SidebarAnalysisProgress;
   private analysisProgressTimerID?: number;
   private document?: Document;
-  private filter: FigureSidebarFilter = "all";
+  private filters: FigureSidebarFilters = new Set();
   private filterPopover?: HTMLDivElement;
   private filterPopoverAnchor?: HTMLButtonElement;
   private filterPopoverCloseTimerID?: number;
@@ -173,7 +176,6 @@ export class FigureSidebarPanel {
   private scrollContainer?: HTMLElement;
   private tab?: HTMLButtonElement;
   private tablist?: HTMLElement;
-  private expandedComments = new Set<string>();
   private translatedComments = new Map<string, string>();
   private translationEnabled = false;
   private translationError = false;
@@ -319,7 +321,6 @@ export class FigureSidebarPanel {
       this.analysisProgressTimerID = undefined;
     }
     this.translationRequestID++;
-    this.expandedComments.clear();
     this.translatedComments.clear();
     if (this.active) {
       try {
@@ -357,7 +358,6 @@ export class FigureSidebarPanel {
     this.translationError = false;
     this.loadingResults = false;
     this.reloadAfterLoad = false;
-    this.expandedComments.clear();
     this.translatedComments.clear();
     this.resultCards.clear();
     this.closeMenu();
@@ -539,9 +539,13 @@ export class FigureSidebarPanel {
     this.reconcilePinnedCards(results);
     this.resultCards.clear();
     this.imageLoads.reset();
+    this.filters = pruneUnavailableFigureSidebarFilters(
+      this.filters,
+      countFigureSidebarItems(results, (result) => result),
+    );
     const filtered = filterAndSortFigureSidebarItems(
       results,
-      this.filter,
+      this.filters,
       (result) => result,
     );
     const list = document.createElement("div");
@@ -873,10 +877,11 @@ export class FigureSidebarPanel {
     const filters = document.createElement("div");
     filters.className = "zoterofigure-sidebar-filters";
     const counts = countFigureSidebarItems(results, (result) => result);
-    for (const filter of ["all", "figure", "table", "formula"] as const) {
+    for (const filter of ["figure", "table", "formula"] as const) {
+      if (counts[filter] === 0) continue;
       const filterResults = filterAndSortFigureSidebarItems(
         results,
-        filter,
+        new Set([filter]),
         (result) => result,
       );
       const slot = document.createElement("div");
@@ -885,16 +890,39 @@ export class FigureSidebarPanel {
       button.type = "button";
       button.className = "zoterofigure-sidebar-filter";
       button.dataset.filter = filter;
-      button.classList.toggle("selected", filter === this.filter);
-      button.setAttribute("aria-pressed", String(filter === this.filter));
-      button.textContent = getString(`sidebar-filter-${filter}`, {
+      const selected = this.filters.has(filter);
+      button.classList.toggle("selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+      const filterLabel = getString(`sidebar-filter-${filter}`, {
         args: { count: counts[filter] },
       });
-      button.addEventListener("click", () => {
+      button.setAttribute("aria-label", `${counts[filter]} ${filterLabel}`);
+
+      const content = document.createElement("div");
+      content.className = "zoterofigure-sidebar-filter-content";
+      const icon = document.createElement("div");
+      icon.className = "zoterofigure-sidebar-filter-icon";
+      icon.append(createFigureSidebarIcon(document, filter));
+      const count = document.createElement("span");
+      count.className = "zoterofigure-sidebar-filter-count";
+      count.textContent = String(counts[filter]);
+      const label = document.createElement("span");
+      label.className = "zoterofigure-sidebar-filter-label";
+      label.textContent = filterLabel;
+      content.append(icon, count, label);
+      button.append(content);
+      button.addEventListener("click", (event) => {
+        const restoreKeyboardFocus = event.detail === 0;
         this.closeFilterPopover();
-        if (this.filter === filter) return;
-        this.filter = filter;
+        this.filters = toggleFigureSidebarFilter(this.filters, filter);
         this.render();
+        if (restoreKeyboardFocus) {
+          this.panelContent
+            ?.querySelector<HTMLButtonElement>(
+              `.zoterofigure-sidebar-filter[data-filter="${filter}"]`,
+            )
+            ?.focus();
+        }
       });
       if (filterResults.length > 0) {
         button.setAttribute("aria-expanded", "false");
@@ -954,7 +982,11 @@ export class FigureSidebarPanel {
     const popover = document.createElement("div");
     popover.id = FILTER_POPOVER_ID;
     popover.className = "zoterofigure-filter-results";
-    popover.setAttribute("aria-label", anchor.textContent?.trim() ?? "");
+    popover.dataset.filter = filter;
+    popover.setAttribute(
+      "aria-label",
+      anchor.getAttribute("aria-label") ?? anchor.textContent?.trim() ?? "",
+    );
     popover.setAttribute("role", "menu");
 
     for (const result of results) {
@@ -963,16 +995,23 @@ export class FigureSidebarPanel {
       item.className = "zoterofigure-filter-result";
       item.dataset.resultId = result.id;
       item.setAttribute("role", "menuitem");
+      item.tabIndex = -1;
       const label = getFigureSidebarNavigationLabel({
         comment: this.getDisplayComment(result),
         tag: result.tag,
       });
-      item.setAttribute("aria-label", label);
-      item.title = label;
+      const pageLabel = getString("sidebar-page", {
+        args: { page: result.pageLabel },
+      });
+      item.setAttribute("aria-label", `${label}, ${pageLabel}`);
+      item.title = `${label} - ${pageLabel}`;
       const text = document.createElement("span");
       text.className = "zoterofigure-filter-result-label";
       text.textContent = label;
-      item.append(text);
+      const page = document.createElement("span");
+      page.className = "zoterofigure-filter-result-page";
+      page.textContent = pageLabel;
+      item.append(text, page);
       item.addEventListener("click", (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1002,7 +1041,29 @@ export class FigureSidebarPanel {
     anchor.setAttribute("aria-controls", FILTER_POPOVER_ID);
     anchor.setAttribute("aria-expanded", "true");
     host.append(popover);
+    this.positionFilterPopover(host, popover);
     if (focusItem) this.focusFilterPopoverItem(focusItem);
+  }
+
+  private positionFilterPopover(
+    host: HTMLElement,
+    popover: HTMLDivElement,
+  ): void {
+    const boundary = this.scrollContainer ?? this.panelContent;
+    if (!boundary) return;
+    const gutter = 6;
+    const boundaryBounds = boundary.getBoundingClientRect();
+    popover.style.maxWidth = `${Math.max(0, boundaryBounds.width - gutter * 2)}px`;
+    const hostBounds = host.getBoundingClientRect();
+    const popoverBounds = popover.getBoundingClientRect();
+    const minimumLeft = boundaryBounds.left + gutter;
+    const maximumLeft = Math.max(
+      minimumLeft,
+      boundaryBounds.right - popoverBounds.width - gutter,
+    );
+    const left = Math.min(Math.max(hostBounds.left, minimumLeft), maximumLeft);
+    popover.style.insetInlineStart = `${left - hostBounds.left}px`;
+    popover.style.insetInlineEnd = "auto";
   }
 
   private handleFilterPopoverKeydown(
@@ -1079,9 +1140,10 @@ export class FigureSidebarPanel {
     resultID: string,
   ): void {
     this.closeFilterPopover();
-    const filterChanged = this.filter !== filter;
-    this.filter = filter;
-    if (filterChanged) this.render();
+    if (this.filters.size > 0 && !this.filters.has(filter)) {
+      this.filters = new Set(this.filters).add(filter);
+      this.render();
+    }
     this.scheduleResultScroll(resultID);
   }
 
@@ -1673,49 +1735,14 @@ export class FigureSidebarPanel {
       return empty;
     }
 
-    const expanded = this.expandedComments.has(result.id);
-    const comment = document.createElement("button");
-    comment.type = "button";
+    const comment = document.createElement("div");
     comment.className = "zoterofigure-card-comment";
-    this.applyCommentExpansion(comment, expanded);
+    comment.title = text;
     const textNode = document.createElement("span");
     textNode.className = "zoterofigure-card-comment-text";
     textNode.textContent = text;
     comment.append(textNode);
-    comment.addEventListener("click", (event) => {
-      event.stopPropagation();
-      this.setCommentExpansion(
-        result.id,
-        !comment.classList.contains("expanded"),
-      );
-    });
     return comment;
-  }
-
-  private setCommentExpansion(resultID: string, expanded: boolean): void {
-    if (expanded) this.expandedComments.add(resultID);
-    else this.expandedComments.delete(resultID);
-    const cards = [
-      this.resultCards.get(resultID),
-      this.pinnedCards.get(resultID)?.element,
-    ];
-    for (const card of cards) {
-      const comment = card?.querySelector<HTMLElement>(
-        ".zoterofigure-card-comment:not(.is-empty)",
-      );
-      if (comment) this.applyCommentExpansion(comment, expanded);
-    }
-  }
-
-  private applyCommentExpansion(comment: HTMLElement, expanded: boolean): void {
-    comment.classList.toggle("expanded", expanded);
-    comment.setAttribute("aria-expanded", String(expanded));
-    comment.setAttribute(
-      "aria-label",
-      getString(
-        expanded ? "sidebar-collapse-caption" : "sidebar-expand-caption",
-      ),
-    );
   }
 
   private createMenuButton(
