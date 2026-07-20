@@ -1,5 +1,5 @@
 # Zotero Figure
-
+<img src="addon/chrome/content/icons/favicon.png" width="36px" height="36px">
 Extract figures, tables, and formulae from Zotero PDFs.
 
 [English](README.md) | [简体中文](docs/README.zh-CN.md) | [Italiano](docs/README.it-IT.md) | [Русский](docs/README.ru-RU.md) | [日本語](docs/README.ja-JP.md) | [Español](docs/README.es-ES.md)
