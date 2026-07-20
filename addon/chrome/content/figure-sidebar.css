@@ -349,8 +349,9 @@
 .zoterofigure-filter-result-label {
   display: block;
   min-width: 0;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .zoterofigure-filter-result-page {

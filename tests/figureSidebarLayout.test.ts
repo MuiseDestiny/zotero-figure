@@ -335,10 +335,9 @@ test("navigates hover result menus without rebuilding the active filter", () => 
     hoveredResult,
     /background\s*:\s*var\(--material-mix-quarternary\)/,
   );
-  assert.match(resultLabel, /overflow-wrap\s*:\s*anywhere/);
-  assert.match(resultLabel, /white-space\s*:\s*normal/);
-  assert.doesNotMatch(resultLabel, /text-overflow\s*:\s*ellipsis/);
-  assert.doesNotMatch(resultLabel, /white-space\s*:\s*nowrap/);
+  assert.match(resultLabel, /overflow\s*:\s*hidden/);
+  assert.match(resultLabel, /text-overflow\s*:\s*ellipsis/);
+  assert.match(resultLabel, /white-space\s*:\s*nowrap/);
   assert.match(resultPage, /color\s*:\s*var\(--fill-secondary\)/);
   assert.match(resultPage, /white-space\s*:\s*nowrap/);
 });
