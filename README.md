@@ -50,6 +50,13 @@ PDF parsing, rendering, layout detection, and local result storage stay on your 
 
 Formula OCR is optional. API-key checking sends a text-only request to SiliconFlow. Formula recognition sends formula PNG crops, never full PDF pages; the key is stored in local Zotero preferences. SiliconFlow usage may incur charges.
 
+# Use screenshots
+<img  height="300" alt="pdf-figure---pdf-1x" src="https://github.com/user-attachments/assets/67323564-587c-4daf-8abc-bee984b53e0b" />
+<img  height="300" alt="pasted-image-1x (1)" src="https://github.com/user-attachments/assets/fe346960-4f10-4774-a0f1-818241e73b22" />
+<img height="300" alt="image-1x" src="https://github.com/user-attachments/assets/bbc51ec5-e970-41f7-aa1e-0742b95f2e65" />
+<img height="300" alt="image-1x (1)" src="https://github.com/user-attachments/assets/03b77d8a-3c43-404c-9e6d-be8c8e976800" />
+
+
 ## Links
 
 - [Releases](https://github.com/MuiseDestiny/zotero-figure/releases)
