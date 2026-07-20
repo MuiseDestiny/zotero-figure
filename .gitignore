@@ -1,5 +1,6 @@
 .DS_Store
 AGENTS.md
+.vscode/
 build/
 builds/
 logs/
