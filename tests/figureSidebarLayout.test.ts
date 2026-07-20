@@ -139,12 +139,15 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
     pinnedLatex,
     /font-size\s*:\s*var\(--zoterofigure-pinned-latex-font-size, 1em\)/,
   );
-  assert.match(cardComment, /max-height\s*:\s*calc\(2\.7em \+ 15px\)/);
+  assert.match(cardComment, /align-items\s*:\s*center/);
+  assert.match(cardComment, /max-height\s*:\s*calc\(1\.35em \+ 15px\)/);
   assert.match(cardComment, /overflow\s*:\s*hidden/);
-  assert.match(cardComment, /white-space\s*:\s*normal/);
+  assert.match(cardComment, /white-space\s*:\s*nowrap/);
+  assert.match(cardCommentText, /display\s*:\s*block/);
   assert.match(cardCommentText, /text-overflow\s*:\s*ellipsis/);
-  assert.match(cardCommentText, /overflow-wrap\s*:\s*anywhere/);
-  assert.match(cardCommentText, /-webkit-line-clamp\s*:\s*2/);
+  assert.match(cardCommentText, /overflow-wrap\s*:\s*normal/);
+  assert.match(cardCommentText, /white-space\s*:\s*nowrap/);
+  assert.doesNotMatch(cardCommentText, /-webkit-line-clamp/);
   assert.doesNotMatch(css, /\.zoterofigure-card-comment\.expanded/);
   assert.match(noteIcon, /height\s*:\s*16px/);
   assert.match(noteIcon, /width\s*:\s*16px/);

@@ -592,7 +592,7 @@
 }
 
 .zoterofigure-card-comment {
-  align-items: flex-start;
+  align-items: center;
   background: transparent;
   border-top: 1px solid var(--fill-quinary);
   box-sizing: border-box;
@@ -601,11 +601,11 @@
   font: inherit;
   font-size: 12px;
   line-height: 1.35;
-  max-height: calc(2.7em + 15px);
+  max-height: calc(1.35em + 15px);
   overflow: hidden;
   padding: 7px 8px;
   text-align: left;
-  white-space: normal;
+  white-space: nowrap;
   width: 100%;
 }
 
@@ -614,14 +614,13 @@
 }
 
 .zoterofigure-card-comment-text {
-  display: -webkit-box;
+  display: block;
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   text-overflow: ellipsis;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  white-space: nowrap;
 }
 
 .zoterofigure-card-latex-error {
