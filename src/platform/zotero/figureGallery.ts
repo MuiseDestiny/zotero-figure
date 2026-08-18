@@ -11,18 +11,30 @@ export interface FigureGalleryPlatform {
   readFile(path: string): Promise<Uint8Array>;
 }
 
+interface ZoteroPaneLibrarySelection {
+  getSelectedLibraryID?(): number;
+  getSelectedLibraryIDs?(): number[];
+}
+
+function getSelectedLibraryID(): number | undefined {
+  const pane = Zotero.getActiveZoteroPane() as
+    | ZoteroPaneLibrarySelection
+    | undefined;
+  const selectedLibraryIDs = pane?.getSelectedLibraryIDs?.();
+  const selected =
+    selectedLibraryIDs?.find((libraryID) => Number.isInteger(libraryID)) ??
+    pane?.getSelectedLibraryID?.();
+  return Number.isInteger(selected) ? selected : undefined;
+}
+
 export function createZoteroFigureGalleryPlatform(): FigureGalleryPlatform {
   return {
     getAttachment: (libraryID, key) =>
       Zotero.Items.getByLibraryAndKeyAsync(libraryID, key),
     getCollectionName: (collectionID) =>
       Zotero.Collections.get(collectionID)?.name,
-    getDefaultLibraryID: () => {
-      const selected = Zotero.getActiveZoteroPane()?.getSelectedLibraryID();
-      return Number.isInteger(selected)
-        ? (selected as number)
-        : Zotero.Libraries.userLibraryID;
-    },
+    getDefaultLibraryID: () =>
+      getSelectedLibraryID() ?? Zotero.Libraries.userLibraryID,
     listLibraries: () =>
       Zotero.Libraries.getAll()
         .filter(({ libraryType }) => libraryType !== "feed")

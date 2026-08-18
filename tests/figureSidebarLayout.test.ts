@@ -65,6 +65,12 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   const renderedLatex = getExactRule(".zoterofigure-rendered-latex");
   const cardComment = getExactRule(".zoterofigure-card-comment");
   const cardCommentText = getExactRule(".zoterofigure-card-comment-text");
+  const expandedCardComment = getExactRule(
+    ".zoterofigure-card-comment.expanded",
+  );
+  const expandedCardCommentText = getExactRule(
+    ".zoterofigure-card-comment.expanded .zoterofigure-card-comment-text",
+  );
   const pinnedLatex = getRule(
     ".zoterofigure-pinned-card .zoterofigure-card-image.is-latex",
   );
@@ -148,7 +154,11 @@ test("uses Zotero's sidebar scroller with one sticky controls header", () => {
   assert.match(cardCommentText, /overflow-wrap\s*:\s*normal/);
   assert.match(cardCommentText, /white-space\s*:\s*nowrap/);
   assert.doesNotMatch(cardCommentText, /-webkit-line-clamp/);
-  assert.doesNotMatch(css, /\.zoterofigure-card-comment\.expanded/);
+  assert.match(expandedCardComment, /max-height\s*:\s*none/);
+  assert.match(expandedCardComment, /white-space\s*:\s*normal/);
+  assert.match(expandedCardCommentText, /overflow\s*:\s*visible/);
+  assert.match(expandedCardCommentText, /overflow-wrap\s*:\s*anywhere/);
+  assert.match(expandedCardCommentText, /white-space\s*:\s*normal/);
   assert.match(noteIcon, /height\s*:\s*16px/);
   assert.match(noteIcon, /width\s*:\s*16px/);
   assert.doesNotMatch(noteIcon, /mask\s*:/);
@@ -605,11 +615,12 @@ test("pins a complete card with an independent image URL", () => {
   );
   assert.match(applyUpdatedResult, /this\.createComment\(document, updated\)/);
   assert.match(applyUpdatedResult, /this\.refreshControls\(\)/);
-  assert.match(createComment, /document\.createElement\("div"\)/);
-  assert.match(createComment, /comment\.title = text/);
-  assert.doesNotMatch(createComment, /addEventListener\("click"/);
-  assert.doesNotMatch(panelSource, /expandedComments/);
-  assert.doesNotMatch(panelSource, /applyCommentExpansion/);
+  assert.match(createComment, /document\.createElement\("button"\)/);
+  assert.match(createComment, /addEventListener\("click"/);
+  assert.match(panelSource, /expandedComments/);
+  assert.match(panelSource, /applyCommentExpansion/);
+  assert.match(panelSource, /sidebar-expand-caption/);
+  assert.match(panelSource, /sidebar-collapse-caption/);
   assert.match(pinnedCard, /position\s*:\s*fixed/);
   assert.doesNotMatch(pinnedCard, /transform-origin/);
   assert.doesNotMatch(

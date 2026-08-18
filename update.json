@@ -3,7 +3,7 @@
     "zoterofigure@polygon.org": {
       "updates": [
         {
-          "version": "1.0.0",
+          "version": "1.0.1",
           "update_link": "https://github.com/MuiseDestiny/zotero-figure/releases/latest/download/zotero-figure.xpi",
           "applications": {
             "zotero": {

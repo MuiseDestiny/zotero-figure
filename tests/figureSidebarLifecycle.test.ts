@@ -370,6 +370,38 @@ test("clears recognition loading state after the Reader document changes", async
   panel.dispose();
 });
 
+test("passes displayed translations to single and bulk note exports", async () => {
+  const first = createResult("first");
+  const second = createResult("second");
+  let bulkResults: readonly StoredFigureResult[] = [];
+  let singleResult: StoredFigureResult | undefined;
+  const panel = createPanel(async () => createPreview(), {
+    onAddAllToNote: async (results) => {
+      bulkResults = results;
+    },
+    onAddToNote: async (result) => {
+      singleResult = result;
+    },
+  });
+  const internals = panel as unknown as {
+    addAllToNote(results: readonly StoredFigureResult[]): Promise<void>;
+    addResultToNote(result: StoredFigureResult): Promise<void>;
+    translatedComments: Map<string, string>;
+    translationEnabled: boolean;
+  };
+  internals.translationEnabled = true;
+  internals.translatedComments = new Map([[first.id, "translated first"]]);
+
+  await internals.addAllToNote([first, second]);
+  await internals.addResultToNote(first);
+
+  assert.equal(bulkResults[0].comment, "translated first");
+  assert.equal(bulkResults[1], second);
+  assert.equal(singleResult?.comment, "translated first");
+  assert.equal(first.comment, "first");
+  panel.dispose();
+});
+
 function createPanel(
   onPrepareCorrection: FigureSidebarPanelOptions["onPrepareCorrection"],
   overrides: Partial<FigureSidebarPanelOptions> = {},

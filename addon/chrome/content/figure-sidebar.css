@@ -594,10 +594,14 @@
 
 .zoterofigure-card-comment {
   align-items: center;
+  appearance: none;
   background: transparent;
   border-top: 1px solid var(--fill-quinary);
+  border-inline: 0;
+  border-bottom: 0;
   box-sizing: border-box;
   color: var(--fill-primary);
+  cursor: pointer;
   display: flex;
   font: inherit;
   font-size: 12px;
@@ -614,6 +618,12 @@
   color: var(--fill-secondary);
 }
 
+.zoterofigure-card-comment.expanded {
+  align-items: flex-start;
+  max-height: none;
+  white-space: normal;
+}
+
 .zoterofigure-card-comment-text {
   display: block;
   flex: 1 1 auto;
@@ -622,6 +632,13 @@
   overflow-wrap: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.zoterofigure-card-comment.expanded .zoterofigure-card-comment-text {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
 }
 
 .zoterofigure-card-latex-error {

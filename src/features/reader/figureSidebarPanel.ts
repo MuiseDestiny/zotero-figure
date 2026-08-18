@@ -65,7 +65,7 @@ export interface FigureSidebarPanelOptions {
   ): Promise<ReadonlyMap<string, string>>;
   getResults(): Promise<readonly StoredFigureResult[]>;
   isAnalyzing(): boolean;
-  onAddAllToNote(): Promise<void>;
+  onAddAllToNote(results: readonly StoredFigureResult[]): Promise<void>;
   onAddToNote(result: StoredFigureResult): Promise<void>;
   onAnalyze(): void | Promise<void>;
   onCancelAnalysis(): void;
@@ -176,6 +176,7 @@ export class FigureSidebarPanel {
   private scrollContainer?: HTMLElement;
   private tab?: HTMLButtonElement;
   private tablist?: HTMLElement;
+  private readonly expandedComments = new Set<string>();
   private translatedComments = new Map<string, string>();
   private translationEnabled = false;
   private translationError = false;
@@ -321,6 +322,7 @@ export class FigureSidebarPanel {
       this.analysisProgressTimerID = undefined;
     }
     this.translationRequestID++;
+    this.expandedComments.clear();
     this.translatedComments.clear();
     if (this.active) {
       try {
@@ -358,6 +360,7 @@ export class FigureSidebarPanel {
     this.translationError = false;
     this.loadingResults = false;
     this.reloadAfterLoad = false;
+    this.expandedComments.clear();
     this.translatedComments.clear();
     this.resultCards.clear();
     this.closeMenu();
@@ -767,7 +770,7 @@ export class FigureSidebarPanel {
         document,
         "sidebar-add-all-to-note",
         "note",
-        () => this.options.onAddAllToNote(),
+        () => this.addAllToNote(results),
         results.length === 0 || analyzing,
       ),
       this.createActionButton(document, "sidebar-refresh", "refresh", () =>
@@ -1735,14 +1738,66 @@ export class FigureSidebarPanel {
       return empty;
     }
 
-    const comment = document.createElement("div");
+    const expanded = this.expandedComments.has(result.id);
+    const comment = document.createElement("button");
+    comment.type = "button";
     comment.className = "zoterofigure-card-comment";
-    comment.title = text;
+    this.applyCommentExpansion(comment, expanded);
     const textNode = document.createElement("span");
     textNode.className = "zoterofigure-card-comment-text";
     textNode.textContent = text;
     comment.append(textNode);
+    comment.addEventListener("click", (event) => {
+      event.stopPropagation();
+      this.setCommentExpansion(
+        result.id,
+        !comment.classList.contains("expanded"),
+      );
+    });
     return comment;
+  }
+
+  private setCommentExpansion(resultID: string, expanded: boolean): void {
+    if (expanded) this.expandedComments.add(resultID);
+    else this.expandedComments.delete(resultID);
+    const cards = [
+      this.resultCards.get(resultID),
+      this.pinnedCards.get(resultID)?.element,
+    ];
+    for (const card of cards) {
+      const comment = card?.querySelector<HTMLElement>(
+        ".zoterofigure-card-comment:not(.is-empty)",
+      );
+      if (comment) this.applyCommentExpansion(comment, expanded);
+    }
+  }
+
+  private applyCommentExpansion(comment: HTMLElement, expanded: boolean): void {
+    comment.classList.toggle("expanded", expanded);
+    comment.setAttribute("aria-expanded", String(expanded));
+    comment.setAttribute(
+      "aria-label",
+      getString(
+        expanded ? "sidebar-collapse-caption" : "sidebar-expand-caption",
+      ),
+    );
+  }
+
+  private addAllToNote(results: readonly StoredFigureResult[]): Promise<void> {
+    return this.options.onAddAllToNote(
+      results.map((result) => this.createDisplayedResult(result)),
+    );
+  }
+
+  private addResultToNote(result: StoredFigureResult): Promise<void> {
+    return this.options.onAddToNote(this.createDisplayedResult(result));
+  }
+
+  private createDisplayedResult(
+    result: StoredFigureResult,
+  ): StoredFigureResult {
+    const comment = this.getDisplayComment(result);
+    return comment === result.comment ? result : { ...result, comment };
   }
 
   private createMenuButton(
@@ -1815,7 +1870,7 @@ export class FigureSidebarPanel {
       this.options.ownerWindow.document.createXULElement("menuseparator"),
     );
     this.appendMenuItem(menu, "sidebar-add-to-note", () =>
-      this.options.onAddToNote(result),
+      this.addResultToNote(result),
     );
     this.appendMenuItem(menu, "sidebar-remove", () =>
       this.options.onRemove(result),

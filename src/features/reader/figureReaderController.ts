@@ -202,11 +202,11 @@ export class FigureReaderController {
     this.activeAnalyses.get(reader)?.abort();
   }
 
-  private async addAllToNote(reader: PdfReader): Promise<void> {
-    await this.createNoteFromResults(
-      reader._item,
-      await this.resultStore.list(reader._item),
-    );
+  private async addAllToNote(
+    reader: PdfReader,
+    results: readonly StoredFigureResult[],
+  ): Promise<void> {
+    await this.createNoteFromResults(reader._item, results);
   }
 
   private async addResultToNote(
@@ -493,7 +493,7 @@ export class FigureReaderController {
           this.resultStore.getCachedTranslations(reader._item, contextKey),
         getResults: () => this.resultStore.list(reader._item),
         isAnalyzing: () => this.activeAnalyses.has(reader),
-        onAddAllToNote: () => this.addAllToNote(reader),
+        onAddAllToNote: (results) => this.addAllToNote(reader, results),
         onAddToNote: (result) => this.addResultToNote(reader, result),
         onAnalyze: () => this.runAnalysis(reader),
         onCancelAnalysis: () => this.cancelAnalysis(reader),
