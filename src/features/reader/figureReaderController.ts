@@ -1,6 +1,10 @@
 import type { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { config } from "../../../package.json";
-import type { DuplicateMode } from "../../domain/figureResults";
+import {
+  isFigureResultTag,
+  type DuplicateMode,
+} from "../../domain/figureResults";
+import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import {
   removeGeneratedAnnotationForCandidate,
   updateGeneratedAnnotationCommentForCandidate,
@@ -8,9 +12,12 @@ import {
 } from "../../platform/zotero/annotations";
 import {
   copyReaderAnnotationImage,
+  getReaderAnnotations,
   navigateToReaderAnnotation,
+  readReaderAnnotationCacheImage,
   saveReaderAnnotationImage,
 } from "../../platform/zotero/readerAnnotations";
+import type { ReaderAnnotationData } from "../../platform/zotero/readerAnnotations";
 import { getReaderImageCropDataURL } from "../../platform/zotero/readerImageRenderer";
 import type { PdfReader } from "../../platform/zotero/reader";
 import { FigureOutputService } from "../../services/figureOutputService";
@@ -62,6 +69,48 @@ export class FigureReaderController {
       this.registerReader(reader as PdfReader, doc);
     };
 
+  private readonly annotationContextMenuHandler: _ZoteroTypes.Reader.EventHandler<"createAnnotationContextMenu"> =
+    ({ append, params, reader }) => {
+      if (reader.type !== "pdf" || !this.ownsReader(reader)) return;
+      const pdfReader = reader as PdfReader;
+      const attachmentID = pdfReader._item.id;
+      const libraryID = pdfReader._item.libraryID;
+      let annotations: ReaderAnnotationData[];
+      try {
+        // Snapshot Reader-owned objects before the native menu opens. Zotero
+        // can recycle annotation proxies while tearing the menu down.
+        annotations = getReaderAnnotations(pdfReader)
+          .filter(
+            (annotation) =>
+              params.ids.includes(annotation.id) &&
+              annotation.type === "image" &&
+              isUsableAnnotationPosition(annotation.position),
+          )
+          .map(cloneReaderAnnotation);
+      } catch (error) {
+        Zotero.logError(toError(error));
+        return;
+      }
+      if (annotations.length === 0) return;
+      const run = () => {
+        // Let Zotero finish closing its native context menu before opening a
+        // progress window or touching the PDF/annotation stores.
+        this.win.setTimeout(() => {
+          if (!this.started) return;
+          void this.addAnnotationsToResults(
+            pdfReader,
+            attachmentID,
+            libraryID,
+            annotations,
+          );
+        }, 100);
+      };
+      append({
+        label: getString("reader-menu-add-to-figure"),
+        onCommand: run,
+      });
+    };
+
   constructor(
     private readonly win: Window,
     dependencies?: {
@@ -92,6 +141,11 @@ export class FigureReaderController {
       this.renderReaderHandler,
       config.addonID,
     );
+    Zotero.Reader.registerEventListener(
+      "createAnnotationContextMenu",
+      this.annotationContextMenuHandler,
+      config.addonID,
+    );
     this.hydrateExistingReaders();
   }
 
@@ -101,6 +155,10 @@ export class FigureReaderController {
     Zotero.Reader.unregisterEventListener(
       "renderToolbar",
       this.renderReaderHandler,
+    );
+    Zotero.Reader.unregisterEventListener(
+      "createAnnotationContextMenu",
+      this.annotationContextMenuHandler,
     );
     for (const controller of this.activeAnalyses.values()) controller.abort();
     this.activeAnalyses.clear();
@@ -239,6 +297,80 @@ export class FigureReaderController {
     } catch (error) {
       popup.changeLine({ text: toError(error).message, type: "fail" });
       throw error;
+    }
+  }
+
+  private async addAnnotationsToResults(
+    reader: PdfReader,
+    attachmentID: number,
+    libraryID: number,
+    annotations: readonly ReaderAnnotationData[],
+  ): Promise<void> {
+    const prepared: Array<{
+      annotation: ReaderAnnotationData;
+      candidate: AnnotationCandidate;
+    }> = [];
+    for (const annotation of annotations) {
+      const position = annotation.position;
+      if (!isUsableAnnotationPosition(position)) continue;
+      const comment = this.win.prompt(
+        getString("prompt-figure-caption"),
+        annotation.comment?.trim() ?? "",
+      );
+      // Cancelling the prompt cancels this annotation only. This is useful
+      // when several annotations were selected and a caption needs review.
+      if (comment === null) continue;
+      prepared.push({
+        annotation,
+        candidate: {
+          comment: comment.trim(),
+          pageIndex: position.pageIndex,
+          rect: position.rects[0],
+          tag: getAnnotationResultTag(annotation),
+        },
+      });
+    }
+    if (prepared.length === 0) return;
+    const popup = this.createProgress(getString("progress-add-to-results"));
+    let created = 0;
+    let skipped = 0;
+    try {
+      const attachment = Zotero.Items.get(attachmentID);
+      if (!attachment || !attachment.isPDFAttachment()) {
+        throw new Error("The PDF attachment is no longer available");
+      }
+      for (const { annotation, candidate } of prepared) {
+        const rect = candidate.rect;
+        const image =
+          (await readReaderAnnotationCacheImage(libraryID, annotation.id)) ??
+          decodeReaderAnnotationImage(annotation.image) ??
+          (await this.layoutAnalyzer.renderAnnotationCrop(
+            attachment,
+            candidate.pageIndex,
+            rect,
+          ));
+        const result = await this.resultStore.reconcilePage(
+          attachment,
+          candidate.pageIndex,
+          [candidate],
+          [image],
+          "skip-existing",
+        );
+        created += result.created;
+        skipped += result.skipped;
+      }
+      popup
+        .changeLine({
+          text: getString("progress-add-to-results-done", {
+            args: { created, skipped },
+          }),
+          type: "success",
+        })
+        .startCloseTimer(2_000);
+      this.reloadSidebarResults(reader);
+    } catch (error) {
+      popup.changeLine({ text: toError(error).message, type: "fail" });
+      Zotero.logError(toError(error));
     }
   }
 
@@ -614,4 +746,66 @@ export class FigureReaderController {
 
 function toError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
+}
+
+function isUsableAnnotationPosition(
+  position: ReaderAnnotationData["position"],
+): position is { pageIndex: number; rects: [Rect, ...Rect[]] } {
+  if (
+    !position ||
+    !Number.isInteger(position.pageIndex) ||
+    position.pageIndex < 0
+  ) {
+    return false;
+  }
+  const rect = position.rects?.[0];
+  return (
+    Array.isArray(rect) &&
+    rect.length === 4 &&
+    rect.every(Number.isFinite) &&
+    rect[2] > rect[0] &&
+    rect[3] > rect[1]
+  );
+}
+
+function cloneReaderAnnotation(
+  annotation: ReaderAnnotationData,
+): ReaderAnnotationData {
+  return {
+    ...annotation,
+    position: annotation.position
+      ? {
+          pageIndex: annotation.position.pageIndex,
+          rects: annotation.position.rects?.map((rect) => [...rect]),
+        }
+      : undefined,
+    tags: (annotation.tags ?? []).map((tag) => ({ ...tag })),
+  };
+}
+
+function getAnnotationResultTag(annotation: ReaderAnnotationData): string {
+  const existing = (annotation.tags ?? [])
+    .map((tag) => tag.name ?? tag.tag ?? "")
+    .find((tag) => isFigureResultTag(tag));
+  return existing?.trim() || "Figure";
+}
+
+function decodeReaderAnnotationImage(
+  value: string | undefined,
+): ArrayBuffer | undefined {
+  if (!value) return undefined;
+  const separator = value.indexOf(",");
+  if (separator < 0 || !/^data:image\/png;base64,/i.test(value)) {
+    return undefined;
+  }
+  try {
+    const binary = atob(value.slice(separator + 1));
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index++) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes.buffer;
+  } catch {
+    return undefined;
+  }
 }

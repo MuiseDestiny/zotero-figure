@@ -173,6 +173,33 @@ export class LayoutAnalyzer {
     }
   }
 
+  /** Render an image-annotation crop through the bounded MuPDF pipeline. */
+  public async renderAnnotationCrop(
+    attachment: Zotero.Item,
+    pageIndex: number,
+    rect: Rect,
+    signal?: AbortSignal,
+  ): Promise<ArrayBuffer> {
+    if (this.disposed) throw new OperationCancelledError();
+    const releaseDocument = await this.openPdfDocuments.acquire(signal);
+    let document: PdfAnalysisDocument | undefined;
+    let releaseRender: (() => void) | undefined;
+    try {
+      document = await this.pdfEngine.open(attachment, signal);
+      releaseRender = await this.pdfRenders.acquire(signal);
+      const rendered = await document.renderRegions(pageIndex, [rect], signal);
+      const image = rendered.images[0];
+      if (!image?.byteLength) {
+        throw new Error("Image annotation crop was not rendered");
+      }
+      return image;
+    } finally {
+      releaseRender?.();
+      await document?.close();
+      releaseDocument();
+    }
+  }
+
   public async correctResultRegion(
     attachment: Zotero.Item,
     result: StoredFigureResult,

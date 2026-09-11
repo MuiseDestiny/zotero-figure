@@ -283,10 +283,10 @@ git diff --check
 Also inspect the built XPI: it must contain exactly one `.onnx` file, and its
 path, byte size, and SHA-256 must match `model-manifest.json`. Confirm
 `addon/manifest.json`, `scripts/update-template.json`, and generated
-`update.json` target Zotero `9.0` through `9.*` only.
+`update.json` targets Zotero `9.0` through `10.*`.
 
 Use focused tests for the changed boundary: domain geometry, worker lifecycle,
 permit cancellation, result rollback/cache invalidation, annotation
 reconciliation, controller disposal, locale parity, and build contents all have
 dedicated coverage. Do not claim real Zotero behavior as verified unless the
-workflow was exercised in an actual Zotero 9 installation.
+workflow was exercised in an actual Zotero 10 installation.

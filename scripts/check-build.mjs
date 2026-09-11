@@ -91,8 +91,8 @@ for (const asset of requiredAssets) {
     throw new Error(`Required asset is missing: ${asset}`);
 }
 
-validateZotero9Manifest("addon/manifest.json");
-validateZotero9UpdateTemplate("scripts/update-template.json");
+validateZoteroManifest("addon/manifest.json");
+validateZoteroUpdateTemplate("scripts/update-template.json");
 const embeddedModel = validateModelManifest();
 validateEmbeddedModel(embeddedModel);
 validatePreferencesMarkup();
@@ -124,27 +124,27 @@ const bundleBytes = result.outputFiles.reduce(
 );
 console.log(`Build check passed (${bundleBytes} bundle bytes)`);
 
-function validateZotero9Manifest(file) {
+function validateZoteroManifest(file) {
   const manifest = JSON.parse(readFileSync(file, "utf8"));
   const application = manifest.applications?.zotero;
   if (
     application?.strict_min_version !== "9.0" ||
-    application?.strict_max_version !== "9.*"
+    application?.strict_max_version !== "10.*"
   ) {
-    throw new Error(`${file} must support Zotero 9 only`);
+    throw new Error(`${file} must support Zotero 9 through 10`);
   }
 }
 
-function validateZotero9UpdateTemplate(file) {
+function validateZoteroUpdateTemplate(file) {
   const template = JSON.parse(readFileSync(file, "utf8"));
   const updates = Object.values(template.addons ?? {})[0]?.updates;
   const application = updates?.[0]?.applications?.zotero;
   if (
     updates?.length !== 1 ||
     application?.strict_min_version !== "9.0" ||
-    application?.strict_max_version !== "9.*"
+    application?.strict_max_version !== "10.*"
   ) {
-    throw new Error(`${file} must publish updates for Zotero 9 only`);
+    throw new Error(`${file} must publish updates for Zotero 9 through 10`);
   }
 }
 

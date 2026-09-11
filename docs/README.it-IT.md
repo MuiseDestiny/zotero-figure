@@ -11,6 +11,7 @@ Zotero Figure rileva figure, tabelle, formule isolate, didascalie e note a piè 
 - Analizza i PDF localmente, senza caricare pagine o scaricare un modello durante l'esecuzione.
 - Mostra i risultati in un pannello Reader dedicato, con filtri per tipo combinabili che nascondono i tipi non disponibili e con l'avanzamento dell'analisi.
 - Consente di copiare, salvare o fissare immagini; modificare le didascalie o correggere i ritagli in una finestra adattata alla pagina PDF; aprire la pagina PDF; aggiungere a una nota o eliminare il risultato.
+- Nel PDF Reader, fai clic con il pulsante destro su un'annotazione immagine selezionata per aggiungerla ai risultati locali dell'analisi; i tag Figure, Table o Formula esistenti vengono mantenuti.
 - Raccoglie i risultati di più documenti nella **Libreria di figure PDF**, con filtri per documento, anno, categoria, tipo e didascalia. Consente di alternare tra la vista a cascata e le colonne per documento memorizzando la scelta; nelle colonne i risultati mantengono un ordine stabile per pagina e sono disposti in righe di confronto allineate, facoltativamente denominate. Trascina le intestazioni per riordinare le colonne e le schede all'interno di un documento per riorganizzare le righe, oppure fai clic con il pulsante destro su un'immagine per aggiungerla a un gruppo di confronto. Quando un documento contribuisce con più immagini a un gruppo, la cella mostra un'immagine principale e miniature a sinistra; seleziona una miniatura per renderla principale. Sciogli un gruppo per rimuovere la relativa riga di confronto e usa il controllo di scala nella barra degli strumenti per ridimensionare tutte le anteprime.
 - Analizza in batch elementi della libreria o allegati PDF e, facoltativamente, crea note o annotazioni Zotero.
 - Traduce le didascalie quando Zotero PDF Translate è installato.
@@ -21,7 +22,7 @@ Zotero Figure rileva figure, tabelle, formule isolate, didascalie e note a piè 
 
 ## Requisiti
 
-- Zotero 9.
+- Zotero 10.
 - L'XPI di Zotero Figure dall'[ultima versione](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Solo per l'OCR delle formule: accesso alla rete e una chiave API SiliconFlow.
 
@@ -37,7 +38,7 @@ Java e `pdffigures2.jar` non sono necessari.
 
 - **Reader PDF:** Apri un PDF, seleziona l'icona Zotero Figure nella barra laterale sinistra e avvia l'analisi di figure, tabelle e formule.
 - **Libreria di figure:** Apri `Strumenti > Libreria di figure PDF` per esplorare i risultati di più documenti. Fai doppio clic su una scheda per aprire il PDF di origine.
-- **Elaborazione batch:** Seleziona elementi della libreria o allegati PDF, fai clic con il pulsante destro e apri `PDF Figure >` per analizzare, aggiungere risultati alle note o creare annotazioni.
+- **Elaborazione batch:** Seleziona elementi della libreria o allegati PDF, fai clic con il pulsante destro e apri `PDF Figure >` per analizzare, aggiungere risultati alle note o creare annotazioni. Seleziona annotazioni immagine e scegli `Aggiungi a Figure` per importarle in batch.
 - **Preferenze:** Apri il pannello delle preferenze PDF Figure per gestire il modello integrato, la sincronizzazione delle annotazioni e l'OCR delle formule, oppure per aprire direttamente la Libreria di figure. Usa **Converti formule esistenti** per riconoscere le formule non memorizzate in tutte le librerie.
 
 ## Privacy

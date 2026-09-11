@@ -21,6 +21,34 @@ export interface AnnotationIdentity {
   type?: string;
 }
 
+export function getImageAnnotationCandidate(
+  annotation: Zotero.Item,
+): AnnotationCandidate | undefined {
+  if (!annotation.isAnnotation() || annotation.annotationType !== "image") {
+    return undefined;
+  }
+  const position = parseAnnotationPosition(annotation.annotationPosition);
+  const values = position?.rects?.[0];
+  if (
+    !position ||
+    !values ||
+    values.length !== 4 ||
+    values.some((value) => typeof value !== "number" || !Number.isFinite(value))
+  ) {
+    return undefined;
+  }
+  const tag = annotation
+    .getTags()
+    .map(({ tag }) => tag.trim())
+    .find(isFigureResultTag);
+  return {
+    comment: annotation.annotationComment?.trim() ?? "",
+    pageIndex: position.pageIndex,
+    rect: values as Rect,
+    tag: tag || "Figure",
+  };
+}
+
 export type AnnotationTarget = PdfReader | Zotero.Item;
 
 interface AnnotationJSON {

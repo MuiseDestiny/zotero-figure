@@ -49,6 +49,34 @@ export function getReaderAnnotations(
   return Array.from(getReaderAnnotationManager(reader)._annotations);
 }
 
+/** Read Zotero's cached PNG for an image annotation when available. */
+export async function readReaderAnnotationCacheImage(
+  libraryID: number,
+  annotationKey: string,
+): Promise<ArrayBuffer | undefined> {
+  try {
+    const annotation = await Zotero.Items.getByLibraryAndKeyAsync(
+      libraryID,
+      annotationKey,
+    );
+    if (!annotation || !annotation.isAnnotation()) {
+      return undefined;
+    }
+    const api = Zotero.Annotations as unknown as {
+      getCacheImagePath?: (item: Zotero.Item) => string | undefined;
+      hasCacheImage?: (item: Zotero.Item) => Promise<boolean>;
+    };
+    if (!(await api.hasCacheImage?.(annotation))) return undefined;
+    const path = api.getCacheImagePath?.(annotation);
+    if (!path || !(await IOUtils.exists(path))) return undefined;
+    const bytes = await IOUtils.read(path);
+    return bytes.slice().buffer;
+  } catch (error) {
+    Zotero.logError(error instanceof Error ? error : new Error(String(error)));
+    return undefined;
+  }
+}
+
 export function getGeneratedReaderAnnotations(
   reader: PdfReader,
 ): ReaderAnnotationData[] {

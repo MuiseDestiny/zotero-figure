@@ -50,7 +50,7 @@ ONNX queueing, image decode, preprocessing, inference, postprocessing, direct
 region rendering, PNG encoding, result-lock waiting, image writes, manifest
 writes, annotation synchronization, and total wall time.
 
-Validate changes in a real Zotero 9 installation with sparse 100-page PDFs,
+Validate changes in a real Zotero 10 installation with sparse 100-page PDFs,
 dense 100-page PDFs, 20-page PDFs containing four figures per page, repeated
 analysis, two readers, cancellation, and preview-renderer failure. The target is
 no main-thread task above 50 ms where work can be chunked, no monotonic memory

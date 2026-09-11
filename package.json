@@ -1,6 +1,6 @@
 {
   "name": "zotero-figure",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Local figure and table extraction for Zotero PDFs",
   "config": {
     "addonName": "PDF Figure",

@@ -1,6 +1,8 @@
 import type { ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { config } from "../../../package.json";
 import { FigureOutputService } from "../../services/figureOutputService";
+import { getImageAnnotationCandidate } from "../../platform/zotero/annotations";
+import { readReaderAnnotationCacheImage } from "../../platform/zotero/readerAnnotations";
 import { FormulaLatexCoordinator } from "../../services/formula/formulaLatexCoordinator";
 import {
   type AnalysisProgress,
@@ -14,7 +16,7 @@ import {
 } from "../../utils/cancellation";
 import { getString } from "../../utils/locale";
 
-type BatchAction = "analyze" | "annotations" | "note";
+type BatchAction = "analyze" | "annotations" | "note" | "import-annotations";
 
 interface BatchTotals {
   annotations: number;
@@ -25,6 +27,7 @@ interface BatchTotals {
 }
 
 const MENU_ID = `${config.addonRef}-item-menu`;
+const ANNOTATION_MENU_ID = `${config.addonRef}-annotation-menu`;
 const MENU_ICON = `chrome://${config.addonRef}/content/icons/favicon.png`;
 
 export class FigureBatchController {
@@ -57,6 +60,13 @@ export class FigureBatchController {
       label: "PDF Figure",
       tag: "menu",
     });
+    ztoolkit.Menu.register("item", {
+      ...this.createMenuItem("reader-menu-add-to-figure", "import-annotations"),
+      icon: MENU_ICON,
+      id: ANNOTATION_MENU_ID,
+      isHidden: () => !hasImageAnnotationSelection(),
+      tag: "menuitem",
+    });
   }
 
   public dispose(): void {
@@ -64,11 +74,16 @@ export class FigureBatchController {
     if (!this.started) return;
     this.started = false;
     ztoolkit.Menu.unregister(MENU_ID);
+    ztoolkit.Menu.unregister(ANNOTATION_MENU_ID);
   }
 
   private createMenuItem(labelKey: string, action: BatchAction) {
     return {
-      commandListener: () => void this.run(action),
+      commandListener: () => {
+        // Avoid mutating Zotero's native popup while its command is closing.
+        const win = Zotero.getMainWindow();
+        win.setTimeout(() => void this.run(action), 100);
+      },
       label: getString(labelKey),
       tag: "menuitem" as const,
     };
@@ -89,6 +104,10 @@ export class FigureBatchController {
     this.activePopup = popup;
     try {
       const selectedItems = getSelectedItems();
+      if (action === "import-annotations") {
+        await this.importAnnotations(selectedItems, popup, controller.signal);
+        return;
+      }
       const attachments = await resolvePdfAttachments(selectedItems);
       throwIfAborted(controller.signal);
       if (attachments.length === 0) {
@@ -197,6 +216,102 @@ export class FigureBatchController {
     }
   }
 
+  private async importAnnotations(
+    selectedItems: readonly Zotero.Item[],
+    popup: ProgressWindowHelper,
+    signal: AbortSignal,
+  ): Promise<void> {
+    const annotations = selectedItems.filter(
+      (item) => getImageAnnotationCandidate(item) !== undefined,
+    );
+    if (annotations.length === 0) {
+      popup
+        .changeLine({
+          progress: 100,
+          text: getString("batch-progress-no-annotations"),
+          type: "fail",
+        })
+        .startCloseTimer(3_000);
+      return;
+    }
+    let created = 0;
+    let skipped = 0;
+    let failed = 0;
+    for (let index = 0; index < annotations.length; index++) {
+      throwIfAborted(signal);
+      const annotation = annotations[index];
+      const baseCandidate = getImageAnnotationCandidate(annotation);
+      const comment = baseCandidate
+        ? promptFigureCaption(
+            annotation.annotationComment ?? baseCandidate.comment,
+          )
+        : null;
+      if (comment === null) {
+        popup.changeLine({
+          progress: Math.round(((index + 1) / annotations.length) * 100),
+          text: getString("batch-progress-finished-item", {
+            args: { current: index + 1, total: annotations.length },
+          }),
+        });
+        continue;
+      }
+      const candidate = baseCandidate
+        ? { ...baseCandidate, comment: comment.trim() }
+        : undefined;
+      const attachment = annotation.parentID
+        ? Zotero.Items.get(annotation.parentID)
+        : false;
+      try {
+        if (!candidate || !attachment || !attachment.isPDFAttachment()) {
+          throw new Error("Image annotation has no PDF attachment");
+        }
+        const image =
+          (await readReaderAnnotationCacheImage(
+            annotation.libraryID,
+            annotation.key,
+          )) ??
+          (await this.layoutAnalyzer.renderAnnotationCrop(
+            attachment,
+            candidate.pageIndex,
+            candidate.rect,
+            signal,
+          ));
+        const result = await this.resultStore.reconcilePage(
+          attachment,
+          candidate.pageIndex,
+          [candidate],
+          [image],
+          "skip-existing",
+          signal,
+        );
+        created += result.created;
+        skipped += result.skipped;
+      } catch (error) {
+        if (isCancellationError(error)) throw error;
+        failed++;
+        ztoolkit.log("Image annotation import failed", {
+          annotationID: annotation.id,
+          error: toError(error),
+        });
+      }
+      popup.changeLine({
+        progress: Math.round(((index + 1) / annotations.length) * 100),
+        text: getString("batch-progress-finished-item", {
+          args: { current: index + 1, total: annotations.length },
+        }),
+      });
+    }
+    popup
+      .changeLine({
+        progress: 100,
+        text: getString("batch-progress-import-done", {
+          args: { created, skipped, failed },
+        }),
+        type: failed === annotations.length ? "fail" : "success",
+      })
+      .startCloseTimer(failed > 0 ? 5_000 : 3_000);
+  }
+
   private createAttachmentProgress(
     popup: ProgressWindowHelper,
     attachmentIndex: number,
@@ -270,6 +385,12 @@ function hasSupportedSelection(): boolean {
   );
 }
 
+function hasImageAnnotationSelection(): boolean {
+  return getSelectedItems().some(
+    (item) => getImageAnnotationCandidate(item) !== undefined,
+  );
+}
+
 function getSelectedItems(): Zotero.Item[] {
   return Zotero.getActiveZoteroPane()?.getSelectedItems() ?? [];
 }
@@ -277,6 +398,13 @@ function getSelectedItems(): Zotero.Item[] {
 function getAttachmentTitle(attachment: Zotero.Item): string {
   return (
     attachment.topLevelItem?.getDisplayTitle() || attachment.getDisplayTitle()
+  );
+}
+
+function promptFigureCaption(defaultValue: string): string | null {
+  return Zotero.getMainWindow().prompt(
+    getString("prompt-figure-caption"),
+    defaultValue.trim(),
   );
 }
 

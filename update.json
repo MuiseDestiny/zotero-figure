@@ -3,12 +3,12 @@
     "zoterofigure@polygon.org": {
       "updates": [
         {
-          "version": "1.0.1",
+          "version": "1.0.2",
           "update_link": "https://github.com/MuiseDestiny/zotero-figure/releases/latest/download/zotero-figure.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "9.0",
-              "strict_max_version": "9.*"
+              "strict_max_version": "10.*"
             }
           }
         }

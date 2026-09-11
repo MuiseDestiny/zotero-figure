@@ -11,6 +11,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 - Analiza archivos PDF localmente, sin subir páginas ni descargar un modelo durante la ejecución.
 - Muestra los resultados en un panel del Reader con filtros de tipo combinables que ocultan los tipos no disponibles y con el progreso del análisis.
 - Permite copiar, guardar o fijar imágenes; editar leyendas o corregir recortes en un diálogo adaptado a la página del PDF; abrir la página del PDF; añadir a una nota o eliminar el resultado.
+- En el PDF Reader, haz clic derecho en una anotación de imagen seleccionada para añadirla a los resultados locales del análisis; se conservan las etiquetas Figure, Table o Formula existentes.
 - Reúne resultados de varios documentos en **PDF Figure Library**, con filtros por documento, año, categoría, tipo y leyenda. Permite alternar entre las vistas en cascada y por columnas de documentos recordando la selección; en las columnas los resultados conservan el orden estable de página y se muestran en filas comparativas alineadas con nombre opcional. Arrastra los encabezados para reordenar las columnas y las tarjetas dentro de un documento para reorganizar las filas, o haz clic con el botón derecho en una imagen para añadirla a un grupo comparativo. Cuando un documento aporta varias imágenes a un grupo, la celda muestra una imagen principal y miniaturas a la izquierda; selecciona una miniatura para convertirla en principal. Disuelve un grupo para eliminar su fila comparativa y usa el control de escala de la barra de herramientas para cambiar el tamaño de todas las vistas previas.
 - Analiza por lotes elementos de la biblioteca o adjuntos PDF y, opcionalmente, crea notas o anotaciones de Zotero.
 - Traduce leyendas cuando Zotero PDF Translate está instalado.
@@ -21,7 +22,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 
 ## Requisitos
 
-- Zotero 9.
+- Zotero 10.
 - El XPI de Zotero Figure de la [última versión](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Solo para OCR de fórmulas: conexión de red y una clave API de SiliconFlow.
 
@@ -37,7 +38,7 @@ No se necesitan Java ni `pdffigures2.jar`.
 
 - **Reader PDF:** Abre un PDF, selecciona el icono de Zotero Figure en la barra lateral izquierda y elige analizar figuras, tablas y fórmulas.
 - **Biblioteca de figuras:** Abre `Tools > PDF Figure Library` para explorar resultados de varios documentos. Haz doble clic en una tarjeta para abrir el PDF de origen.
-- **Procesamiento por lotes:** Selecciona elementos de la biblioteca o adjuntos PDF, haz clic con el botón derecho y abre `PDF Figure >` para analizar, añadir resultados a notas o crear anotaciones.
+- **Procesamiento por lotes:** Selecciona elementos de la biblioteca o adjuntos PDF, haz clic con el botón derecho y abre `PDF Figure >` para analizar, añadir resultados a notas o crear anotaciones. Selecciona anotaciones de imagen y elige `Añadir a Figure` para importarlas por lotes.
 - **Preferencias:** Abre el panel de preferencias de PDF Figure para gestionar el modelo integrado, la sincronización de anotaciones y el OCR de fórmulas, o para abrir directamente la Biblioteca de figuras. Usa **Convertir fórmulas existentes** para reconocer fórmulas sin caché en todas las bibliotecas.
 
 ## Privacidad

@@ -15,6 +15,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 - Analyze PDFs locally without uploading pages or downloading a model at runtime.
 - Review results in a dedicated Reader sidebar with combinable type filters that hide unavailable kinds, plus analysis progress.
 - Copy, save, or pin an image; edit its caption or correct its crop in a dialog sized to the PDF page; open its PDF page; add it to a note; or remove it.
+- In the PDF Reader, right-click a selected image annotation to add it to the local figure analysis results; existing Figure, Table, or Formula tags are preserved.
 - Browse results from multiple documents in **PDF Figure Library**, with document, year, category, type, and caption filters. Switch between the remembered waterfall and document-column views; in document columns, results stay in stable page order across aligned, optionally named comparison rows. Drag document headers to reorder columns and cards within a document to rearrange rows, or right-click an image to add it to a comparison group. When one document contributes multiple images to a group, its cell shows a primary image with thumbnails on the left; select a thumbnail to make it primary. Dissolve a group to remove its comparison row, and use the toolbar scale control to resize all previews.
 - Batch-analyze selected library items or PDF attachments, with optional note or Zotero annotation output.
 - Translate captions when Zotero PDF Translate is installed.
@@ -25,7 +26,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 
 ## Requirements
 
-- Zotero 9.
+- Zotero 10.
 - The Zotero Figure XPI from the [latest release](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Formula OCR only: network access and a SiliconFlow API key.
 
@@ -41,7 +42,7 @@ Java and `pdffigures2.jar` are not required.
 
 - **PDF Reader:** Open a PDF, select the Zotero Figure icon in the left sidebar, and choose **Analyze figures, tables, and formulae**.
 - **Figure Library:** Open `Tools > PDF Figure Library` to browse results across documents. Double-click a card to open its source PDF.
-- **Batch Processing:** Select library items or PDF attachments, right-click, and open `PDF Figure >` to analyze them, add results to notes, or create annotations.
+- **Batch Processing:** Select library items or PDF attachments, right-click, and open `PDF Figure >` to analyze them, add results to notes, or create annotations. Select image annotations and choose `Add to Figure` for batch import.
 - **Preferences:** Open the PDF Figure preferences pane to manage the bundled model, annotation synchronization, and SiliconFlow formula OCR, or to open the Figure Library directly. Use **Convert existing formulae** to recognize uncached formulae across libraries.
 
 ## Privacy

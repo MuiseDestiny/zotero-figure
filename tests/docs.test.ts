@@ -90,7 +90,7 @@ test("all README translations document the same user entry points", () => {
     const content = readFileSync(file, "utf8");
     for (const token of [
       "PDF Figure >",
-      "Zotero 9",
+      "Zotero 10",
       "SiliconFlow",
       "Qwen/Qwen3.6-35B-A3B",
       "KaTeX",
