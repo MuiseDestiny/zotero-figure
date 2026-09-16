@@ -1,6 +1,7 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
 import type { FigureGalleryComparisonLayout } from "../src/domain/figureGallery";
+import { loadComparisonLayouts } from "../src/services/results/figureGalleryComparisonStore";
 import {
   getFigureGalleryComparisonLayout,
   getFigureGalleryImageScale,
@@ -9,17 +10,41 @@ import {
   setFigureGalleryImageScale,
   setFigureGalleryViewMode,
 } from "../src/services/results/figureGalleryPreferences";
+import { installMemoryIO, type MemoryIOHarness } from "./helpers/memoryIO";
 
-test("persists the gallery mode and comparison layout in Zotero preferences", () => {
+const STORE_PATH = "/data/zotero-figure/comparison-layouts.json";
+
+interface PreferencesHarness {
+  io: MemoryIOHarness;
+  values: Map<string, unknown>;
+  restore(): void;
+}
+
+function installHarness(): PreferencesHarness {
   const previousZotero = globalThis.Zotero;
+  const io = installMemoryIO();
   const values = new Map<string, unknown>();
   globalThis.Zotero = {
+    DataDirectory: { dir: "/data" },
     Prefs: {
-      clear: () => undefined,
+      clear: (key: string) => values.delete(key),
       get: (key: string) => values.get(key),
       set: (key: string, value: unknown) => values.set(key, value),
     },
+    logError: () => undefined,
   } as unknown as typeof Zotero;
+  return {
+    io,
+    restore: () => {
+      io.restore();
+      globalThis.Zotero = previousZotero;
+    },
+    values,
+  };
+}
+
+test("persists the gallery mode in preferences and layouts in the data directory", async () => {
+  const harness = installHarness();
   const layout: FigureGalleryComparisonLayout = {
     documentOrder: [2, 1],
     rows: [
@@ -40,6 +65,8 @@ test("persists the gallery mode and comparison layout in Zotero preferences", ()
   };
 
   try {
+    await loadComparisonLayouts();
+
     assert.equal(getFigureGalleryViewMode(), "waterfall");
     setFigureGalleryViewMode("document-columns");
     assert.equal(getFigureGalleryViewMode(), "document-columns");
@@ -47,6 +74,13 @@ test("persists the gallery mode and comparison layout in Zotero preferences", ()
     setFigureGalleryComparisonLayout(7, layout);
     assert.deepEqual(getFigureGalleryComparisonLayout(7), layout);
     assert.equal(getFigureGalleryComparisonLayout(8), undefined);
+    assert.equal(
+      harness.values.has(
+        "extensions.zotero.zoterofigure.galleryComparisonLayouts",
+      ),
+      false,
+      "comparison layouts must not be written to a preference",
+    );
 
     assert.equal(getFigureGalleryImageScale(), 100);
     setFigureGalleryImageScale(135);
@@ -56,35 +90,31 @@ test("persists the gallery mode and comparison layout in Zotero preferences", ()
     setFigureGalleryImageScale(1);
     assert.equal(getFigureGalleryImageScale(), 50);
   } finally {
-    globalThis.Zotero = previousZotero;
+    harness.restore();
   }
 });
 
-test("migrates stored version 1 layouts through the preference boundary", () => {
-  const previousZotero = globalThis.Zotero;
-  const serialized = JSON.stringify({
-    "7": {
-      documentOrder: [2, 2, 1],
-      rows: [
-        {
-          entries: { "1": "first", "2": "second" },
-          id: "comparison-row-1",
-          label: "Main result",
-        },
-      ],
-      version: 1,
-    },
-  });
-  globalThis.Zotero = {
-    Prefs: {
-      clear: () => undefined,
-      get: (key: string) =>
-        key.endsWith("galleryComparisonLayouts") ? serialized : undefined,
-      set: () => undefined,
-    },
-  } as unknown as typeof Zotero;
+test("migrates stored version 1 layouts through the store boundary", async () => {
+  const harness = installHarness();
+  harness.io.writeText(
+    STORE_PATH,
+    JSON.stringify({
+      "7": {
+        documentOrder: [2, 2, 1],
+        rows: [
+          {
+            entries: { "1": "first", "2": "second" },
+            id: "comparison-row-1",
+            label: "Main result",
+          },
+        ],
+        version: 1,
+      },
+    }),
+  );
 
   try {
+    await loadComparisonLayouts();
     assert.deepEqual(getFigureGalleryComparisonLayout(7), {
       documentOrder: [2, 1],
       rows: [
@@ -101,24 +131,18 @@ test("migrates stored version 1 layouts through the preference boundary", () => 
       version: 3,
     });
   } finally {
-    globalThis.Zotero = previousZotero;
+    harness.restore();
   }
 });
 
-test("ignores malformed comparison layout preferences", () => {
-  const previousZotero = globalThis.Zotero;
-  globalThis.Zotero = {
-    Prefs: {
-      clear: () => undefined,
-      get: (key: string) =>
-        key.endsWith("galleryComparisonLayouts") ? "not json" : "unknown",
-      set: () => undefined,
-    },
-  } as unknown as typeof Zotero;
+test("ignores malformed persisted comparison layouts", async () => {
+  const harness = installHarness();
+  harness.io.writeText(STORE_PATH, "not json");
   try {
+    await loadComparisonLayouts();
     assert.equal(getFigureGalleryViewMode(), "waterfall");
     assert.equal(getFigureGalleryComparisonLayout(1), undefined);
   } finally {
-    globalThis.Zotero = previousZotero;
+    harness.restore();
   }
 });

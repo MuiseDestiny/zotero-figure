@@ -10,6 +10,10 @@ import { LayoutAnalyzer } from "./services/layout/layoutAnalyzer";
 import { FormulaLatexCoordinator } from "./services/formula/formulaLatexCoordinator";
 import { FigureGalleryIndex } from "./services/results/figureGalleryIndex";
 import {
+  flushComparisonLayouts,
+  loadComparisonLayouts,
+} from "./services/results/figureGalleryComparisonStore";
+import {
   getFigureGalleryComparisonLayout,
   getFigureGalleryImageScale,
   getFigureGalleryViewMode,
@@ -28,6 +32,7 @@ async function onStartup(): Promise<void> {
   await waitForZotero();
   initLocale();
   await registerPrefs();
+  await loadComparisonLayouts();
   const { batchController, formulaLatex, galleryIndex } = ensureServices();
   addon.api.gallery = {
     getBootstrap: () => galleryIndex.getBootstrap(),
@@ -95,6 +100,7 @@ async function onShutdown(): Promise<void> {
   }
   galleryControllers.clear();
   delete addon.api.gallery;
+  await flushComparisonLayouts();
   initialized?.formulaLatex.dispose();
   initialized?.layoutAnalyzer.dispose();
   services = undefined;
