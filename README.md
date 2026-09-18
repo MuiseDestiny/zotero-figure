@@ -27,7 +27,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 
 ## Requirements
 
-- Zotero 9.
+- Zotero 9 or Zotero 10.
 - The Zotero Figure XPI from the [latest release](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Formula OCR only: network access and a SiliconFlow API key.
 

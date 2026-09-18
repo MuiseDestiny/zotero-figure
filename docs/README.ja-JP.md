@@ -23,7 +23,7 @@ Zotero Figure は PDF 内の図、表、独立数式、キャプション、表�
 
 ## 必要環境
 
-- Zotero 9。
+- Zotero 9 または Zotero 10。
 - [最新リリース](https://github.com/MuiseDestiny/zotero-figure/releases/latest)の Zotero Figure XPI。
 - 数式 OCR を使う場合のみ、ネットワーク接続と SiliconFlow API キー。
 
