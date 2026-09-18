@@ -13,6 +13,7 @@ Zotero Figure 可检测 PDF 中的图、表、独立公式、说明和表格脚�
 - 复制、保存或贴出图片，修改说明，或在按 PDF 页面比例调整的窗口中校正裁图区域；跳转到 PDF 页面，添加到笔记或删除结果。
 - 在 PDF 阅读器中右键选中的图片标注，可将其添加到本地图表解析结果；已有的 Figure、Table 或 Formula 标签会保留。
 - 在“PDF 图表库”中集中浏览多篇文献的结果，并按文献、年份、分类、类型和说明关键词筛选。可在自动记忆的瀑布流与文献分栏间切换；在文献分栏中按稳定页码顺序显示结果，并对齐到可选命名的对比行。拖动文献表头可调整列顺序，拖动同一文献中的图片卡片可调整行位置，也可右键图片将其加入对比分组。同一文献在一个分组中包含多张图片时，单元格会显示主图和左侧缩略图；点击缩略图即可将其切换为主图。解散分组可删除对应的对比行，工具栏缩放控件可统一调整全部预览大小。
+- 对比布局保存在 Zotero 数据目录内的 `zotero-figure/comparison-layouts.json`，支持大型对比表。旧布局会自动迁移；备份时请包含此文件。布局不通过 Zotero Sync 同步。
 - 批量分析选中的文献条目或 PDF 附件，并可将结果写入笔记或 Zotero 标注。
 - 安装 Zotero PDF Translate 后翻译结果说明。
 - 可选通过 SiliconFlow `Qwen/Qwen3.6-35B-A3B` 识别公式 LaTeX，在本机使用 KaTeX 渲染，并可复制、重新识别，或通过 CodeMirror 源码编辑器和 KaTeX 实时预览修改源码。
@@ -22,7 +23,7 @@ Zotero Figure 可检测 PDF 中的图、表、独立公式、说明和表格脚�
 
 ## 环境要求
 
-- Zotero 10。
+- Zotero 9。
 - [最新版本](https://github.com/MuiseDestiny/zotero-figure/releases/latest)中的 Zotero Figure XPI。
 - 仅公式 OCR 需要网络连接和 SiliconFlow API 密钥。
 

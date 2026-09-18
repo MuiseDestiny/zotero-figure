@@ -51,6 +51,24 @@ Sharing the analyzer is important: its permit pools bound work across concurrent
 Readers as well as batch workflows. Batch attachments themselves are processed
 sequentially.
 
+## Gallery comparison persistence
+
+Comparison layouts live in `zotero-figure/comparison-layouts.json` under the
+Zotero data directory. Startup loads the file before exposing the gallery API
+and migrates the retired preference only when no file exists. The preference
+is cleared only after its replacement has been written successfully.
+
+Edits update the in-memory cache and use a 500 ms debounce. A single writer
+flushes snapshots to a temporary file and atomically replaces the committed
+file, draining edits received during I/O. Failed writes remain dirty for the
+next edit or shutdown to retry. Both plugin disable and Zotero's awaited
+application shutdown listener flush pending and active writes; disabling the
+plugin deactivates its application shutdown callback.
+
+Read failures or malformed files are logged without blocking other plugin
+features. Layout writes stay disabled for that session to protect the original
+file; fix the storage problem and restart Zotero before editing layouts again.
+
 ## Core data and coordinates
 
 The main domain contracts are:
@@ -283,10 +301,10 @@ git diff --check
 Also inspect the built XPI: it must contain exactly one `.onnx` file, and its
 path, byte size, and SHA-256 must match `model-manifest.json`. Confirm
 `addon/manifest.json`, `scripts/update-template.json`, and generated
-`update.json` targets Zotero `9.0` through `10.*`.
+`update.json` targets Zotero `9.0` through `9.*`.
 
 Use focused tests for the changed boundary: domain geometry, worker lifecycle,
 permit cancellation, result rollback/cache invalidation, annotation
 reconciliation, controller disposal, locale parity, and build contents all have
 dedicated coverage. Do not claim real Zotero behavior as verified unless the
-workflow was exercised in an actual Zotero 10 installation.
+workflow was exercised in an actual Zotero 9 installation.

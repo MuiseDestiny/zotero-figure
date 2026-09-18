@@ -1,7 +1,10 @@
 import * as assert from "node:assert/strict";
 import test from "node:test";
 import type { FigureGalleryComparisonLayout } from "../src/domain/figureGallery";
-import { loadComparisonLayouts } from "../src/services/results/figureGalleryComparisonStore";
+import {
+  flushComparisonLayouts,
+  loadComparisonLayouts,
+} from "../src/services/results/figureGalleryComparisonStore";
 import {
   getFigureGalleryComparisonLayout,
   getFigureGalleryImageScale,
@@ -90,6 +93,7 @@ test("persists the gallery mode in preferences and layouts in the data directory
     setFigureGalleryImageScale(1);
     assert.equal(getFigureGalleryImageScale(), 50);
   } finally {
+    await flushComparisonLayouts();
     harness.restore();
   }
 });

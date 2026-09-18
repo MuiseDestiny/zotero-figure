@@ -8,6 +8,10 @@ const FLUSH_DELAY_MS = 500;
 
 let cache: StoredComparisonLayouts = {};
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
+let pendingWrite: Promise<void> | undefined;
+let dirty = false;
+let writable = false;
+let clearLegacyAfterWrite = false;
 
 /**
  * Loads comparison layouts into memory, migrating the legacy preference the
@@ -21,19 +25,32 @@ let flushTimer: ReturnType<typeof setTimeout> | undefined;
  */
 export async function loadComparisonLayouts(): Promise<void> {
   cancelScheduledFlush();
-  const path = storePath();
-  if (await IOUtils.exists(path)) {
-    const stored = parseLayouts(await IOUtils.readUTF8(path));
-    if (stored) {
+  cache = {};
+  dirty = false;
+  writable = false;
+  clearLegacyAfterWrite = false;
+  try {
+    const path = storePath();
+    if (await IOUtils.exists(path)) {
+      const stored = parseLayouts(await IOUtils.readUTF8(path));
+      if (!stored) throw new Error(`Invalid comparison layout file: ${path}`);
       cache = stored;
-      return;
+    } else {
+      const legacy = readLegacyPreference();
+      cache = legacy ?? {};
+      dirty = !!legacy;
+      clearLegacyAfterWrite = !!legacy;
     }
+    writable = true;
+  } catch (error) {
+    // Keep an unreadable file intact. Other plugin features can still start,
+    // but a newly generated empty layout must never overwrite the user's data.
+    logStoreError(error);
+    return;
   }
-  const legacy = readLegacyPreference();
-  cache = legacy ?? {};
-  if (!legacy) return;
-  await writeStoreFile();
-  clearPref("galleryComparisonLayouts");
+  // A failed migration retains both the legacy preference and the dirty cache
+  // so a later edit or shutdown can retry without preventing plugin startup.
+  await flushComparisonLayouts().catch(logStoreError);
 }
 
 export function readComparisonLayouts(): StoredComparisonLayouts {
@@ -41,21 +58,48 @@ export function readComparisonLayouts(): StoredComparisonLayouts {
 }
 
 export function writeComparisonLayouts(layouts: StoredComparisonLayouts): void {
+  if (!writable) {
+    throw new Error(
+      "Comparison layout storage is unavailable; existing data has been preserved",
+    );
+  }
   cache = layouts;
+  dirty = true;
   cancelScheduledFlush();
   flushTimer = setTimeout(() => {
     flushTimer = undefined;
-    void writeStoreFile().catch((error: unknown) =>
-      Zotero.logError(toError(error)),
-    );
+    void flushComparisonLayouts().catch(logStoreError);
   }, FLUSH_DELAY_MS);
 }
 
 /** Writes any pending layout changes immediately, e.g. during shutdown. */
-export async function flushComparisonLayouts(): Promise<void> {
-  if (flushTimer === undefined) return;
+export function flushComparisonLayouts(): Promise<void> {
   cancelScheduledFlush();
-  await writeStoreFile();
+  if (pendingWrite) return pendingWrite;
+  if (!dirty && !clearLegacyAfterWrite) return Promise.resolve();
+  pendingWrite = drainWrites().finally(() => {
+    pendingWrite = undefined;
+  });
+  return pendingWrite;
+}
+
+async function drainWrites(): Promise<void> {
+  // One writer owns the temporary file. Include edits made while I/O is in
+  // flight, and mark the cache clean only after each snapshot is committed.
+  while (dirty) {
+    cancelScheduledFlush();
+    dirty = false;
+    try {
+      await writeStoreFile(JSON.stringify(cache));
+    } catch (error) {
+      dirty = true;
+      throw error;
+    }
+  }
+  if (clearLegacyAfterWrite) {
+    clearPref("galleryComparisonLayouts");
+    clearLegacyAfterWrite = false;
+  }
 }
 
 function cancelScheduledFlush(): void {
@@ -86,14 +130,14 @@ function storePath(): string {
   return PathUtils.join(storeDirectory(), STORE_FILE);
 }
 
-async function writeStoreFile(): Promise<void> {
+async function writeStoreFile(serialized: string): Promise<void> {
   const path = storePath();
   const temporaryPath = `${path}.tmp`;
   await IOUtils.makeDirectory(storeDirectory(), {
     createAncestors: true,
     ignoreExisting: true,
   });
-  await IOUtils.writeUTF8(temporaryPath, JSON.stringify(cache));
+  await IOUtils.writeUTF8(temporaryPath, serialized, { flush: true });
   await IOUtils.move(temporaryPath, path, { noOverwrite: false });
 }
 
@@ -101,6 +145,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function toError(value: unknown): Error {
-  return value instanceof Error ? value : new Error(String(value));
+function logStoreError(value: unknown): void {
+  Zotero.logError(value instanceof Error ? value : new Error(String(value)));
 }

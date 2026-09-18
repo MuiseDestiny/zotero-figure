@@ -6,6 +6,7 @@ import {
 import { FigureGalleryController } from "./features/gallery/figureGalleryController";
 import { FigureBatchController } from "./features/library/figureBatchController";
 import { FigureReaderController } from "./features/reader/figureReaderController";
+import { registerApplicationShutdownTask } from "./platform/zotero/applicationShutdown";
 import { LayoutAnalyzer } from "./services/layout/layoutAnalyzer";
 import { FormulaLatexCoordinator } from "./services/formula/formulaLatexCoordinator";
 import { FigureGalleryIndex } from "./services/results/figureGalleryIndex";
@@ -27,12 +28,16 @@ import { initLocale } from "./utils/locale";
 const controllers = new Map<Window, FigureReaderController>();
 const galleryControllers = new Map<Window, FigureGalleryController>();
 let services: HookServices | undefined;
+let unregisterShutdownFlush: (() => void) | undefined;
 
 async function onStartup(): Promise<void> {
   await waitForZotero();
   initLocale();
   await registerPrefs();
   await loadComparisonLayouts();
+  unregisterShutdownFlush = registerApplicationShutdownTask(
+    flushComparisonLayouts,
+  );
   const { batchController, formulaLatex, galleryIndex } = ensureServices();
   addon.api.gallery = {
     getBootstrap: () => galleryIndex.getBootstrap(),
@@ -100,7 +105,13 @@ async function onShutdown(): Promise<void> {
   }
   galleryControllers.clear();
   delete addon.api.gallery;
-  await flushComparisonLayouts();
+  try {
+    await flushComparisonLayouts();
+  } catch (error) {
+    Zotero.logError(error instanceof Error ? error : new Error(String(error)));
+  }
+  unregisterShutdownFlush?.();
+  unregisterShutdownFlush = undefined;
   initialized?.formulaLatex.dispose();
   initialized?.layoutAnalyzer.dispose();
   services = undefined;

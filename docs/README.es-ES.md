@@ -13,6 +13,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 - Permite copiar, guardar o fijar imágenes; editar leyendas o corregir recortes en un diálogo adaptado a la página del PDF; abrir la página del PDF; añadir a una nota o eliminar el resultado.
 - En el PDF Reader, haz clic derecho en una anotación de imagen seleccionada para añadirla a los resultados locales del análisis; se conservan las etiquetas Figure, Table o Formula existentes.
 - Reúne resultados de varios documentos en **PDF Figure Library**, con filtros por documento, año, categoría, tipo y leyenda. Permite alternar entre las vistas en cascada y por columnas de documentos recordando la selección; en las columnas los resultados conservan el orden estable de página y se muestran en filas comparativas alineadas con nombre opcional. Arrastra los encabezados para reordenar las columnas y las tarjetas dentro de un documento para reorganizar las filas, o haz clic con el botón derecho en una imagen para añadirla a un grupo comparativo. Cuando un documento aporta varias imágenes a un grupo, la celda muestra una imagen principal y miniaturas a la izquierda; selecciona una miniatura para convertirla en principal. Disuelve un grupo para eliminar su fila comparativa y usa el control de escala de la barra de herramientas para cambiar el tamaño de todas las vistas previas.
+- Los diseños de comparación se guardan localmente en `zotero-figure/comparison-layouts.json`, dentro del directorio de datos de Zotero, para admitir tablas grandes. Los diseños existentes se migran automáticamente; incluye este archivo en las copias de seguridad. Los diseños no se sincronizan mediante Zotero Sync.
 - Analiza por lotes elementos de la biblioteca o adjuntos PDF y, opcionalmente, crea notas o anotaciones de Zotero.
 - Traduce leyendas cuando Zotero PDF Translate está instalado.
 - Opcionalmente reconoce LaTeX mediante SiliconFlow `Qwen/Qwen3.6-35B-A3B`, lo renderiza localmente con KaTeX y permite copiarlo, volver a reconocerlo o editarlo con un editor de código CodeMirror y una vista previa de KaTeX en tiempo real.
@@ -22,7 +23,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 
 ## Requisitos
 
-- Zotero 10.
+- Zotero 9.
 - El XPI de Zotero Figure de la [última versión](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Solo para OCR de fórmulas: conexión de red y una clave API de SiliconFlow.
 

@@ -4,7 +4,8 @@ import * as path from "node:path";
 import test from "node:test";
 
 const documents = [
-  "AGENTS.md",
+  // Local instructions are ignored by Git and absent from fresh clones.
+  ...(existsSync("AGENTS.md") ? ["AGENTS.md"] : []),
   "README.md",
   "docs/ARCHITECTURE.md",
   "docs/KNOWN_LIMITATIONS.md",
@@ -90,7 +91,7 @@ test("all README translations document the same user entry points", () => {
     const content = readFileSync(file, "utf8");
     for (const token of [
       "PDF Figure >",
-      "Zotero 10",
+      "Zotero 9",
       "SiliconFlow",
       "Qwen/Qwen3.6-35B-A3B",
       "KaTeX",

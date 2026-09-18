@@ -17,6 +17,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 - Copy, save, or pin an image; edit its caption or correct its crop in a dialog sized to the PDF page; open its PDF page; add it to a note; or remove it.
 - In the PDF Reader, right-click a selected image annotation to add it to the local figure analysis results; existing Figure, Table, or Formula tags are preserved.
 - Browse results from multiple documents in **PDF Figure Library**, with document, year, category, type, and caption filters. Switch between the remembered waterfall and document-column views; in document columns, results stay in stable page order across aligned, optionally named comparison rows. Drag document headers to reorder columns and cards within a document to rearrange rows, or right-click an image to add it to a comparison group. When one document contributes multiple images to a group, its cell shows a primary image with thumbnails on the left; select a thumbnail to make it primary. Dissolve a group to remove its comparison row, and use the toolbar scale control to resize all previews.
+- Comparison layouts are stored locally in `zotero-figure/comparison-layouts.json` inside the Zotero data directory, allowing large comparison tables. Existing layouts migrate automatically; include this file in backups. Layouts are not synchronized by Zotero Sync.
 - Batch-analyze selected library items or PDF attachments, with optional note or Zotero annotation output.
 - Translate captions when Zotero PDF Translate is installed.
 - Optionally recognize formula LaTeX with SiliconFlow `Qwen/Qwen3.6-35B-A3B`, render it locally with KaTeX, and copy, re-recognize, or edit it with a CodeMirror source editor and live KaTeX preview.
@@ -26,7 +27,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 
 ## Requirements
 
-- Zotero 10.
+- Zotero 9.
 - The Zotero Figure XPI from the [latest release](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Formula OCR only: network access and a SiliconFlow API key.
 

@@ -41,6 +41,11 @@ test("shares one analyzer across main windows and disposes it at shutdown", () =
   );
   assert.match(hooksSource, /galleryControllers\.clear\(\)/);
   assert.match(
+    hooksSource,
+    /registerApplicationShutdownTask\(\s*flushComparisonLayouts/,
+  );
+  assert.match(hooksSource, /unregisterShutdownFlush\?\.\(\)/);
+  assert.match(
     controllerSource,
     /readerDocuments = new Map<[\s\S]*ReaderDocumentRegistration/,
   );
