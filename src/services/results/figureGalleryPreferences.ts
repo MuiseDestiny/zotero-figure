@@ -4,8 +4,10 @@ import {
   type FigureGalleryViewMode,
 } from "../../domain/figureGallery";
 import { getPref, setPref } from "../../utils/prefs";
-
-type StoredComparisonLayouts = Record<string, unknown>;
+import {
+  readComparisonLayouts,
+  writeComparisonLayouts,
+} from "./figureGalleryComparisonStore";
 
 export const FIGURE_GALLERY_IMAGE_SCALE_DEFAULT = 100;
 export const FIGURE_GALLERY_IMAGE_SCALE_MIN = 50;
@@ -32,31 +34,19 @@ export function setFigureGalleryViewMode(mode: FigureGalleryViewMode): void {
 export function getFigureGalleryComparisonLayout(
   libraryID: number,
 ): FigureGalleryComparisonLayout | undefined {
-  return parseFigureGalleryComparisonLayout(readLayouts()[String(libraryID)]);
+  return parseFigureGalleryComparisonLayout(
+    readComparisonLayouts()[String(libraryID)],
+  );
 }
 
 export function setFigureGalleryComparisonLayout(
   libraryID: number,
   layout: Readonly<FigureGalleryComparisonLayout>,
 ): void {
-  const layouts = readLayouts();
-  layouts[String(libraryID)] = layout;
-  setPref("galleryComparisonLayouts", JSON.stringify(layouts));
-}
-
-function readLayouts(): StoredComparisonLayouts {
-  const serialized = getPref("galleryComparisonLayouts");
-  if (!serialized) return {};
-  try {
-    const parsed: unknown = JSON.parse(serialized);
-    return isRecord(parsed) ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  writeComparisonLayouts({
+    ...readComparisonLayouts(),
+    [String(libraryID)]: layout,
+  });
 }
 
 function normalizeImageScale(value: unknown): number {

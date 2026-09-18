@@ -3,6 +3,7 @@ import { config } from "../../package.json";
 export interface PreferenceSchema {
   autoRecognizeFormula: boolean;
   duplicateMode: "replace-page" | "skip-existing";
+  /** Retired: migrated to the data directory by figureGalleryComparisonStore. */
   galleryComparisonLayouts: string;
   galleryImageScale: number;
   galleryViewMode: "document-columns" | "waterfall";
