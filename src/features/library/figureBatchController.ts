@@ -15,6 +15,10 @@ import {
   throwIfAborted,
 } from "../../utils/cancellation";
 import { getString } from "../../utils/locale";
+import {
+  registerContextMenu,
+  type ContextMenuHandle,
+} from "../../utils/contextMenu";
 
 type BatchAction = "analyze" | "annotations" | "note" | "import-annotations";
 
@@ -30,12 +34,28 @@ const MENU_ID = `${config.addonRef}-item-menu`;
 const ANNOTATION_MENU_ID = `${config.addonRef}-annotation-menu`;
 const MENU_ICON = `chrome://${config.addonRef}/content/icons/favicon.png`;
 
+// Toolkit writes hidden/disabled/checked="false" and type=""; newer Gecko
+// treats these boolean attributes as set (hidden, grey, or checkmarked).
+function hiddenUnless(visible: boolean, elem: Element): boolean {
+  for (const node of [
+    elem,
+    ...Array.from(elem.querySelectorAll("*")),
+  ] as Element[]) {
+    for (const name of ["hidden", "disabled", "checked"]) {
+      if (node.getAttribute(name) === "false") node.removeAttribute(name);
+    }
+    if (node.getAttribute("type") === "") node.removeAttribute("type");
+  }
+  return !visible;
+}
+
 export class FigureBatchController {
   private activePopup?: ProgressWindowHelper;
   private readonly outputService: FigureOutputService;
   private running = false;
   private runController?: AbortController;
   private started = false;
+  private menus: ContextMenuHandle[] = [];
 
   constructor(
     private readonly layoutAnalyzer: LayoutAnalyzer,
@@ -48,7 +68,9 @@ export class FigureBatchController {
   public start(): void {
     if (this.started) return;
     this.started = true;
-    ztoolkit.Menu.register("item", {
+    // Zotero 11+ registers via Zotero.MenuManager (with the macOS icon
+    // restore); Zotero 10 keeps ztoolkit.
+    const itemMenu = registerContextMenu("item", {
       children: [
         this.createMenuItem("batch-menu-analyze", "analyze"),
         this.createMenuItem("batch-menu-analyze-note", "note"),
@@ -56,25 +78,26 @@ export class FigureBatchController {
       ],
       icon: MENU_ICON,
       id: MENU_ID,
-      isHidden: () => !hasSupportedSelection(),
+      isHidden: (elem) => hiddenUnless(hasSupportedSelection(), elem),
       label: "PDF Figure",
       tag: "menu",
     });
-    ztoolkit.Menu.register("item", {
+    this.menus.push(itemMenu);
+    const annotationMenu = registerContextMenu("item", {
       ...this.createMenuItem("reader-menu-add-to-figure", "import-annotations"),
       icon: MENU_ICON,
       id: ANNOTATION_MENU_ID,
-      isHidden: () => !hasImageAnnotationSelection(),
+      isHidden: (elem) => hiddenUnless(hasImageAnnotationSelection(), elem),
       tag: "menuitem",
     });
+    this.menus.push(annotationMenu);
   }
 
   public dispose(): void {
     this.runController?.abort();
     if (!this.started) return;
     this.started = false;
-    ztoolkit.Menu.unregister(MENU_ID);
-    ztoolkit.Menu.unregister(ANNOTATION_MENU_ID);
+    for (const menu of this.menus.splice(0)) menu.dispose();
   }
 
   private createMenuItem(labelKey: string, action: BatchAction) {
