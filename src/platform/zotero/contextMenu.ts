@@ -1,14 +1,17 @@
-import type { MenuitemOptions, ZoteroToolkit } from "zotero-plugin-toolkit";
+import {
+  createLegacyMenu,
+  type LegacyMenu,
+  type MenuitemOptions,
+} from "./menu";
 
-import { config } from "../../package.json";
+import { config } from "../../../package.json";
 
 /**
  * Context-menu registration that follows Zotero's own plugin API when present.
  *
  * Zotero 11 ships `Zotero.MenuManager` for item/collection context menus; it
  * owns element creation, grouping into "More" when the menu overflows, and
- * cleanup on plugin shutdown. Zotero 10 has no such API, so the toolkit path is
- * kept unchanged there.
+ * cleanup on plugin shutdown. Zotero 9/10 use plugin-owned XUL menus.
  */
 export type ContextMenuTarget = "item" | "collection";
 
@@ -142,14 +145,7 @@ export function toOfficialMenuData(
       : options.tag === "menuseparator"
         ? "separator"
         : "menuitem";
-  // MenuitemOptions is a tag-discriminated union; read the optional fields
-  // without narrowing on each branch.
-  const loose = options as {
-    children?: MenuitemOptions[];
-    subElementOptions?: MenuitemOptions[];
-    onShowing?: (element: Element, event: Event) => unknown;
-  };
-  const children = loose.children ?? loose.subElementOptions ?? [];
+  const children = options.children ?? [];
   const isMac = Boolean(host?.isMac);
   const data: OfficialMenuData = {
     menuType,
@@ -190,8 +186,8 @@ export function toOfficialMenuData(
           report,
         );
         // Toolkit semantics: onShowing belongs to leaf entries only.
-        if (menuType !== "submenu" && loose.onShowing) {
-          const result = loose.onShowing(element, event);
+        if (menuType !== "submenu" && options.onShowing) {
+          const result = options.onShowing(element, event);
           void Promise.resolve(result).catch(report);
         }
       } catch (error) {
@@ -247,13 +243,13 @@ let generatedID = 0;
 
 export interface ContextMenuDependencies {
   host?: ZoteroHost;
-  toolkitMenu?: Pick<ZoteroToolkit["Menu"], "register" | "unregister">;
+  legacyMenu?: LegacyMenu;
   report?: (error: unknown) => void;
 }
 
 /**
  * Register one top-level item/collection context-menu entry. Zotero 11+ uses
- * `Zotero.MenuManager`; Zotero 10 keeps `ztoolkit.Menu.register`.
+ * `Zotero.MenuManager`; Zotero 9/10 use plugin-owned XUL menus.
  */
 export function registerContextMenu(
   target: ContextMenuTarget,
@@ -268,7 +264,7 @@ export function registerContextMenu(
   let active = true;
 
   if (!manager) {
-    const menu = dependencies.toolkitMenu ?? ztoolkit.Menu;
+    const menu = dependencies.legacyMenu ?? createLegacyMenu(undefined, report);
     let id = initial.id || `${config.addonRef}-context-menu-${++generatedID}`;
     const register = (options: MenuitemOptions) => {
       id = options.id || id;

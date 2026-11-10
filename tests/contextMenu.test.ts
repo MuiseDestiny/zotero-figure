@@ -9,7 +9,7 @@ import {
   toOfficialMenuData,
   type OfficialMenuData,
   type OfficialMenuManager,
-} from "../src/utils/contextMenu";
+} from "../src/platform/zotero/contextMenu";
 
 class FakeElement {
   nodeType = 1;
@@ -99,14 +99,14 @@ test("only Zotero 11+ with MenuManager uses the official API", () => {
   );
 });
 
-test("Zotero 10 keeps the toolkit registration path", () => {
+test("Zotero 10 uses the plugin-owned legacy menu path", () => {
   const calls: string[] = [];
   const handle = registerContextMenu(
     "item",
     { tag: "menuitem", id: "legacy", label: "Legacy" },
     {
       host: { version: "10.0.0" },
-      toolkitMenu: {
+      legacyMenu: {
         register: (target, options) => {
           calls.push(`register:${String(target)}:${options.id}`);
           return undefined;

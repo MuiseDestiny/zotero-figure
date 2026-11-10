@@ -99,11 +99,15 @@ test("dispose aborts the active attachment analysis", async () => {
     },
   };
   (globalThis as any).ztoolkit = {
-    Menu: { register: () => undefined, unregister: () => undefined },
     ProgressWindow,
   };
   globalThis.Zotero = {
     getActiveZoteroPane: () => ({ getSelectedItems: () => [pdf] }),
+    version: "11.0.0",
+    MenuManager: {
+      registerMenu: ({ menuID }: { menuID: string }) => menuID,
+      unregisterMenu: () => true,
+    },
     getMainWindow: () => ({}),
     logError: (error: Error) => assert.fail(error.message),
   } as unknown as typeof Zotero;

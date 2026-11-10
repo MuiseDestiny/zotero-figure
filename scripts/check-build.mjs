@@ -14,6 +14,16 @@ if (!result.outputFiles?.length) {
   throw new Error("Build check did not produce an output bundle");
 }
 
+for (const output of result.outputFiles) {
+  for (const protocol of ["zotero://plugin", "zotero://ztoolkit-debug"]) {
+    if (output.text.includes(protocol)) {
+      throw new Error(
+        `Build must not contain toolkit protocol bridge: ${protocol}`,
+      );
+    }
+  }
+}
+
 const requiredInputs = [
   "src/domain/figureGallery.ts",
   "src/domain/layout.ts",

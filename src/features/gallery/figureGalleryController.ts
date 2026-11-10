@@ -1,5 +1,9 @@
 import { config } from "../../../package.json";
 import { ZoteroMainTab } from "../../platform/zotero/mainTab";
+import {
+  registerWindowMenu,
+  type WindowMenuHandle,
+} from "../../platform/zotero/menu";
 import { getString } from "../../utils/locale";
 
 const MENU_ID = `${config.addonRef}-open-gallery`;
@@ -8,6 +12,7 @@ const TAB_TYPE = `${config.addonRef}-gallery`;
 export class FigureGalleryController {
   private readonly tab: ZoteroMainTab;
   private started = false;
+  private menu?: WindowMenuHandle;
 
   constructor(private readonly window: Window) {
     this.tab = new ZoteroMainTab(window, {
@@ -26,7 +31,7 @@ export class FigureGalleryController {
       "#menu_ToolsPopup",
     ) as XUL.MenuPopup | null;
     if (!popup) return;
-    ztoolkit.Menu.register(popup, {
+    this.menu = registerWindowMenu(popup, {
       commandListener: () => this.open(),
       icon: `chrome://${config.addonRef}/content/icons/favicon.png`,
       id: MENU_ID,
@@ -40,7 +45,8 @@ export class FigureGalleryController {
   }
 
   public dispose(): void {
-    this.window.document.getElementById(MENU_ID)?.remove();
+    this.menu?.dispose();
+    this.menu = undefined;
     this.tab.dispose();
     this.started = false;
   }
