@@ -38,6 +38,11 @@ bridge is configured.
 `src/index.ts` establishes sandbox globals and creates the addon singleton.
 `src/hooks.ts` owns startup and shutdown:
 
+On Zotero 11 APP_STARTUP, bootstrap lets UI initialization continue in the
+background and reports its errors, so an unloaded library cannot hold up Zotero's
+sequential plugin queue. Enable/update and older-version startup remain awaited.
+The UI wait itself is retained; disabling the addon cancels the pending start.
+
 - one shared `FigureResultStore`, `LayoutAnalyzer`, `FigureGalleryIndex`, and
   `FigureBatchController` are used across main windows;
 - each main window receives its own `FigureReaderController` and

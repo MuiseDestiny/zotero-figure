@@ -32,6 +32,7 @@ let unregisterShutdownFlush: (() => void) | undefined;
 
 async function onStartup(): Promise<void> {
   await waitForZotero();
+  if (!addon.data.alive) return;
   initLocale();
   await registerPrefs();
   await loadComparisonLayouts();
@@ -94,6 +95,7 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 }
 
 async function onShutdown(): Promise<void> {
+  addon.data.alive = false;
   const initialized = services;
   initialized?.batchController.dispose();
   for (const controller of [...controllers.values()].reverse()) {
@@ -117,7 +119,6 @@ async function onShutdown(): Promise<void> {
   services = undefined;
   ztoolkit.unregisterAll();
   addon.data.dialog?.window?.close();
-  addon.data.alive = false;
   delete (Zotero as typeof Zotero & Record<string, unknown>)[
     config.addonInstance
   ];

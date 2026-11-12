@@ -28,7 +28,14 @@ async function startup({ id, version, resourceURI, rootURI }, reason) {
     `${rootURI}/chrome/content/scripts/__addonRef__.js`,
     ctx,
   );
-  await Zotero.__addonInstance__.hooks.onStartup();
+  const pending = Zotero.__addonInstance__.hooks.onStartup();
+  // Zotero 11 awaits plugins sequentially, but uiReadyPromise can wait for an
+  // unloaded library tab. Let later plugins start while our UI wait continues.
+  if (reason === 1 && Number.parseInt(Zotero.version, 10) >= 11) {
+    void pending.catch((error) => Zotero.logError(error));
+    return;
+  }
+  await pending;
 }
 
 async function onMainWindowLoad({ window }, reason) {
