@@ -156,10 +156,7 @@ test("shows the project links, Pro plugins promotion, and package version", () =
   );
   assert.match(markup, /href="https:\/\/github\.com\/MuiseDestiny"/);
   assert.match(markup, /href="https:\/\/space\.bilibili\.com\/13557814"/);
-  assert.match(
-    markup,
-    /href="https:\/\/x9l8rgumba\.feishu\.cn\/docx\/CbvCdvc27opfDwxvTddcfJvDnDf"/,
-  );
+  assert.match(markup, /href="https:\/\/plugins\.muisedestiny\.xyz"/);
   assert.match(markup, /id="about-version"/);
   assert.match(script, /import \{ config, version \} from/);
   assert.match(script, /preferences-about-version[\s\S]*args: \{ version \}/);
