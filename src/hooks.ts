@@ -2,6 +2,7 @@ import { config } from "../package.json";
 import {
   registerPrefs,
   registerPrefsScripts,
+  disposePrefsScripts,
 } from "./features/preferences/preferenceScript";
 import { FigureGalleryController } from "./features/gallery/figureGalleryController";
 import { FigureBatchController } from "./features/library/figureBatchController";
@@ -96,6 +97,7 @@ async function onMainWindowUnload(win: Window): Promise<void> {
 
 async function onShutdown(): Promise<void> {
   addon.data.alive = false;
+  disposePrefsScripts();
   const initialized = services;
   initialized?.batchController.dispose();
   for (const controller of [...controllers.values()].reverse()) {

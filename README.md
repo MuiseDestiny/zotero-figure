@@ -29,7 +29,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 
 - Zotero 9 or Zotero 10.
 - The Zotero Figure XPI from the [latest release](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
-- Formula OCR only: network access and a SiliconFlow API key.
+- Formula OCR only: network access and an API key for SiliconFlow or a custom OpenAI-compatible service.
 
 Java and `pdffigures2.jar` are not required.
 
@@ -50,7 +50,7 @@ Java and `pdffigures2.jar` are not required.
 
 PDF parsing, rendering, layout detection, and local result storage stay on your computer. Local results do not use Zotero Sync unless you enable annotation mirroring.
 
-Formula OCR is optional. API-key checking sends a text-only request to SiliconFlow. Formula recognition sends formula PNG crops, never full PDF pages; the key is stored in local Zotero preferences. SiliconFlow usage may incur charges.
+Formula OCR is optional. In Preferences, choose **Customize** to set an OpenAI-compatible Chat Completions API URL, API key, and image-capable model. Base URLs and full `/chat/completions` URLs are accepted. **Save and check** automatically sends a text-only connection check; it does not verify image support. You can restore the SiliconFlow defaults at any time. Formula recognition sends formula PNG crops to the configured service, never full PDF pages. Keys are stored in Zotero’s login manager; existing preference keys are migrated after a successful secure save. API usage may incur charges.
 
 ## Links
 

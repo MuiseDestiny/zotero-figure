@@ -25,7 +25,7 @@ Zotero Figure は PDF 内の図、表、独立数式、キャプション、表�
 
 - Zotero 9 または Zotero 10。
 - [最新リリース](https://github.com/MuiseDestiny/zotero-figure/releases/latest)の Zotero Figure XPI。
-- 数式 OCR を使う場合のみ、ネットワーク接続と SiliconFlow API キー。
+- 数式 OCR を使う場合のみ、ネットワーク接続と、SiliconFlow または OpenAI 互換のカスタムサービスの API キー。
 
 Java と `pdffigures2.jar` は不要です。
 
@@ -46,7 +46,7 @@ Java と `pdffigures2.jar` は不要です。
 
 PDF の解析、描画、レイアウト検出、結果の保存は端末上で行われます。注釈への複製を有効にしない限り、ローカル結果は Zotero Sync を使用しません。
 
-数式 OCR は任意です。API キーの確認では SiliconFlow へテキストだけのリクエストを送信します。数式認識では数式の PNG 切り抜きだけを送信し、PDF ページ全体は送信しません。キーは Zotero のローカル設定に保存されます。SiliconFlow の料金が発生する場合があります。
+数式 OCR は任意です。設定の「カスタマイズ」で OpenAI Chat Completions 互換 API の URL、キー、画像入力に対応するモデルを指定できます。ベース URL と完全な `/chat/completions` URL に対応します。「保存して確認」はテキストのみのリクエストで接続を自動確認し、画像対応は検証しません。SiliconFlow の既定設定にも戻せます。数式認識では設定したサービスに数式の PNG 切り抜きだけを送信し、PDF ページ全体は送信しません。キーは Zotero のログインマネージャーに保存し、旧設定のキーは安全な保存に成功してから削除します。API の利用料金が発生する場合があります。
 
 ## リンク
 

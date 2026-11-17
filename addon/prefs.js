@@ -1,8 +1,11 @@
 pref("__prefsPrefix__.view", "Annotation");
 pref("__prefsPrefix__.autoRecognizeFormula", false);
+pref("__prefsPrefix__.customFormulaApiModel", "");
+pref("__prefsPrefix__.customFormulaApiURL", "");
+pref("__prefsPrefix__.customFormulaApiValidated", false);
+pref("__prefsPrefix__.formulaApiProvider", "siliconflow");
 pref("__prefsPrefix__.duplicateMode", "replace-page");
 pref("__prefsPrefix__.galleryImageScale", 100);
 pref("__prefsPrefix__.galleryViewMode", "waterfall");
-pref("__prefsPrefix__.siliconFlowApiKey", "");
 pref("__prefsPrefix__.siliconFlowApiKeyValidated", false);
 pref("__prefsPrefix__.syncAnnotations", false);

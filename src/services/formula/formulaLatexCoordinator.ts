@@ -12,7 +12,14 @@ import {
   OperationCancelledError,
   throwIfAborted,
 } from "../../utils/cancellation";
-import { recognizeFormulaLatex } from "./formulaLatexService";
+import {
+  recognizeFormulaLatex,
+  type FormulaApiConfig,
+} from "./formulaLatexService";
+import {
+  getFormulaApiConfig,
+  isFormulaApiValidated,
+} from "./formulaApiPreferences";
 
 const FORMULA_REQUEST_CONCURRENCY = 2;
 
@@ -67,7 +74,7 @@ export interface FormulaLatexBatchSummary {
 }
 
 export interface FormulaLatexCoordinatorOptions {
-  getApiKey?(): string;
+  getApiConfig?(): FormulaApiConfig | Promise<FormulaApiConfig>;
   isAutoRecognitionEnabled?(): boolean;
   platform?: FormulaLatexPlatform;
   recognize?: typeof recognizeFormulaLatex;
@@ -84,7 +91,9 @@ export interface FormulaLatexEditSnapshot extends FormulaLatexState {
 
 export class FormulaLatexCoordinator {
   private readonly active = new Map<string, ActiveFormulaRecognition>();
-  private readonly getApiKey: () => string;
+  private readonly getApiConfig: () =>
+    | FormulaApiConfig
+    | Promise<FormulaApiConfig>;
   private readonly isAutoEnabled: () => boolean;
   private readonly listeners = new Set<FormulaLatexListener>();
   private readonly lifecycleController = new AbortController();
@@ -98,8 +107,7 @@ export class FormulaLatexCoordinator {
   ) {
     this.platform = options.platform ?? createZoteroFormulaLatexPlatform();
     this.recognizer = options.recognize ?? recognizeFormulaLatex;
-    this.getApiKey =
-      options.getApiKey ?? (() => getPref("siliconFlowApiKey") ?? "");
+    this.getApiConfig = options.getApiConfig ?? getFormulaApiConfig;
     this.isAutoEnabled =
       options.isAutoRecognitionEnabled ?? isAutoRecognitionEnabled;
   }
@@ -311,7 +319,9 @@ export class FormulaLatexCoordinator {
         throw new Error("Formula LaTeX changed during recognition");
       }
       throwIfAborted(signal);
-      const latex = await this.recognizer(input.image, this.getApiKey(), {
+      const config = await this.getApiConfig();
+      throwIfAborted(signal);
+      const latex = await this.recognizer(input.image, config, {
         signal,
       });
       throwIfAborted(signal);
@@ -451,11 +461,7 @@ export class FormulaLatexCoordinator {
 }
 
 function isAutoRecognitionEnabled(): boolean {
-  return (
-    getPref("autoRecognizeFormula") === true &&
-    getPref("siliconFlowApiKeyValidated") === true &&
-    Boolean(getPref("siliconFlowApiKey")?.trim())
-  );
+  return getPref("autoRecognizeFormula") === true && isFormulaApiValidated();
 }
 
 function toError(value: unknown): Error {

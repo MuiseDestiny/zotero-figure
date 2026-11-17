@@ -559,6 +559,12 @@ export class FigureReaderController {
     switch (value.code) {
       case "missing-key":
         return new Error(getString("error-formula-api-key-missing"));
+      case "missing-model":
+        return new Error(getString("error-formula-api-model-missing"));
+      case "invalid-url":
+        return new Error(getString("error-formula-api-url-invalid"));
+      case "key-storage":
+        return new Error(getString("error-formula-api-key-storage"));
       case "http":
         return new Error(
           getString("error-formula-api-http", {

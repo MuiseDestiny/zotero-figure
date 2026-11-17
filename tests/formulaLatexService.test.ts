@@ -7,7 +7,9 @@ import {
   recognizeFormulaLatex,
   SILICONFLOW_CHAT_COMPLETIONS_URL,
   SILICONFLOW_FORMULA_MODEL,
-  validateSiliconFlowApiKey,
+  normalizeFormulaApiConfig,
+  SILICONFLOW_FORMULA_API,
+  validateFormulaApiConfig,
 } from "../src/services/formula/formulaLatexService";
 import { OperationCancelledError } from "../src/utils/cancellation";
 
@@ -16,7 +18,7 @@ test("sends a fixed non-thinking formula request without exposing the key", asyn
   let requestInit: RequestInit | undefined;
   const latex = await recognizeFormulaLatex(
     Uint8Array.from([1, 2, 3]),
-    " secret-key ",
+    { ...SILICONFLOW_FORMULA_API, apiKey: " secret-key " },
     {
       fetcher: (async (url, init) => {
         requestURL = String(url);
@@ -65,27 +67,116 @@ test("sends a fixed non-thinking formula request without exposing the key", asyn
 
 test("validates the configured model with a minimal non-thinking request", async () => {
   let body: Record<string, unknown> | undefined;
-  await validateSiliconFlowApiKey("key", {
-    fetcher: (async (_url, init) => {
-      body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      return jsonResponse({ choices: [{ message: { content: "OK" } }] });
-    }) as typeof fetch,
-  });
+  await validateFormulaApiConfig(
+    { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+    {
+      fetcher: (async (_url, init) => {
+        body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return jsonResponse({ choices: [{ message: { content: "OK" } }] });
+      }) as typeof fetch,
+    },
+  );
   assert.equal(body?.model, SILICONFLOW_FORMULA_MODEL);
   assert.equal(body?.enable_thinking, false);
   assert.equal(body?.temperature, 0);
-  assert.equal(body?.max_tokens, 2);
+  assert.equal(body?.max_tokens, 16);
+});
+
+test("uses the custom endpoint, key, and model for checking and recognition", async () => {
+  const config = {
+    apiKey: " custom-key ",
+    apiURL: " https://example.com/proxy/v1/ ",
+    model: " vision-model ",
+    provider: "custom" as const,
+  };
+  const bodies: Array<Record<string, unknown>> = [];
+  const fetcher = (async (url, init) => {
+    assert.equal(String(url), "https://example.com/proxy/v1/chat/completions");
+    assert.equal(
+      (init?.headers as Record<string, string>).Authorization,
+      "Bearer custom-key",
+    );
+    const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+    assert.equal(body.model, "vision-model");
+    assert.equal("enable_thinking" in body, false);
+    bodies.push(body);
+    return jsonResponse({ choices: [{ message: { content: "x^2" } }] });
+  }) as typeof fetch;
+
+  await validateFormulaApiConfig(config, { fetcher });
+  assert.equal(
+    await recognizeFormulaLatex(Uint8Array.of(1), config, { fetcher }),
+    "x^2",
+  );
+  assert.deepEqual(bodies[0].messages, [
+    { content: "Reply with OK only.", role: "user" },
+  ]);
+  assert.match(JSON.stringify(bodies[1].messages), /data:image\/png;base64,/);
+});
+
+test("normalizes base URLs and preserves full completion paths and queries", () => {
+  for (const [input, expected] of [
+    ["https://example.com", "https://example.com/v1/chat/completions"],
+    ["https://example.com/v1/", "https://example.com/v1/chat/completions"],
+    [
+      "http://localhost:1234/v1/chat/completions/",
+      "http://localhost:1234/v1/chat/completions",
+    ],
+    [
+      "https://example.com/custom/chat/completions?version=1",
+      "https://example.com/custom/chat/completions?version=1",
+    ],
+  ]) {
+    assert.equal(
+      normalizeFormulaApiConfig({
+        ...SILICONFLOW_FORMULA_API,
+        apiKey: "key",
+        apiURL: input,
+      }).apiURL,
+      expected,
+    );
+  }
+});
+
+test("rejects invalid custom configuration before sending a request", async () => {
+  const fetcher = (async () => assert.fail("must not fetch")) as typeof fetch;
+  for (const apiURL of [
+    "",
+    "not-a-url",
+    "file:///tmp/test",
+    "https://user:password@example.com/v1",
+    "https://example.com/v1#fragment",
+  ]) {
+    await assert.rejects(
+      validateFormulaApiConfig(
+        { ...SILICONFLOW_FORMULA_API, apiKey: "key", apiURL },
+        { fetcher },
+      ),
+      hasCode("invalid-url"),
+    );
+  }
+  await assert.rejects(
+    validateFormulaApiConfig(
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key", model: "  " },
+      { fetcher },
+    ),
+    hasCode("missing-model"),
+  );
 });
 
 test("accepts IO byte views created in another browser realm", async () => {
   const image = runInNewContext("Uint8Array.from([1, 2, 3])") as Uint8Array;
   assert.equal(image instanceof Uint8Array, false);
-  const latex = await recognizeFormulaLatex(image, "key", {
-    fetcher: (async () =>
-      jsonResponse({
-        choices: [{ message: { content: "x" } }],
-      })) as typeof fetch,
-  });
+  const latex = await recognizeFormulaLatex(
+    image,
+    { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+    {
+      fetcher: (async () =>
+        jsonResponse({
+          choices: [{ message: { content: "x" } }],
+        })) as typeof fetch,
+    },
+  );
   assert.equal(latex, "x");
 });
 
@@ -97,67 +188,94 @@ test("normalizes common display delimiters", () => {
 
 test("reports missing keys, HTTP failures, network failures, and bad payloads", async () => {
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), ""),
+    recognizeFormulaLatex(Uint8Array.of(1), {
+      ...SILICONFLOW_FORMULA_API,
+      apiKey: "",
+    }),
     hasCode("missing-key"),
   );
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), "key", {
-      fetcher: (async () =>
-        new Response("denied", { status: 401 })) as typeof fetch,
-    }),
+    recognizeFormulaLatex(
+      Uint8Array.of(1),
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: (async () =>
+          new Response("denied", { status: 401 })) as typeof fetch,
+      },
+    ),
     (error: unknown) =>
       error instanceof FormulaLatexServiceError &&
       error.code === "http" &&
       error.status === 401,
   );
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), "key", {
-      fetcher: (async () => {
-        throw new Error("offline");
-      }) as typeof fetch,
-    }),
+    recognizeFormulaLatex(
+      Uint8Array.of(1),
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: (async () => {
+          throw new Error("offline");
+        }) as typeof fetch,
+      },
+    ),
     hasCode("network"),
   );
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), "key", {
-      fetcher: (async () => jsonResponse({ choices: [] })) as typeof fetch,
-    }),
+    recognizeFormulaLatex(
+      Uint8Array.of(1),
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: (async () => jsonResponse({ choices: [] })) as typeof fetch,
+      },
+    ),
     hasCode("invalid-response"),
   );
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), "key", {
-      fetcher: (async () =>
-        jsonResponse({
-          choices: [
-            { finish_reason: "length", message: { content: "\\frac{1" } },
-          ],
-        })) as typeof fetch,
-    }),
+    recognizeFormulaLatex(
+      Uint8Array.of(1),
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: (async () =>
+          jsonResponse({
+            choices: [
+              { finish_reason: "length", message: { content: "\\frac{1" } },
+            ],
+          })) as typeof fetch,
+      },
+    ),
     hasCode("invalid-response"),
   );
   await assert.rejects(
-    recognizeFormulaLatex(Uint8Array.of(1), "key", {
-      fetcher: (async () =>
-        jsonResponse({
-          choices: [
-            {
-              finish_reason: "content_filter",
-              message: { content: "partial" },
-            },
-          ],
-        })) as typeof fetch,
-    }),
+    recognizeFormulaLatex(
+      Uint8Array.of(1),
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: (async () =>
+          jsonResponse({
+            choices: [
+              {
+                finish_reason: "content_filter",
+                message: { content: "partial" },
+              },
+            ],
+          })) as typeof fetch,
+      },
+    ),
     hasCode("invalid-response"),
   );
 });
 
 test("observes external cancellation as OperationCancelledError", async () => {
   const controller = new AbortController();
-  const request = recognizeFormulaLatex(Uint8Array.of(1), "key", {
-    fetcher: abortingFetcher,
-    signal: controller.signal,
-    timeoutMs: 1_000,
-  });
+  const request = recognizeFormulaLatex(
+    Uint8Array.of(1),
+    { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+    {
+      fetcher: abortingFetcher,
+      signal: controller.signal,
+      timeoutMs: 1_000,
+    },
+  );
 
   controller.abort();
 
@@ -166,10 +284,13 @@ test("observes external cancellation as OperationCancelledError", async () => {
 
 test("aborts hung requests after the configured timeout", async () => {
   await assert.rejects(
-    validateSiliconFlowApiKey("key", {
-      fetcher: abortingFetcher,
-      timeoutMs: 5,
-    }),
+    validateFormulaApiConfig(
+      { ...SILICONFLOW_FORMULA_API, apiKey: "key" },
+      {
+        fetcher: abortingFetcher,
+        timeoutMs: 5,
+      },
+    ),
     hasCode("timeout"),
   );
 });

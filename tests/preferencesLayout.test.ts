@@ -55,10 +55,10 @@ test("shows model maintenance, annotation sync, and verified formula API prefere
   assert.match(markup, /id="auto-recognize-formula-row"[\s\S]*hidden="true"/);
   assert.match(markup, /id="recognize-existing-formulae"/);
   assert.match(markup, /id="existing-formula-status"[\s\S]*hidden="true"/);
-  assert.match(script, /validateSiliconFlowApiKey/);
+  assert.match(script, /validateFormulaApiConfig/);
   assert.match(script, /recognizeExistingFormulae/);
   assert.match(script, /preferences-existing-formulae-progress/);
-  assert.match(script, /setPref\("siliconFlowApiKeyValidated", false\)/);
+  assert.match(script, /setFormulaApiValidated\(false\)/);
   assert.match(script, /toggleAttribute\("hidden", !valid\)/);
   assert.match(markup, /data-l10n-id="preferences-sync-annotations-help"/);
   assert.match(markup, /class="help-icon"[\s\S]*role="img"/);
@@ -128,7 +128,7 @@ test("groups preferences under interface, model, formula recognition, and other 
 test("opens the existing figure gallery from preferences", () => {
   assert.match(
     script,
-    /openGalleryButton\.addEventListener\("command", \(\) => \{[\s\S]*this\.options\.openGallery\(\)/,
+    /listen\(this\.openGalleryButton, "command", \(\) => \{[\s\S]*this\.options\.openGallery\(\)/,
   );
   assert.match(hooks, /openGallery: openFigureGallery/);
   assert.match(hooks, /galleryControllers\.get\(mainWindow\)/);
@@ -139,11 +139,11 @@ test("opens the existing figure gallery from preferences", () => {
 test("invalidates and cancels stale formula API work", () => {
   assert.match(
     script,
-    /apiKeyInput\.addEventListener\("input", \(\) => \{[\s\S]*apiValidationController\?\.abort\(\)[\s\S]*apiKeyVerifyButton\.removeAttribute\("disabled"\)/,
+    /listen\(this\.apiKeyInput, "input", \(\) => \{[\s\S]*this\.invalidateApiConfig\(\)/,
   );
   assert.match(
     script,
-    /validateSiliconFlowApiKey\(key, \{ signal: controller\.signal \}\)/,
+    /validateFormulaApiConfig\(config, \{ signal: controller\.signal \}\)/,
   );
   assert.match(script, /existingFormulaController\?\.abort\(\)/);
 });

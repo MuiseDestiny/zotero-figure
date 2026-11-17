@@ -6,6 +6,7 @@ import type {
   FormulaRecognitionInput,
   StoredFigureResult,
 } from "../src/services/results/figureResultStore";
+import { SILICONFLOW_FORMULA_API } from "../src/services/formula/formulaLatexService";
 import { OperationCancelledError } from "../src/utils/cancellation";
 
 test("converts uncached formulae across libraries with bounded failures", async () => {
@@ -62,7 +63,7 @@ test("converts uncached formulae across libraries with bounded failures", async 
     },
   };
   const coordinator = new FormulaLatexCoordinator(store, {
-    getApiKey: () => "key",
+    getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
     platform,
     recognize: async (image) => {
       active++;
@@ -114,14 +115,21 @@ test("forced recognition overwrites cached LaTeX and publishes the update", asyn
     ) => ({ ...cached, latex }),
   };
   let calls = 0;
+  const customConfig = {
+    apiKey: "test-custom-key",
+    apiURL: "https://example.com/v1/chat/completions",
+    model: "vision-model",
+    provider: "custom" as const,
+  };
   const coordinator = new FormulaLatexCoordinator(store, {
-    getApiKey: () => "key",
+    getApiConfig: async () => customConfig,
     platform: {
       getAttachment: async () => false,
       listLibraries: () => [],
       logError: (error) => assert.fail(error.message),
     },
-    recognize: async () => {
+    recognize: async (_image, config) => {
+      assert.deepEqual(config, customConfig);
       calls++;
       return "new";
     },
@@ -172,7 +180,7 @@ test("does not overwrite a manual edit made during cloud recognition", async () 
     },
   };
   const coordinator = new FormulaLatexCoordinator(store, {
-    getApiKey: () => "key",
+    getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
     platform: {
       getAttachment: async () => false,
       listLibraries: () => [],
@@ -254,7 +262,7 @@ test("dispose cancels active recognition as OperationCancelledError", async () =
       updateFormulaLatex: async () => assert.fail("cancelled result was saved"),
     },
     {
-      getApiKey: () => "key",
+      getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
       platform: {
         getAttachment: async () => false,
         listLibraries: () => [],
@@ -314,7 +322,7 @@ test("rejects cloud output when the formula image changes at the same geometry",
       },
     },
     {
-      getApiKey: () => "key",
+      getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
       platform: {
         getAttachment: async () => false,
         listLibraries: () => [],
@@ -378,7 +386,7 @@ test("does not overwrite a manual edit made while forced recognition is queued",
       },
     },
     {
-      getApiKey: () => "key",
+      getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
       platform: emptyPlatform(),
       recognize: async (image) => {
         const imageNumber = image[0];
@@ -415,7 +423,7 @@ test("cancels one shared recognition waiter without aborting the other", async (
       updateFormulaLatex: async (_item, _id, latex) => ({ ...result, latex }),
     },
     {
-      getApiKey: () => "key",
+      getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
       platform: emptyPlatform(),
       recognize: async (_image, _key, options) => {
         recognitionSignal = options?.signal;
@@ -451,7 +459,7 @@ test("aborts recognition when its final waiter is cancelled", async () => {
       updateFormulaLatex: async () => assert.fail("cancelled output was saved"),
     },
     {
-      getApiKey: () => "key",
+      getApiConfig: () => ({ ...SILICONFLOW_FORMULA_API, apiKey: "key" }),
       platform: emptyPlatform(),
       recognize: async (_image, _key, options) => {
         recognitionSignal = options?.signal;

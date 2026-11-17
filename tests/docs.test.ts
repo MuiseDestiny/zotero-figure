@@ -98,6 +98,8 @@ test("all README translations document the same user entry points", () => {
       "KaTeX",
       "LaTeX",
       "CodeMirror",
+      "OpenAI",
+      "/chat/completions",
     ]) {
       assert.ok(content.includes(token), `${file} -> ${token}`);
     }

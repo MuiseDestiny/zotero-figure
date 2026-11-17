@@ -10,8 +10,19 @@ import {
 } from "../../services/model/modelManager";
 import {
   FormulaLatexServiceError,
-  validateSiliconFlowApiKey,
+  normalizeFormulaApiConfig,
+  validateFormulaApiConfig,
 } from "../../services/formula/formulaLatexService";
+import {
+  getFormulaApiConfig,
+  getFormulaApiProvider,
+  isFormulaApiValidated,
+  setFormulaApiValidated,
+} from "../../services/formula/formulaApiPreferences";
+import {
+  getFormulaApiKey,
+  saveFormulaApiKey,
+} from "../../platform/zotero/formulaApiCredentials";
 import type {
   FormulaLatexBatchProgress,
   FormulaLatexBatchSummary,
@@ -23,7 +34,7 @@ import { getPref, setPref } from "../../utils/prefs";
 const SILICONFLOW_API_KEY_URL = "https://cloud.siliconflow.cn/i/3Xa4I0X8";
 
 let preferencePaneID: string | undefined;
-const controllers = new WeakMap<Window, ModelPreferencesController>();
+const controllers = new Map<Window, ModelPreferencesController>();
 
 export interface PreferencesOptions {
   openGallery(): void;
@@ -50,16 +61,34 @@ export function registerPrefsScripts(
   if (controllers.has(window)) return;
   const controller = new ModelPreferencesController(window, options);
   controllers.set(window, controller);
-  controller.start();
+  void controller.start();
+}
+
+export function disposePrefsScripts(): void {
+  for (const controller of controllers.values()) controller.dispose();
+  controllers.clear();
 }
 
 class ModelPreferencesController {
   private readonly aboutVersion: Element;
   private readonly apiKeyInput: HTMLInputElement;
+  private readonly apiKeyLabel: Element;
+  private readonly apiKeyControl: Element;
   private readonly apiKeyStatus: Element;
   private readonly apiKeyVerifyButton: Element;
   private apiValidationController?: AbortController;
   private apiValidationToken = 0;
+  private customEditorToken = 0;
+  private readonly eventController: AbortController;
+  private readonly customApiButton: Element;
+  private readonly customApiEditor: Element;
+  private readonly customApiKey: HTMLInputElement;
+  private readonly customApiModel: HTMLInputElement;
+  private readonly customApiURL: HTMLInputElement;
+  private readonly customApiSave: Element;
+  private readonly customApiCancel: Element;
+  private readonly customApiDefault: Element;
+  private readonly customApiError: Element;
   private readonly autoRecognizeFormula: Element & { checked: boolean };
   private readonly autoRecognizeFormulaRow: Element;
   private closed = false;
@@ -82,8 +111,20 @@ class ModelPreferencesController {
     private readonly options: PreferencesOptions,
   ) {
     const doc = window.document;
+    this.eventController = new window.AbortController();
     this.aboutVersion = requireElement(doc, "#about-version");
     this.apiKeyInput = requireElement(doc, "#siliconflow-api-key");
+    this.apiKeyLabel = requireElement(doc, "#formula-api-label");
+    this.apiKeyControl = requireElement(doc, "#formula-api-control");
+    this.customApiButton = requireElement(doc, "#customize-formula-api");
+    this.customApiEditor = requireElement(doc, "#custom-formula-api-editor");
+    this.customApiKey = requireElement(doc, "#custom-formula-api-key");
+    this.customApiModel = requireElement(doc, "#custom-formula-api-model");
+    this.customApiURL = requireElement(doc, "#custom-formula-api-url");
+    this.customApiSave = requireElement(doc, "#save-custom-formula-api");
+    this.customApiCancel = requireElement(doc, "#cancel-custom-formula-api");
+    this.customApiDefault = requireElement(doc, "#use-default-formula-api");
+    this.customApiError = requireElement(doc, "#custom-formula-api-error");
     this.apiKeyStatus = requireElement(doc, "#siliconflow-api-status");
     this.apiKeyVerifyButton = requireElement(
       doc,
@@ -112,73 +153,250 @@ class ModelPreferencesController {
     this.verifyButton = requireElement(doc, "#verify-model");
   }
 
-  public start(): void {
+  public async start(): Promise<void> {
     this.aboutVersion.textContent = getString("preferences-about-version", {
       args: { version },
     });
-    this.apiKeyInput.addEventListener("input", () => {
-      this.apiValidationController?.abort();
-      this.apiValidationController = undefined;
-      this.existingFormulaController?.abort();
-      this.existingFormulaController = undefined;
-      setPref("siliconFlowApiKey", this.apiKeyInput.value);
-      setPref("siliconFlowApiKeyValidated", false);
-      setPref("autoRecognizeFormula", false);
-      this.autoRecognizeFormula.checked = false;
-      this.apiValidationToken++;
-      this.apiKeyVerifyButton.removeAttribute("disabled");
-      this.existingFormulaButton.removeAttribute("disabled");
-      this.renderApiValidation(false);
+    this.listen(this.apiKeyInput, "input", () => {
+      this.invalidateApiConfig();
     });
-    this.apiKeyVerifyButton.addEventListener("command", () => {
+    this.listen(this.apiKeyInput, "change", () => {
+      void saveFormulaApiKey(
+        getFormulaApiProvider(),
+        this.apiKeyInput.value,
+      ).catch(() => {
+        if (!this.closed)
+          this.renderApiValidation(
+            false,
+            getString("error-formula-api-key-storage"),
+          );
+      });
+    });
+    this.listen(this.customApiButton, "command", () => {
+      void this.openCustomApi();
+    });
+    this.listen(this.customApiCancel, "command", () => {
+      this.setCustomApiEditorOpen(false);
+    });
+    this.listen(this.customApiSave, "command", () => {
+      void this.saveCustomApi();
+    });
+    this.listen(this.customApiDefault, "command", () => {
+      void this.useDefaultApi();
+    });
+    this.listen(this.apiKeyVerifyButton, "command", () => {
       void this.verifyApiKey();
     });
-    this.getApiKeyButton.addEventListener("command", () => {
+    this.listen(this.getApiKeyButton, "command", () => {
       Zotero.launchURL(SILICONFLOW_API_KEY_URL);
     });
-    this.openGalleryButton.addEventListener("command", () => {
+    this.listen(this.openGalleryButton, "command", () => {
       this.options.openGallery();
     });
-    this.autoRecognizeFormula.addEventListener("command", () => {
+    this.listen(this.autoRecognizeFormula, "command", () => {
       setPref("autoRecognizeFormula", this.autoRecognizeFormula.checked);
     });
-    this.existingFormulaButton.addEventListener("command", () => {
+    this.listen(this.existingFormulaButton, "command", () => {
       void this.recognizeExistingFormulae();
     });
-    this.restoreButton.addEventListener("command", () => {
+    this.listen(this.restoreButton, "command", () => {
       void this.prepareModel(true);
     });
-    this.verifyButton.addEventListener("command", () => {
+    this.listen(this.verifyButton, "command", () => {
       void this.refresh(true);
     });
-    this.revealButton.addEventListener("command", () => {
+    this.listen(this.revealButton, "command", () => {
       void this.revealModel();
     });
-    this.syncAnnotations.addEventListener("command", () => {
+    this.listen(this.syncAnnotations, "command", () => {
       setPref("syncAnnotations", this.syncAnnotations.checked);
     });
-    this.window.addEventListener(
+    this.listen(
+      this.window,
       "unload",
       () => {
-        this.closed = true;
-        this.refreshToken++;
-        this.apiValidationToken++;
-        this.apiValidationController?.abort();
-        this.existingFormulaController?.abort();
-        this.installController?.abort();
+        this.dispose();
+        controllers.delete(this.window);
       },
       { once: true },
     );
     this.syncAnnotations.checked = getPref("syncAnnotations") === true;
-    this.apiKeyInput.value = getPref("siliconFlowApiKey") ?? "";
-    this.autoRecognizeFormula.checked =
-      getPref("autoRecognizeFormula") === true;
-    this.renderApiValidation(
-      getPref("siliconFlowApiKeyValidated") === true &&
-        Boolean(this.apiKeyInput.value.trim()),
-    );
     this.resetRestoreLabel();
     void this.prepareModel(false);
+    this.apiKeyInput.disabled = true;
+    this.apiKeyVerifyButton.setAttribute("disabled", "true");
+    this.customApiButton.setAttribute("disabled", "true");
+    try {
+      await this.renderApiConfig();
+      if (this.closed) return;
+      this.autoRecognizeFormula.checked =
+        getPref("autoRecognizeFormula") === true;
+      this.renderApiValidation(isFormulaApiValidated());
+    } catch {
+      if (!this.closed)
+        this.renderApiValidation(
+          false,
+          getString("error-formula-api-key-storage"),
+        );
+    } finally {
+      if (!this.closed) {
+        this.apiKeyInput.disabled = false;
+        this.apiKeyVerifyButton.removeAttribute("disabled");
+        this.customApiButton.removeAttribute("disabled");
+      }
+    }
+  }
+
+  public dispose(): void {
+    if (this.closed) return;
+    this.closed = true;
+    this.refreshToken++;
+    this.apiValidationToken++;
+    this.customEditorToken++;
+    this.eventController.abort();
+    this.apiValidationController?.abort();
+    this.existingFormulaController?.abort();
+    this.installController?.abort();
+    this.apiKeyInput.value = "";
+    this.customApiKey.value = "";
+  }
+
+  private listen(
+    target: EventTarget,
+    type: string,
+    listener: () => void,
+    options: AddEventListenerOptions = {},
+  ): void {
+    target.addEventListener(type, listener, {
+      ...options,
+      signal: this.eventController.signal,
+    });
+  }
+
+  private setCustomApiEditorOpen(open: boolean): void {
+    this.customEditorToken++;
+    this.customApiEditor.toggleAttribute("hidden", !open);
+    this.apiKeyControl.toggleAttribute("hidden", open);
+    this.customApiButton.toggleAttribute("disabled", open);
+    if (!open) {
+      this.customApiKey.value = "";
+      (this.customApiButton as HTMLElement).focus();
+    }
+  }
+
+  private async openCustomApi(): Promise<void> {
+    this.customApiURL.value = getPref("customFormulaApiURL") ?? "";
+    this.customApiModel.value = getPref("customFormulaApiModel") ?? "";
+    this.customApiError.setAttribute("hidden", "true");
+    this.customApiButton.setAttribute("disabled", "true");
+    const token = ++this.customEditorToken;
+    try {
+      const key = await getFormulaApiKey("custom");
+      if (this.closed || token !== this.customEditorToken) return;
+      this.customApiKey.value = key;
+      this.setCustomApiEditorOpen(true);
+      this.customApiURL.focus();
+    } catch {
+      if (!this.closed && token === this.customEditorToken) {
+        this.customApiButton.removeAttribute("disabled");
+        this.renderApiValidation(
+          false,
+          getString("error-formula-api-key-storage"),
+        );
+      }
+    }
+  }
+
+  private async renderApiConfig(): Promise<void> {
+    const config = await getFormulaApiConfig();
+    if (this.closed || config.provider !== getFormulaApiProvider()) return;
+    this.apiKeyInput.value = config.apiKey;
+    // These labels use the runtime Fluent bundle because the custom model is dynamic.
+    this.apiKeyLabel.textContent = getString(
+      config.provider === "custom"
+        ? "preferences-custom-api-label"
+        : "preferences-default-api-label",
+      { args: { model: config.model } },
+    );
+    this.getApiKeyButton.toggleAttribute(
+      "hidden",
+      config.provider === "custom",
+    );
+  }
+
+  private async useDefaultApi(): Promise<void> {
+    setPref("formulaApiProvider", "siliconflow");
+    this.invalidateApiConfig();
+    this.setCustomApiEditorOpen(false);
+    try {
+      await this.renderApiConfig();
+      if (!this.closed && this.apiKeyInput.value.trim())
+        void this.verifyApiKey();
+    } catch {
+      if (!this.closed)
+        this.renderApiValidation(
+          false,
+          getString("error-formula-api-key-storage"),
+        );
+    }
+  }
+
+  private async saveCustomApi(): Promise<void> {
+    this.customApiSave.setAttribute("disabled", "true");
+    this.customApiDefault.setAttribute("disabled", "true");
+    this.customApiCancel.setAttribute("disabled", "true");
+    this.customApiURL.disabled = true;
+    this.customApiKey.disabled = true;
+    this.customApiModel.disabled = true;
+    try {
+      const config = normalizeFormulaApiConfig({
+        apiKey: this.customApiKey.value,
+        apiURL: this.customApiURL.value,
+        model: this.customApiModel.value,
+        provider: "custom",
+      });
+      this.invalidateApiConfig();
+      try {
+        await saveFormulaApiKey("custom", config.apiKey);
+      } catch {
+        throw new FormulaLatexServiceError("key-storage");
+      }
+      if (this.closed) return;
+      setPref("customFormulaApiURL", config.apiURL);
+      setPref("customFormulaApiModel", config.model);
+      setPref("formulaApiProvider", "custom");
+      this.invalidateApiConfig();
+      this.setCustomApiEditorOpen(false);
+      await this.renderApiConfig();
+      if (!this.closed) void this.verifyApiKey();
+    } catch (error) {
+      if (this.closed) return;
+      this.customApiError.textContent = localizeFormulaApiError(error);
+      this.customApiError.removeAttribute("hidden");
+    } finally {
+      if (!this.closed) {
+        this.customApiSave.removeAttribute("disabled");
+        this.customApiDefault.removeAttribute("disabled");
+        this.customApiCancel.removeAttribute("disabled");
+        this.customApiURL.disabled = false;
+        this.customApiKey.disabled = false;
+        this.customApiModel.disabled = false;
+      }
+    }
+  }
+
+  private invalidateApiConfig(): void {
+    this.apiValidationController?.abort();
+    this.apiValidationController = undefined;
+    this.existingFormulaController?.abort();
+    this.existingFormulaController = undefined;
+    this.apiValidationToken++;
+    setFormulaApiValidated(false);
+    setPref("autoRecognizeFormula", false);
+    this.autoRecognizeFormula.checked = false;
+    this.apiKeyVerifyButton.removeAttribute("disabled");
+    this.existingFormulaButton.removeAttribute("disabled");
+    this.renderApiValidation(false);
   }
 
   private async verifyApiKey(): Promise<void> {
@@ -186,20 +404,39 @@ class ModelPreferencesController {
     const controller = new this.window.AbortController();
     this.apiValidationController = controller;
     const token = ++this.apiValidationToken;
-    const key = this.apiKeyInput.value;
     this.apiKeyVerifyButton.setAttribute("disabled", "true");
     this.apiKeyStatus.setAttribute("data-state", "checking");
     this.apiKeyStatus.textContent = getString(
       "preferences-api-status-checking",
     );
     try {
-      await validateSiliconFlowApiKey(key, { signal: controller.signal });
+      try {
+        await saveFormulaApiKey(
+          getFormulaApiProvider(),
+          this.apiKeyInput.value,
+        );
+      } catch {
+        throw new FormulaLatexServiceError("key-storage");
+      }
+      const config = await getFormulaApiConfig();
       if (this.closed || token !== this.apiValidationToken) return;
-      setPref("siliconFlowApiKeyValidated", true);
+      await validateFormulaApiConfig(config, { signal: controller.signal });
+      const current = await getFormulaApiConfig();
+      if (this.closed || token !== this.apiValidationToken) return;
+      if (
+        config.provider !== current.provider ||
+        config.apiURL !== current.apiURL ||
+        config.model !== current.model ||
+        config.apiKey !== current.apiKey
+      ) {
+        this.renderApiValidation(false);
+        return;
+      }
+      setFormulaApiValidated(true);
       this.renderApiValidation(true);
     } catch (error) {
       if (this.closed || token !== this.apiValidationToken) return;
-      setPref("siliconFlowApiKeyValidated", false);
+      setFormulaApiValidated(false);
       setPref("autoRecognizeFormula", false);
       this.autoRecognizeFormula.checked = false;
       this.renderApiValidation(false, localizeFormulaApiError(error));
@@ -500,6 +737,12 @@ function localizeFormulaApiError(value: unknown): string {
   switch (value.code) {
     case "missing-key":
       return getString("error-formula-api-key-missing");
+    case "missing-model":
+      return getString("error-formula-api-model-missing");
+    case "invalid-url":
+      return getString("error-formula-api-url-invalid");
+    case "key-storage":
+      return getString("error-formula-api-key-storage");
     case "http":
       return getString("error-formula-api-http", {
         args: { status: value.status ?? "-" },

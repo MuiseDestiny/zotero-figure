@@ -25,7 +25,7 @@ Zotero Figure 可检测 PDF 中的图、表、独立公式、说明和表格脚�
 
 - Zotero 9 或 Zotero 10。
 - [最新版本](https://github.com/MuiseDestiny/zotero-figure/releases/latest)中的 Zotero Figure XPI。
-- 仅公式 OCR 需要网络连接和 SiliconFlow API 密钥。
+- 仅公式 OCR 需要网络连接，以及 SiliconFlow 或自定义兼容 OpenAI 服务的 API 密钥。
 
 不需要 Java 或 `pdffigures2.jar`。
 
@@ -46,7 +46,7 @@ Zotero Figure 可检测 PDF 中的图、表、独立公式、说明和表格脚�
 
 PDF 解析、渲染、版面检测和本地结果存储均留在当前设备。除非开启标注镜像，本地结果不会使用 Zotero Sync。
 
-公式 OCR 为可选功能。检查 API 密钥只会向 SiliconFlow 发送纯文本请求；识别公式时只发送公式 PNG 裁图，不会发送整页 PDF。密钥保存在本机 Zotero 偏好设置中，SiliconFlow 调用可能产生费用。
+公式 OCR 为可选功能。在设置中点击“自定义”，可填写兼容 OpenAI Chat Completions 的 API 地址、密钥和支持图片输入的模型；地址支持基础 URL 或完整的 `/chat/completions` URL。“保存并检查”会自动发送纯文本请求检查连接，不验证图片识别能力，也可随时恢复 SiliconFlow 默认配置。识别公式时只向所配置的服务发送公式 PNG 裁图，不会发送整页 PDF。密钥保存在 Zotero 登录管理器中；旧偏好设置中的密钥在成功安全保存后迁移清除。API 调用可能产生费用。
 
 ## 相关链接
 

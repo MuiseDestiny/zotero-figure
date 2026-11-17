@@ -9,6 +9,19 @@ export const SILICONFLOW_CHAT_COMPLETIONS_URL =
   "https://api.siliconflow.cn/v1/chat/completions";
 export const FORMULA_REQUEST_TIMEOUT_MS = 120_000;
 
+export interface FormulaApiConfig {
+  apiKey: string;
+  apiURL: string;
+  model: string;
+  provider: "custom" | "siliconflow";
+}
+
+export const SILICONFLOW_FORMULA_API = {
+  apiURL: SILICONFLOW_CHAT_COMPLETIONS_URL,
+  model: SILICONFLOW_FORMULA_MODEL,
+  provider: "siliconflow",
+} as const;
+
 const FORMULA_PROMPT =
   "Transcribe the mathematical formula in this image into valid LaTeX. " +
   "Return only the LaTeX source, without dollar signs, code fences, or " +
@@ -18,8 +31,11 @@ const FORMULA_PROMPT =
 
 export type FormulaLatexErrorCode =
   | "http"
+  | "invalid-url"
   | "invalid-response"
+  | "key-storage"
   | "missing-key"
+  | "missing-model"
   | "network"
   | "timeout";
 
@@ -41,11 +57,10 @@ export class FormulaLatexServiceError extends Error {
 
 export async function recognizeFormulaLatex(
   image: Uint8Array,
-  apiKey: string,
+  config: FormulaApiConfig,
   options: FormulaLatexRequestOptions = {},
 ): Promise<string> {
-  const normalizedKey = apiKey.trim();
-  if (!normalizedKey) throw new FormulaLatexServiceError("missing-key");
+  const normalized = normalizeFormulaApiConfig(config);
   // IOUtils may return a typed array from another Firefox realm, where
   // instanceof Uint8Array is false even though the byte view is valid.
   if (image.byteLength === 0) {
@@ -54,9 +69,11 @@ export async function recognizeFormulaLatex(
 
   const request = createRequestContext(options);
   try {
-    const response = await request.fetcher(SILICONFLOW_CHAT_COMPLETIONS_URL, {
+    const response = await request.fetcher(normalized.apiURL, {
       body: JSON.stringify({
-        enable_thinking: false,
+        ...(normalized.provider === "siliconflow"
+          ? { enable_thinking: false }
+          : {}),
         max_tokens: 1024,
         messages: [
           {
@@ -72,12 +89,12 @@ export async function recognizeFormulaLatex(
             role: "user",
           },
         ],
-        model: SILICONFLOW_FORMULA_MODEL,
+        model: normalized.model,
         stream: false,
         temperature: 0,
       }),
       headers: {
-        Authorization: `Bearer ${normalizedKey}`,
+        Authorization: `Bearer ${normalized.apiKey}`,
         "Content-Type": "application/json",
       },
       method: "POST",
@@ -104,25 +121,26 @@ export async function recognizeFormulaLatex(
   }
 }
 
-export async function validateSiliconFlowApiKey(
-  apiKey: string,
+export async function validateFormulaApiConfig(
+  config: FormulaApiConfig,
   options: FormulaLatexRequestOptions = {},
 ): Promise<void> {
-  const normalizedKey = apiKey.trim();
-  if (!normalizedKey) throw new FormulaLatexServiceError("missing-key");
+  const normalized = normalizeFormulaApiConfig(config);
   const request = createRequestContext(options);
   try {
-    const response = await request.fetcher(SILICONFLOW_CHAT_COMPLETIONS_URL, {
+    const response = await request.fetcher(normalized.apiURL, {
       body: JSON.stringify({
-        enable_thinking: false,
-        max_tokens: 2,
+        ...(normalized.provider === "siliconflow"
+          ? { enable_thinking: false }
+          : {}),
+        max_tokens: 16,
         messages: [{ content: "Reply with OK only.", role: "user" }],
-        model: SILICONFLOW_FORMULA_MODEL,
+        model: normalized.model,
         stream: false,
         temperature: 0,
       }),
       headers: {
-        Authorization: `Bearer ${normalizedKey}`,
+        Authorization: `Bearer ${normalized.apiKey}`,
         "Content-Type": "application/json",
       },
       method: "POST",
@@ -143,6 +161,34 @@ export async function validateSiliconFlowApiKey(
   } finally {
     request.dispose();
   }
+}
+
+export function normalizeFormulaApiConfig(
+  config: FormulaApiConfig,
+): FormulaApiConfig {
+  const apiKey = config.apiKey.trim();
+  if (!apiKey) throw new FormulaLatexServiceError("missing-key");
+  const model = config.model.trim();
+  if (!model) throw new FormulaLatexServiceError("missing-model");
+  let url: URL;
+  try {
+    url = new URL(config.apiURL.trim());
+  } catch {
+    throw new FormulaLatexServiceError("invalid-url");
+  }
+  if (
+    !["http:", "https:"].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.hash
+  ) {
+    throw new FormulaLatexServiceError("invalid-url");
+  }
+  const path = url.pathname.replace(/\/+$/, "");
+  url.pathname = path.endsWith("/chat/completions")
+    ? path
+    : `${path || "/v1"}/chat/completions`;
+  return { ...config, apiKey, apiURL: url.href, model };
 }
 
 export function cleanLatexResponse(value: string): string {

@@ -56,6 +56,21 @@ Sharing the analyzer is important: its permit pools bound work across concurrent
 Readers as well as batch workflows. Batch attachments themselves are processed
 sequentially.
 
+## Formula OCR configuration
+
+Formula OCR uses SiliconFlow by default or a user-configured OpenAI-compatible
+Chat Completions service. Preferences and recognition read the same configuration;
+saving a custom URL, key, and model starts a text-only connection check. This
+check does not establish image support. Formula recognition sends only PNG crops
+to the selected service; PDF parsing, rendering, and layout detection remain local.
+
+API keys are stored through the Zotero login-manager adapter, separately for the
+default and custom providers. Legacy SiliconFlow preference keys are cleared only
+after secure storage succeeds. URLs, model IDs, provider selection, and validation
+flags remain in preferences. Editing the active configuration invalidates its
+check and disables automatic recognition. Preference controllers abort pending
+checks and remove their event listeners on window unload or plugin shutdown.
+
 ## Gallery comparison persistence
 
 Comparison layouts live in `zotero-figure/comparison-layouts.json` under the

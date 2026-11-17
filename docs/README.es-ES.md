@@ -25,7 +25,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 
 - Zotero 9 o Zotero 10.
 - El XPI de Zotero Figure de la [última versión](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
-- Solo para OCR de fórmulas: conexión de red y una clave API de SiliconFlow.
+- Solo para OCR de fórmulas: conexión de red y una clave API de SiliconFlow o de un servicio personalizado compatible con OpenAI.
 
 No se necesitan Java ni `pdffigures2.jar`.
 
@@ -46,7 +46,7 @@ No se necesitan Java ni `pdffigures2.jar`.
 
 El análisis, el renderizado, la detección de la estructura y el almacenamiento de resultados permanecen en el equipo. Los resultados locales no usan Zotero Sync salvo que se active la duplicación como anotaciones.
 
-El OCR de fórmulas es opcional. La comprobación de la clave API envía a SiliconFlow una solicitud solo de texto. El reconocimiento envía recortes PNG de fórmulas, nunca páginas PDF completas; la clave se guarda en las preferencias locales de Zotero. El uso de SiliconFlow puede tener costes.
+El OCR de fórmulas es opcional. En Preferencias, **Personalizar** permite configurar la URL de una API Chat Completions compatible con OpenAI, la clave y un modelo que admita imágenes. Se aceptan URL base y URL completas `/chat/completions`. **Guardar y comprobar** verifica automáticamente la conexión con una solicitud de texto; no comprueba la compatibilidad con imágenes. Se puede restaurar la configuración de SiliconFlow. El reconocimiento envía recortes PNG de fórmulas al servicio configurado, nunca páginas PDF completas. Las claves se guardan en el gestor de contraseñas de Zotero; las antiguas claves en preferencias se eliminan tras guardarse de forma segura. El uso de la API puede tener costes.
 
 ## Enlaces
 

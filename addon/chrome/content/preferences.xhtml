@@ -126,7 +126,55 @@
     #zotero-prefpane-__addonRef__ .api-key-label {
       color: var(--fill-primary, #222);
       font-weight: 600;
+    }
+
+    #zotero-prefpane-__addonRef__ .api-key-heading {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 6px;
+    }
+
+    #zotero-prefpane-__addonRef__ [hidden] {
+      display: none !important;
+    }
+
+    #zotero-prefpane-__addonRef__ .custom-api-editor {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 620px;
+    }
+
+    #zotero-prefpane-__addonRef__ .custom-api-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    #zotero-prefpane-__addonRef__ .custom-api-field > input {
+      box-sizing: border-box;
+      min-height: 30px;
+      min-width: 0;
+      width: 100%;
+    }
+
+    #zotero-prefpane-__addonRef__ .custom-api-description {
+      color: var(--fill-secondary);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    #zotero-prefpane-__addonRef__ .custom-api-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    #zotero-prefpane-__addonRef__ #custom-formula-api-error {
+      color: var(--accent-red);
+      font-size: 12px;
     }
 
     #zotero-prefpane-__addonRef__ #siliconflow-api-key {
@@ -141,6 +189,7 @@
       display: flex;
       gap: 8px;
       min-width: 0;
+      flex-wrap: wrap;
     }
 
     #zotero-prefpane-__addonRef__ #siliconflow-api-status {
@@ -150,11 +199,11 @@
     }
 
     #zotero-prefpane-__addonRef__ #siliconflow-api-status[data-state="valid"] {
-      color: #2e7d32;
+      color: var(--accent-green);
     }
 
     #zotero-prefpane-__addonRef__ #siliconflow-api-status[data-state="invalid"] {
-      color: #c62828;
+      color: var(--accent-red);
     }
 
     #zotero-prefpane-__addonRef__ .api-key-help-icon {
@@ -338,12 +387,80 @@
       data-l10n-id="preferences-section-formula-recognition"
     />
     <vbox class="api-key-field">
-      <html:label
-        class="api-key-label"
-        for="siliconflow-api-key"
-        data-l10n-id="preferences-siliconflow-api-key"
-      />
-      <hbox class="api-key-control" align="center">
+      <hbox class="api-key-heading" align="center">
+        <html:label
+          id="formula-api-label"
+          class="api-key-label"
+          for="siliconflow-api-key"
+        />
+        <button
+          id="customize-formula-api"
+          data-l10n-id="preferences-formula-api-customize"
+        />
+      </hbox>
+      <vbox
+        id="custom-formula-api-editor"
+        class="custom-api-editor"
+        hidden="true"
+      >
+        <html:span
+          class="custom-api-description"
+          data-l10n-id="preferences-custom-api-description"
+        />
+        <vbox class="custom-api-field">
+          <html:label
+            for="custom-formula-api-url"
+            data-l10n-id="preferences-custom-api-url"
+          />
+          <html:input
+            id="custom-formula-api-url"
+            type="url"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="https://api.example.com/v1"
+          />
+        </vbox>
+        <vbox class="custom-api-field">
+          <html:label
+            for="custom-formula-api-key"
+            data-l10n-id="preferences-custom-api-key"
+          />
+          <html:input
+            id="custom-formula-api-key"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </vbox>
+        <vbox class="custom-api-field">
+          <html:label
+            for="custom-formula-api-model"
+            data-l10n-id="preferences-custom-api-model"
+          />
+          <html:input
+            id="custom-formula-api-model"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </vbox>
+        <html:span id="custom-formula-api-error" role="alert" hidden="true" />
+        <hbox class="custom-api-actions">
+          <button
+            id="save-custom-formula-api"
+            data-l10n-id="preferences-custom-api-save"
+          />
+          <button
+            id="cancel-custom-formula-api"
+            data-l10n-id="preferences-custom-api-cancel"
+          />
+          <button
+            id="use-default-formula-api"
+            data-l10n-id="preferences-custom-api-default"
+          />
+        </hbox>
+      </vbox>
+      <hbox id="formula-api-control" class="api-key-control" align="center">
         <html:input
           id="siliconflow-api-key"
           type="password"
