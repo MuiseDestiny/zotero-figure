@@ -24,7 +24,7 @@ Zotero Figure 可检测 PDF 中的图、表、独立公式、说明和表格脚�
 
 ## 环境要求
 
-- Zotero 9 或 Zotero 10。
+- Zotero 9、Zotero 10 或 Zotero 11（测试版）。
 - [最新版本](https://github.com/MuiseDestiny/zotero-figure/releases/latest)中的 Zotero Figure XPI。
 - 仅公式 OCR 需要网络连接，以及 SiliconFlow 或自定义兼容 OpenAI 服务的 API 密钥。
 

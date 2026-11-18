@@ -36,6 +36,9 @@ export class ZoteroMainTab {
     });
     this.tabID = tab.id;
     try {
+      // Omit `remote` for an in-process browser on every supported version.
+      // Gecko 153 (Zotero 11) treats its presence, even "false", as enabled;
+      // the gallery needs an in-process document to reach the Zotero API.
       const browser = ztoolkit.UI.createElement(
         tab.container.ownerDocument,
         "browser",
@@ -43,7 +46,6 @@ export class ZoteroMainTab {
           attributes: {
             disableglobalhistory: "true",
             flex: "1",
-            remote: "false",
             src: this.options.contentURL,
             type: "content",
           },

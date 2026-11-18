@@ -139,9 +139,9 @@ function validateZoteroManifest(file) {
   const application = manifest.applications?.zotero;
   if (
     application?.strict_min_version !== "9.0" ||
-    application?.strict_max_version !== "10.*"
+    application?.strict_max_version !== "11.*"
   ) {
-    throw new Error(`${file} must support Zotero 9 through 10`);
+    throw new Error(`${file} must support Zotero 9 through 11`);
   }
 }
 
@@ -152,9 +152,9 @@ function validateZoteroUpdateTemplate(file) {
   if (
     updates?.length !== 1 ||
     application?.strict_min_version !== "9.0" ||
-    application?.strict_max_version !== "10.*"
+    application?.strict_max_version !== "11.*"
   ) {
-    throw new Error(`${file} must publish updates for Zotero 9 through 10`);
+    throw new Error(`${file} must publish updates for Zotero 9 through 11`);
   }
 }
 

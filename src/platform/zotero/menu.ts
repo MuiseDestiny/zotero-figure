@@ -31,7 +31,7 @@ export interface WindowMenuHandle {
   dispose(): void;
 }
 
-/** Zotero 9/10 menus use XUL DOM; retain every listener for explicit cleanup. */
+/** Window-owned XUL menus; retain every listener for explicit cleanup. */
 export function registerWindowMenu(
   popup: Element,
   options: MenuitemOptions,
@@ -76,6 +76,12 @@ export function registerWindowMenu(
       );
       element.style.setProperty(
         "list-style-image",
+        `url(${JSON.stringify(item.icon)})`,
+      );
+      // Zotero 11's HTML menu icons use this variable. Retain list-style-image
+      // for the XUL image used by Zotero 9/10.
+      element.style.setProperty(
+        "--menuitem-icon",
         `url(${JSON.stringify(item.icon)})`,
       );
     }

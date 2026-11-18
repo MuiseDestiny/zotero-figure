@@ -52,6 +52,12 @@ The UI wait itself is retained; disabling the addon cancels the pending start.
 - shutdown aborts/disposes controllers and workers, unregisters toolkit UI,
   and removes the addon singleton.
 
+The gallery uses an in-process XUL browser in its custom main-window tab on
+Zotero 9–11. Omit the `remote` attribute: Gecko 153 (Zotero 11) treats even
+`remote="false"` as remote and leaves the privileged gallery at `about:blank`.
+Window-owned menus set both `list-style-image` for Zotero 9/10 and
+`--menuitem-icon` for Zotero 11's HTML menu images.
+
 Sharing the analyzer is important: its permit pools bound work across concurrent
 Readers as well as batch workflows. Batch attachments themselves are processed
 sequentially.

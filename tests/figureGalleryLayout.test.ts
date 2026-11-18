@@ -37,7 +37,6 @@ test("opens the gallery through an isolated Zotero custom tab", () => {
   assert.match(tabAdapter, /type: this\.options\.type/);
   assert.match(tabAdapter, /"browser"/);
   assert.match(tabAdapter, /type: "content"/);
-  assert.match(tabAdapter, /remote: "false"/);
   assert.doesNotMatch(tabAdapter, /"iframe"/);
   assert.match(tabAdapter, /tabs\.select\(tab\.id\)/);
   assert.match(tabAdapter, /this\.window[\s\S]*Zotero_Tabs/);

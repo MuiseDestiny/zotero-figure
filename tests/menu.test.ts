@@ -10,8 +10,15 @@ class MenuElement extends EventTarget {
   children: MenuElement[] = [];
   parent?: MenuElement;
   attributes = new Map<string, string>();
-  classList = { add: () => {} };
-  style = { setProperty: () => {} };
+  classes = new Set<string>();
+  classList = {
+    add: (...names: string[]) =>
+      names.forEach((name) => this.classes.add(name)),
+  };
+  styles = new Map<string, string>();
+  style = {
+    setProperty: (name: string, value: string) => this.styles.set(name, value),
+  };
 
   constructor(
     readonly ownerDocument: MenuDocument,
@@ -116,5 +123,25 @@ test("disposed window menus ignore pending visibility predicates", async () => {
   resolve(true);
   await visibility;
   assert.equal(root.attributes.get("hidden"), "true");
+  assert.equal(doc.popup.children.length, 0);
+});
+
+test("window menus supply both Zotero 9/10 and Zotero 11 icon sources", () => {
+  const doc = new MenuDocument();
+  const icon = "chrome://zoterofigure/content/icons/favicon.png";
+  const handle = registerWindowMenu(doc.popup as unknown as Element, {
+    tag: "menu",
+    icon,
+    children: [{ tag: "menuitem", icon }],
+  });
+  const menu = doc.popup.children[0];
+  const item = menu.children[0].children[0];
+  for (const element of [menu, item]) {
+    assert.equal(element.styles.get("list-style-image"), `url("${icon}")`);
+    assert.equal(element.styles.get("--menuitem-icon"), `url("${icon}")`);
+  }
+  assert.ok(menu.classes.has("menu-iconic"));
+  assert.ok(item.classes.has("menuitem-iconic"));
+  handle.dispose();
   assert.equal(doc.popup.children.length, 0);
 });

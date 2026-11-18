@@ -24,7 +24,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 
 ## Requisitos
 
-- Zotero 9 o Zotero 10.
+- Zotero 9, Zotero 10 o Zotero 11 (beta).
 - El XPI de Zotero Figure de la [última versión](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Solo para OCR de fórmulas: conexión de red y una clave API de SiliconFlow o de un servicio personalizado compatible con OpenAI.
 

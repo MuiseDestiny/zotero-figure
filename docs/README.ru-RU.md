@@ -24,7 +24,7 @@ Zotero Figure находит в PDF рисунки, таблицы, отдель
 
 ## Требования
 
-- Zotero 9 или Zotero 10.
+- Zotero 9, Zotero 10 или Zotero 11 (бета).
 - XPI Zotero Figure из [последнего выпуска](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Только для OCR формул: сеть и ключ API SiliconFlow или своего сервиса, совместимого с OpenAI.
 

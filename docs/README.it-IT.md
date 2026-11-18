@@ -24,7 +24,7 @@ Zotero Figure rileva figure, tabelle, formule isolate, didascalie e note a piè 
 
 ## Requisiti
 
-- Zotero 9 o Zotero 10.
+- Zotero 9, Zotero 10 o Zotero 11 (beta).
 - L'XPI di Zotero Figure dall'[ultima versione](https://github.com/MuiseDestiny/zotero-figure/releases/latest).
 - Solo per l'OCR delle formule: accesso alla rete e una chiave API SiliconFlow o di un servizio personalizzato compatibile con OpenAI.
 
