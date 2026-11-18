@@ -1,4 +1,5 @@
 import { config } from "../../../package.json";
+import { GalleryCardSelection } from "./galleryCardSelection";
 import type {
   FigureGalleryBootstrap,
   FigureGalleryComparisonCell,
@@ -237,6 +238,7 @@ let unsubscribeFormulaLatex: (() => void) | undefined;
 let unsubscribeRemovals: (() => void) | undefined;
 let removalPending = false;
 let disposed = false;
+let cardSelection: GalleryCardSelection;
 
 window.addEventListener("DOMContentLoaded", () => void initialize());
 window.addEventListener("unload", dispose);
@@ -369,6 +371,11 @@ function resolveGalleryApi(): FigureGalleryApi | undefined {
 }
 
 function bindControls(): void {
+  cardSelection = new GalleryCardSelection(elements.galleryGrid);
+  for (const type of ["pointerdown", "focusin"])
+    elements.galleryGrid.addEventListener(type, (event) =>
+      cardSelection.selectTarget(event.target),
+    );
   elements.clearDocument.append(createFigureSidebarIcon(document, "trash"));
   elements.clearDocument.addEventListener("click", () => {
     const documentID = Number(elements.documentFilter.value);
@@ -672,6 +679,7 @@ function restoreGalleryViewport(viewport: GalleryViewport): void {
 }
 
 function handleGalleryContextMenu(event: MouseEvent): void {
+  cardSelection.selectTarget(event.target)?.focus({ preventScroll: true });
   if (handleRemovalContextMenu(event)) return;
   if (viewMode !== "document-columns" || !comparisonLayout) return;
   const target = event.target;
@@ -1424,6 +1432,7 @@ function applyFilters(): void {
   activeKeyword = facets.filters.keyword;
   filteredEntries = filterGalleryEntries(allEntries, facets.filters);
   filteredEntryIDs = new Set(filteredEntries.map(({ id }) => id));
+  cardSelection.retain(filteredEntryIDs);
   renderResults();
 }
 
@@ -2195,6 +2204,7 @@ function createCard(
   card.dataset.id = entry.id;
   card.tabIndex = 0;
   card.setAttribute("role", "button");
+  cardSelection.restore(card);
 
   const media = document.createElement("div");
   media.className = "gallery-media";

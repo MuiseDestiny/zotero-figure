@@ -6,6 +6,7 @@
   --gallery-border: var(--fill-quarternary);
   --gallery-muted: var(--fill-secondary);
   --gallery-surface: var(--material-sidepane);
+  --gallery-card-accent: var(--color-accent, var(--accent-blue));
   --gallery-control-border: var(--fill-quarternary);
   --gallery-control-border-hover: var(--fill-tertiary);
   --gallery-control-surface: var(--material-button);
@@ -307,12 +308,6 @@ select {
 .gallery-field select:hover {
   border-color: var(--gallery-control-border-hover);
   background: var(--gallery-control-surface-hover);
-}
-
-.gallery-card:focus-visible {
-  border-color: var(--gallery-accent);
-  outline: 2px solid color-mix(in srgb, var(--gallery-accent) 35%, transparent);
-  outline-offset: 1px;
 }
 
 main {
@@ -1009,17 +1004,64 @@ main {
   background: var(--gallery-surface);
   cursor: pointer;
   transition:
-    border-color 120ms ease,
-    translate 120ms ease;
+    border-color 150ms ease,
+    background-color 150ms ease;
 }
 
 .gallery-card:hover {
-  border-color: color-mix(in srgb, var(--gallery-accent) 55%, currentColor);
-  translate: 0 -1px;
+  border-color: color-mix(
+    in srgb,
+    var(--gallery-card-accent) 48%,
+    var(--gallery-border)
+  );
+  background: color-mix(
+    in srgb,
+    var(--gallery-card-accent) 8%,
+    var(--gallery-surface)
+  );
 }
 
 .gallery-card.is-comparison:hover {
   translate: none;
+}
+
+.gallery-card.is-selected {
+  border-color: color-mix(
+    in srgb,
+    var(--gallery-card-accent) 62%,
+    var(--gallery-border)
+  );
+  outline: 1px solid
+    color-mix(in srgb, var(--gallery-card-accent) 26%, transparent);
+  outline-offset: -2px;
+}
+
+.gallery-card:focus-visible {
+  outline: 2px solid var(--gallery-card-accent);
+  outline-offset: -2px;
+  border-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-card {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .gallery-card:hover {
+    border-color: Highlight;
+  }
+
+  .gallery-card.is-selected {
+    border-color: Highlight;
+    outline-color: Highlight;
+  }
+
+  .gallery-card:focus-visible {
+    outline-color: Highlight;
+    border-color: transparent;
+  }
 }
 
 .gallery-card[draggable="true"] {
