@@ -3,6 +3,21 @@ import test from "node:test";
 import { KeyedAsyncMutex } from "../src/services/concurrency/keyedAsyncMutex";
 import { OperationCancelledError } from "../src/utils/cancellation";
 
+test("tryAcquire reserves synchronously and rejects busy and queued keys", async () => {
+  const mutex = new KeyedAsyncMutex<string>();
+  const reservation = mutex.tryAcquire("pdf");
+  assert.ok(reservation);
+  assert.equal(mutex.isLocked("pdf"), true);
+  assert.equal(mutex.tryAcquire("pdf"), undefined);
+  const release = await reservation;
+  const waiting = mutex.acquire("pdf");
+  release();
+  assert.equal(mutex.tryAcquire("pdf"), undefined);
+  (await waiting)();
+  assert.equal(mutex.isLocked("pdf"), false);
+  (await mutex.tryAcquire("pdf")!)();
+});
+
 test("serializes equal keys without blocking unrelated keys", async () => {
   const mutex = new KeyedAsyncMutex<string>();
   const releaseFirst = await mutex.acquire("first");

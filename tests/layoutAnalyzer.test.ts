@@ -16,6 +16,7 @@ import type { PdfEngine } from "../src/services/pdf/pdfEngine";
 import { RECOMMENDED_MODEL } from "../src/services/model/modelCatalog";
 import { modelManager } from "../src/services/model/modelManager";
 import { OperationCancelledError } from "../src/utils/cancellation";
+import { isAttachmentBusy } from "../src/services/results/attachmentOperations";
 import { installMemoryIO } from "./helpers/memoryIO";
 
 class AnalyzerWorker {
@@ -564,6 +565,7 @@ test("serializes analyses of the same attachment before reading a new source", a
   const store = new FigureResultStore();
   const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
   const first = analyzer.analyze(harness.reader, { update() {} });
+  assert.equal(isAttachmentBusy(harness.reader._item), true);
   let second: Promise<Awaited<typeof first>> | undefined;
   try {
     await waitFor(() => harness.openedDocumentCount() === 1);
@@ -581,6 +583,7 @@ test("serializes analyses of the same attachment before reading a new source", a
     await waitFor(() => worker.detectionMessages.length === 2);
     assert.equal(worker.respondToNextDetection(), true);
     await second;
+    assert.equal(isAttachmentBusy(harness.reader._item), false);
 
     const [stored] = await store.list(harness.reader._item);
     assert.ok(

@@ -239,6 +239,23 @@ transaction.
 
 ## UI request and image lifecycles
 
+Gallery deletion and Reader deletion share `FigureResultRemovalService`.
+Document clearing resolves every live PDF attachment of the top-level item,
+independent of gallery filters, then reads the current store to confirm the
+actual result count. The workflow reserves all affected attachment operation
+leases before confirmation; active or queued analysis prevents deletion, and
+new analysis waits until deletion releases the leases. Storage locks remain
+separate and are acquired only inside result-store methods.
+
+Local deletion precedes optional annotation cleanup. Only generated annotations
+matching the existing author/tag contract can be removed; source PDFs, manual
+annotations, and note snapshots are preserved. A document clear continues past
+individual attachment failures and reports partial failure. One completion
+notification, including failed attempts, refreshes every open Reader/gallery
+and reconciles persisted comparison references. Cancellation of the native
+confirmation makes no changes. Deletion stores no exclusion rule, so a later
+analysis can recreate the results.
+
 Reader sidebar and gallery images are loaded from local bytes through revocable
 Blob URLs. Their bounded queues do not finish when `src` is assigned: they wait
 for image load and decode, and cancellation must settle that wait before a queue

@@ -9,6 +9,16 @@ interface MutexEntry {
 export class KeyedAsyncMutex<Key> {
   private readonly entries = new Map<Key, MutexEntry>();
 
+  public isLocked(key: Key): boolean {
+    return this.entries.has(key);
+  }
+
+  /** Reserves an idle key synchronously, including before the caller awaits. */
+  public tryAcquire(key: Key): Promise<() => void> | undefined {
+    if (this.isLocked(key)) return undefined;
+    return this.acquire(key);
+  }
+
   public async acquire(key: Key, signal?: AbortSignal): Promise<() => void> {
     const entry = this.entries.get(key) ?? {
       permits: new AsyncPermitPool(1),

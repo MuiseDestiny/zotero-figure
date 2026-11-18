@@ -20,6 +20,21 @@ batch-progress-current = [{ $current }/{ $total }] { $title }: { $detail }
 batch-progress-finished-item = Completato il PDF { $current } di { $total }
 batch-progress-done = Completati { $succeeded } PDF, non riusciti { $failed }, trovati { $results } risultati, create { $notes } note e { $annotations } annotazioni
 
+gallery-delete-result = Elimina il risultato locale
+gallery-clear-document = Cancella tutti i risultati del documento
+gallery-clear-document-control =
+    .title = Cancella tutti i risultati del documento selezionato
+    .aria-label = Cancella tutti i risultati del documento selezionato
+gallery-result-menu =
+    .title = Azioni del risultato
+    .aria-label = Azioni del risultato
+gallery-delete-title = Elimina risultati Figure
+gallery-confirm-delete = Eliminare questo risultato locale da «{ $title }»? Il PDF e le note salvate verranno conservati. Una nuova analisi ricreerà i risultati rilevati.
+gallery-confirm-clear = Eliminare tutti i { $count } risultati locali nei { $attachments } allegati PDF di «{ $title }», compresi quelli nascosti dai filtri? I PDF e le note salvate verranno conservati. Una nuova analisi ricreerà i risultati rilevati.
+gallery-delete-annotations = Elimina anche le annotazioni generate da Figure
+gallery-delete-busy = Questo documento è in fase di analisi o aggiornamento. Attendi il completamento prima di eliminare i risultati.
+gallery-delete-partial-error = Non è stato possibile eliminare alcuni risultati o annotazioni speculari. La libreria è stata aggiornata; controlla i risultati rimanenti e riprova.
+
 gallery-title = Libreria di figure PDF
 gallery-menu-open = Libreria di figure PDF
 gallery-refresh =

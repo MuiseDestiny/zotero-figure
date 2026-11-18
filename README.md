@@ -12,6 +12,7 @@ Zotero Figure detects PDF figures, tables, display formulae, captions, and table
 
 ## Features
 
+- Delete individual local results from a gallery card menu, or clear a document from its column header or the button beside the document filter. Clearing covers all PDF attachments and results hidden by filters. Confirmation offers optional removal of Figure-generated annotation mirrors; source PDFs and saved notes are kept. Results can be recreated by analyzing again. Deletion is unavailable while an affected attachment is being analyzed or updated.
 - Analyze PDFs locally without uploading pages or downloading a model at runtime.
 - Review results in a dedicated Reader sidebar with combinable type filters that hide unavailable kinds, plus analysis progress.
 - Copy, save, or pin an image; edit its caption or correct its crop in a dialog sized to the PDF page; open its PDF page; add it to a note; or remove it.

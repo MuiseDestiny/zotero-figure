@@ -20,6 +20,21 @@ batch-progress-current = [{ $current }/{ $total }] { $title }：{ $detail }
 batch-progress-finished-item = 已完成第 { $current }/{ $total } 个 PDF
 batch-progress-done = 已完成 { $succeeded } 个 PDF，失败 { $failed } 个，共找到 { $results } 个结果，创建 { $notes } 篇笔记和 { $annotations } 个标注
 
+gallery-delete-result = 删除本地结果
+gallery-clear-document = 清空此文献的全部结果
+gallery-clear-document-control =
+    .title = 清空所选文献的全部结果
+    .aria-label = 清空所选文献的全部结果
+gallery-result-menu =
+    .title = 结果操作
+    .aria-label = 结果操作
+gallery-delete-title = 删除 Figure 结果
+gallery-confirm-delete = 是否删除“{ $title }”中的这个本地结果？原 PDF 和已保存的笔记会保留。重新解析会再次生成检测到的结果。
+gallery-confirm-clear = 是否删除“{ $title }”的 { $attachments } 个 PDF 附件中的全部 { $count } 个本地结果（包括被筛选隐藏的结果）？原 PDF 和已保存的笔记会保留。重新解析会再次生成检测到的结果。
+gallery-delete-annotations = 同时删除 Figure 生成的标注
+gallery-delete-busy = 此文献正在解析或更新，请等待完成后再删除结果。
+gallery-delete-partial-error = 部分结果或标注镜像未能删除。图表库已刷新，请检查剩余结果后重试。
+
 gallery-title = PDF 图表库
 gallery-menu-open = PDF 图表库
 gallery-refresh =

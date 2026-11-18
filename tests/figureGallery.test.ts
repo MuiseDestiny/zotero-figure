@@ -1012,6 +1012,13 @@ test("builds a library snapshot without exposing local image paths", async () =>
     mimeType: "image/png",
   });
   await index.openSource(snapshot.entries[0].id);
+  const resolved = await index.resolveResult(snapshot.entries[0].id);
+  assert.equal(resolved.attachment, attachment);
+  assert.equal(resolved.resultID, storedResult.id);
+  await assert.rejects(
+    index.resolveResult("4:ATTACHMENT:unknown"),
+    /no longer indexed/,
+  );
   assert.deepEqual(opened, [[21, 2, [1, 2, 30, 40]]]);
   assert.deepEqual(errors, []);
 });

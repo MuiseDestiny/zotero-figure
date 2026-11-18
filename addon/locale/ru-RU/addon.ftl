@@ -20,6 +20,21 @@ batch-progress-current = [{ $current }/{ $total }] { $title }: { $detail }
 batch-progress-finished-item = Завершен PDF { $current } из { $total }
 batch-progress-done = Завершено PDF: { $succeeded }, с ошибкой: { $failed }, найдено результатов: { $results }, создано заметок: { $notes }, аннотаций: { $annotations }
 
+gallery-delete-result = Удалить локальный результат
+gallery-clear-document = Очистить все результаты документа
+gallery-clear-document-control =
+    .title = Очистить все результаты выбранного документа
+    .aria-label = Очистить все результаты выбранного документа
+gallery-result-menu =
+    .title = Действия с результатом
+    .aria-label = Действия с результатом
+gallery-delete-title = Удаление результатов Figure
+gallery-confirm-delete = Удалить этот локальный результат из «{ $title }»? PDF и сохранённые заметки останутся. Повторный анализ создаст обнаруженные результаты заново.
+gallery-confirm-clear = Удалить все локальные результаты ({ $count }) из PDF-вложений ({ $attachments }) документа «{ $title }», включая скрытые фильтрами? PDF и сохранённые заметки останутся. Повторный анализ создаст обнаруженные результаты заново.
+gallery-delete-annotations = Также удалить аннотации, созданные Figure
+gallery-delete-busy = Документ анализируется или обновляется. Дождитесь завершения, прежде чем удалять результаты.
+gallery-delete-partial-error = Некоторые результаты или копии аннотаций не удалось удалить. Библиотека обновлена; проверьте оставшиеся результаты и повторите попытку.
+
 gallery-title = Библиотека иллюстраций PDF
 gallery-menu-open = Библиотека иллюстраций PDF
 gallery-refresh =

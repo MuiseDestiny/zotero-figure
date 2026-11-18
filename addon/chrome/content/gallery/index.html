@@ -19,10 +19,21 @@
   <body>
     <header id="filter-toolbar" class="gallery-toolbar">
       <div id="gallery-filter-controls" class="gallery-filters">
-        <label class="gallery-field gallery-field-document">
-          <span data-l10n-id="gallery-filter-document">Document</span>
-          <select id="document-filter"></select>
-        </label>
+        <div class="gallery-field gallery-field-document">
+          <label for="document-filter" data-l10n-id="gallery-filter-document"
+            >Document</label
+          >
+          <div class="gallery-document-filter-control">
+            <select id="document-filter"></select>
+            <button
+              id="clear-document"
+              class="gallery-icon-button"
+              type="button"
+              disabled
+              data-l10n-id="gallery-clear-document-control"
+            ></button>
+          </div>
+        </div>
         <label class="gallery-field gallery-field-year">
           <span data-l10n-id="gallery-filter-year">Year</span>
           <select id="year-filter"></select>

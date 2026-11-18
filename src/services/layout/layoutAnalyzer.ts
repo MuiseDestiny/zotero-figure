@@ -23,7 +23,7 @@ import {
 import { getString } from "../../utils/locale";
 import { getPref } from "../../utils/prefs";
 import { AsyncPermitPool } from "../concurrency/asyncPermitPool";
-import { KeyedAsyncMutex } from "../concurrency/keyedAsyncMutex";
+import { acquireAttachmentOperation } from "../results/attachmentOperations";
 import { MODEL_NAME, type ModelVariant } from "../model/modelCatalog";
 import { modelManager } from "../model/modelManager";
 import { LayoutWorkerPool } from "./workerPool";
@@ -82,7 +82,6 @@ const MAX_STORAGE_PAGES = 1;
 const MAX_ANNOTATION_PAGES = 1;
 const NO_PAGE_TASK_ERROR = Symbol("no-page-task-error");
 const SCAN_PROGRESS_WEIGHT = 0.2;
-const attachmentAnalysisLeases = new KeyedAsyncMutex<string>();
 
 export class LayoutAnalyzer {
   private disposed = false;
@@ -259,8 +258,8 @@ export class LayoutAnalyzer {
     options: AnalysisOptions = {},
   ): Promise<AnalysisSummary> {
     if (this.disposed) throw new OperationCancelledError();
-    const releaseAnalysis = await attachmentAnalysisLeases.acquire(
-      getAttachmentAnalysisKey(attachment),
+    const releaseAnalysis = await acquireAttachmentOperation(
+      attachment,
       options.signal,
     );
     try {
@@ -908,10 +907,6 @@ function getDuplicateMode(): DuplicateMode {
   return getPref("duplicateMode") === "skip-existing"
     ? "skip-existing"
     : "replace-page";
-}
-
-function getAttachmentAnalysisKey(attachment: Zotero.Item): string {
-  return `${attachment.libraryID}:${attachment.key}`;
 }
 
 function reportDetectionProgress(

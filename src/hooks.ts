@@ -24,6 +24,8 @@ import {
   setFigureGalleryViewMode,
 } from "./services/results/figureGalleryPreferences";
 import { FigureResultStore } from "./services/results/figureResultStore";
+import { FigureResultRemovalService } from "./services/results/figureResultRemovalService";
+import { reconcileFigureGalleryComparisonLayout } from "./domain/figureGallery";
 import { initLocale } from "./utils/locale";
 
 const controllers = new Map<Window, FigureReaderController>();
@@ -40,7 +42,8 @@ async function onStartup(): Promise<void> {
   unregisterShutdownFlush = registerApplicationShutdownTask(
     flushComparisonLayouts,
   );
-  const { batchController, formulaLatex, galleryIndex } = ensureServices();
+  const { batchController, formulaLatex, galleryIndex, removalService } =
+    ensureServices();
   addon.api.gallery = {
     getBootstrap: () => galleryIndex.getBootstrap(),
     getComparisonLayout: (libraryID: number) =>
@@ -50,6 +53,25 @@ async function onStartup(): Promise<void> {
     loadLibrary: (libraryID: number) => galleryIndex.loadLibrary(libraryID),
     openSource: (entryID: string) => galleryIndex.openSource(entryID),
     readImage: (entryID: string) => galleryIndex.readImage(entryID),
+    removeResult: async (entryID: string) => {
+      const { attachment, resultID } =
+        await galleryIndex.resolveResult(entryID);
+      await removalService.removeResult(
+        Zotero.getMainWindow(),
+        attachment,
+        resultID,
+      );
+    },
+    clearDocument: (libraryID: number, documentItemID: number) =>
+      removalService.clearDocument(
+        Zotero.getMainWindow(),
+        libraryID,
+        documentItemID,
+      ),
+    isRemovalBusy: (libraryID: number, documentItemID: number) =>
+      removalService.isBusy(libraryID, documentItemID),
+    subscribeRemovals: (listener: (libraryID: number) => void) =>
+      removalService.subscribe(({ libraryID }) => listener(libraryID)),
     setComparisonLayout: setFigureGalleryComparisonLayout,
     setImageScale: setFigureGalleryImageScale,
     setViewMode: setFigureGalleryViewMode,
@@ -69,11 +91,13 @@ async function onStartup(): Promise<void> {
 
 async function onMainWindowLoad(win: Window): Promise<void> {
   if (controllers.has(win)) return;
-  const { formulaLatex, layoutAnalyzer, resultStore } = ensureServices();
+  const { formulaLatex, layoutAnalyzer, resultStore, removalService } =
+    ensureServices();
   const controller = new FigureReaderController(win, {
     formulaLatex,
     layoutAnalyzer,
     resultStore,
+    removalService,
   });
   controllers.set(win, controller);
   controller.start();
@@ -118,6 +142,7 @@ async function onShutdown(): Promise<void> {
   unregisterShutdownFlush = undefined;
   initialized?.formulaLatex.dispose();
   initialized?.layoutAnalyzer.dispose();
+  initialized?.removalService.dispose();
   services = undefined;
   ztoolkit.unregisterAll();
   addon.data.dialog?.window?.close();
@@ -155,6 +180,7 @@ interface HookServices {
   galleryIndex: FigureGalleryIndex;
   layoutAnalyzer: LayoutAnalyzer;
   resultStore: FigureResultStore;
+  removalService: FigureResultRemovalService;
 }
 
 function ensureServices(): HookServices {
@@ -163,6 +189,26 @@ function ensureServices(): HookServices {
   const galleryIndex = new FigureGalleryIndex(resultStore);
   const layoutAnalyzer = new LayoutAnalyzer(resultStore);
   const formulaLatex = new FormulaLatexCoordinator(resultStore);
+  const removalService = new FigureResultRemovalService(resultStore);
+  removalService.subscribe(({ libraryID }) => {
+    void galleryIndex
+      .loadLibrary(libraryID)
+      .then(({ entries }) => {
+        if (!addon.data.alive) return;
+        setFigureGalleryComparisonLayout(
+          libraryID,
+          reconcileFigureGalleryComparisonLayout(
+            entries,
+            getFigureGalleryComparisonLayout(libraryID),
+          ),
+        );
+      })
+      .catch((error) =>
+        Zotero.logError(
+          error instanceof Error ? error : new Error(String(error)),
+        ),
+      );
+  });
   const batchController = new FigureBatchController(
     layoutAnalyzer,
     resultStore,
@@ -174,6 +220,7 @@ function ensureServices(): HookServices {
     galleryIndex,
     layoutAnalyzer,
     resultStore,
+    removalService,
   };
   return services;
 }

@@ -6,7 +6,6 @@ import {
 } from "../../domain/figureResults";
 import type { AnnotationCandidate, Rect } from "../../domain/layout";
 import {
-  removeGeneratedAnnotationForCandidate,
   updateGeneratedAnnotationCommentForCandidate,
   updateGeneratedAnnotationPositionForCandidate,
 } from "../../platform/zotero/annotations";
@@ -28,6 +27,7 @@ import {
 } from "../../services/formula/formulaLatexCoordinator";
 import { FormulaLatexServiceError } from "../../services/formula/formulaLatexService";
 import { LayoutAnalyzer } from "../../services/layout/layoutAnalyzer";
+import { FigureResultRemovalService } from "../../services/results/figureResultRemovalService";
 import {
   FigureResultStore,
   type StoredFigureResult,
@@ -55,6 +55,9 @@ export class FigureReaderController {
   private readonly formulaLatex: FormulaLatexCoordinator;
   private readonly ownsFormulaLatex: boolean;
   private readonly unsubscribeFormulaLatex: () => void;
+  private readonly removalService: FigureResultRemovalService;
+  private readonly ownsRemovalService: boolean;
+  private readonly unsubscribeRemoval: () => void;
   private readonly ownsLayoutAnalyzer: boolean;
   private readonly readerDocuments = new Map<
     PdfReader,
@@ -117,6 +120,7 @@ export class FigureReaderController {
       formulaLatex?: FormulaLatexCoordinator;
       layoutAnalyzer: LayoutAnalyzer;
       resultStore: FigureResultStore;
+      removalService?: FigureResultRemovalService;
     },
   ) {
     this.resultStore = dependencies?.resultStore ?? new FigureResultStore();
@@ -130,6 +134,18 @@ export class FigureReaderController {
       this.handleFormulaLatexUpdate(update),
     );
     this.outputService = new FigureOutputService(this.resultStore);
+    this.removalService =
+      dependencies?.removalService ??
+      new FigureResultRemovalService(this.resultStore);
+    this.ownsRemovalService = dependencies?.removalService === undefined;
+    this.unsubscribeRemoval = this.removalService.subscribe(
+      ({ attachmentIDs }) => {
+        for (const reader of this.sidebarPanels.keys()) {
+          if (attachmentIDs.includes(reader._item.id))
+            this.reloadSidebarResults(reader);
+        }
+      },
+    );
     this.ownsLayoutAnalyzer = dependencies === undefined;
   }
 
@@ -163,6 +179,8 @@ export class FigureReaderController {
     for (const controller of this.activeAnalyses.values()) controller.abort();
     this.activeAnalyses.clear();
     this.unsubscribeFormulaLatex();
+    this.unsubscribeRemoval();
+    if (this.ownsRemovalService) this.removalService.dispose();
     if (this.ownsFormulaLatex) this.formulaLatex.dispose();
     if (this.ownsLayoutAnalyzer) this.layoutAnalyzer.dispose();
     if (this.hydrateTimeoutID !== undefined) {
@@ -391,20 +409,14 @@ export class FigureReaderController {
   }
 
   private async clearResults(reader: PdfReader): Promise<void> {
-    await this.resultStore.clear(reader._item);
+    await this.removalService.clearLocal(reader._item);
   }
 
   private async removeResult(
     reader: PdfReader,
     result: StoredFigureResult,
   ): Promise<void> {
-    if (!this.win.confirm(getString("confirm-remove-one"))) return;
-    await this.resultStore.remove(reader._item, result.id);
-    try {
-      await removeGeneratedAnnotationForCandidate(reader._item, result);
-    } finally {
-      this.reloadSidebarResults(reader);
-    }
+    await this.removalService.removeResult(this.win, reader._item, result.id);
   }
 
   private async editResultComment(

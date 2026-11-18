@@ -102,6 +102,30 @@ select {
 
 .gallery-icon-button > svg {
   display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.gallery-icon-button:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.gallery-document-filter-control {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+}
+
+.gallery-document-filter-control select {
+  flex: 1;
+  min-width: 0;
+}
+
+.gallery-card-menu,
+.gallery-document-clear {
+  flex-shrink: 0;
+  margin-inline-start: auto;
 }
 
 .gallery-icon-button:hover {
@@ -1247,7 +1271,8 @@ main {
     gap: 8px;
   }
 
-  .gallery-field > span {
+  .gallery-field > span,
+  .gallery-field-document > label {
     position: absolute;
     width: 1px;
     height: 1px;

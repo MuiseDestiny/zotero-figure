@@ -21,6 +21,8 @@ interface FigureGalleryResultStore {
 
 interface IndexedFigureSource {
   attachmentID: number;
+  attachmentKey: string;
+  resultID: string;
   imagePath: string;
   libraryID: number;
   pageIndex: number;
@@ -149,6 +151,20 @@ export class FigureGalleryIndex {
     );
   }
 
+  public async resolveResult(
+    entryID: string,
+  ): Promise<{ attachment: Zotero.Item; resultID: string }> {
+    const source = this.getSource(entryID);
+    const attachment = await this.platform.getAttachment(
+      source.libraryID,
+      source.attachmentKey,
+    );
+    if (!attachment || attachment.deleted || !attachment.isPDFAttachment()) {
+      throw new Error("Figure gallery attachment is unavailable");
+    }
+    return { attachment, resultID: source.resultID };
+  }
+
   private getSource(entryID: string): IndexedFigureSource {
     const source = this.sources.get(entryID);
     if (!source) throw new Error("Figure gallery result is no longer indexed");
@@ -229,6 +245,8 @@ export class FigureGalleryIndex {
           },
           source: {
             attachmentID: attachment.id,
+            attachmentKey: attachment.key,
+            resultID: result.id,
             imagePath: result.imagePath,
             libraryID,
             pageIndex: result.pageIndex,

@@ -650,7 +650,7 @@ test("clears the sidebar before local files without touching annotation mirrors"
   assert.match(panelClear, /ownerWindow\.setTimeout\(resolve, 0\)/);
   assert.match(
     controllerClear,
-    /await this\.resultStore\.clear\(reader\._item\)/,
+    /await this\.removalService\.clearLocal\(reader\._item\)/,
   );
   assert.doesNotMatch(controllerClear, /reloadSidebarResults/);
   assert.doesNotMatch(controllerClear, /refreshSidebarControls/);

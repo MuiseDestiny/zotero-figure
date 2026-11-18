@@ -33,6 +33,7 @@ import {
 } from "./galleryFilters";
 import { GalleryImageLoadCoordinator } from "./galleryImageLoadCoordinator";
 import { GalleryLibraryLoadCoordinator } from "./galleryLibraryLoadCoordinator";
+import { createFigureSidebarIcon } from "../reader/figureSidebarIcons";
 import {
   FIGURE_GALLERY_IMAGE_SCALE_DEFAULT,
   FIGURE_GALLERY_IMAGE_SCALE_MAX,
@@ -56,6 +57,10 @@ const COMPARISON_THUMBNAIL_MIN_SIZE = 44;
 const COMPARISON_THUMBNAIL_MAX_SIZE = 72;
 
 interface FigureGalleryApi {
+  removeResult(entryID: string): Promise<void>;
+  clearDocument(libraryID: number, documentItemID: number): Promise<void>;
+  isRemovalBusy(libraryID: number, documentItemID: number): Promise<boolean>;
+  subscribeRemovals(listener: (libraryID: number) => void): () => void;
   getBootstrap(): FigureGalleryBootstrap | Promise<FigureGalleryBootstrap>;
   getComparisonLayout(
     libraryID: number,
@@ -81,6 +86,7 @@ interface GalleryAddon {
 }
 
 interface GalleryElements {
+  clearDocument: HTMLButtonElement;
   collectionFilter: HTMLSelectElement;
   documentFilter: HTMLSelectElement;
   errorBanner: HTMLDivElement;
@@ -228,6 +234,8 @@ let galleryDragScrollFrame: number | undefined;
 let galleryContextMenu: GalleryContextMenuPopup | undefined;
 let galleryContextMenuRequestID = 0;
 let unsubscribeFormulaLatex: (() => void) | undefined;
+let unsubscribeRemovals: (() => void) | undefined;
+let removalPending = false;
 let disposed = false;
 
 window.addEventListener("DOMContentLoaded", () => void initialize());
@@ -252,6 +260,10 @@ async function initialize(): Promise<void> {
     api.readImage(entryID),
   );
   libraryLoader = createLibraryLoader(api);
+  unsubscribeRemovals = api.subscribeRemovals((libraryID) => {
+    if (!disposed && !removalPending && selectedLibraryID === libraryID)
+      void loadLibrary(libraryID);
+  });
   try {
     const bootstrap = await api.getBootstrap();
     if (disposed) return;
@@ -318,6 +330,7 @@ function createLibraryLoader(
 
 function collectElements(): GalleryElements {
   return {
+    clearDocument: requireElement("clear-document"),
     collectionFilter: requireElement("collection-filter"),
     documentFilter: requireElement("document-filter"),
     errorBanner: requireElement("error-banner"),
@@ -356,6 +369,15 @@ function resolveGalleryApi(): FigureGalleryApi | undefined {
 }
 
 function bindControls(): void {
+  elements.clearDocument.append(createFigureSidebarIcon(document, "trash"));
+  elements.clearDocument.addEventListener("click", () => {
+    const documentID = Number(elements.documentFilter.value);
+    if (documentID && committedLibraryID !== undefined) {
+      void runRemoval(() =>
+        galleryApi!.clearDocument(committedLibraryID!, documentID),
+      );
+    }
+  });
   elements.galleryGrid.addEventListener("dragstart", handleGalleryDragStart);
   elements.galleryGrid.addEventListener("dragover", handleGalleryDragOver);
   elements.galleryGrid.addEventListener("drop", handleGalleryDrop);
@@ -401,6 +423,10 @@ function handleGalleryDragStart(event: DragEvent): void {
   if (viewMode !== "document-columns") return;
   const target = event.target;
   if (!(target instanceof Element) || !event.dataTransfer) return;
+  if (target.closest("button")) {
+    event.preventDefault();
+    return;
+  }
   const header = target.closest<HTMLElement>(".comparison-document-header");
   if (header?.dataset.documentId) {
     const documentID = Number(header.dataset.documentId);
@@ -646,6 +672,7 @@ function restoreGalleryViewport(viewport: GalleryViewport): void {
 }
 
 function handleGalleryContextMenu(event: MouseEvent): void {
+  if (handleRemovalContextMenu(event)) return;
   if (viewMode !== "document-columns" || !comparisonLayout) return;
   const target = event.target;
   if (!(target instanceof Element)) return;
@@ -706,6 +733,9 @@ async function openGalleryContextMenu(
       localize("gallery-comparison-no-other-groups"),
       localize("gallery-comparison-dissolve-group"),
     ]);
+  const removalItems = target.entryID
+    ? await getRemovalMenuItems(target.entryID, target.documentID)
+    : [];
   if (
     disposed ||
     requestID !== galleryContextMenuRequestID ||
@@ -771,6 +801,12 @@ async function openGalleryContextMenu(
       }),
     );
   }
+  if (removalItems.length) {
+    popup.append(
+      ownerDocument.createXULElement("menuseparator"),
+      ...removalItems,
+    );
+  }
   const container =
     ownerDocument.querySelector("#browser") ?? ownerDocument.documentElement;
   container.append(popup);
@@ -784,6 +820,164 @@ async function openGalleryContextMenu(
     { once: true },
   );
   popup.openPopupAtScreen(screenX, screenY, true);
+}
+
+// Waterfall cards and document headers share deletion actions with card buttons.
+function handleRemovalContextMenu(event: MouseEvent): boolean {
+  const target = event.target;
+  if (!(target instanceof Element)) return false;
+  const header = target.closest<HTMLElement>(".comparison-document-header");
+  const card = target.closest<HTMLElement>(".gallery-card");
+  if (!header && (!card || viewMode === "document-columns")) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  void openRemovalMenu(
+    card?.dataset.id,
+    Number(header?.dataset.documentId),
+    event.screenX,
+    event.screenY,
+  );
+  return true;
+}
+
+async function getRemovalMenuItems(
+  entryID?: string,
+  documentID?: number,
+): Promise<XULElement[]> {
+  const entry = entryID ? entriesByID.get(entryID) : undefined;
+  const resolvedDocumentID = entry?.documentItemID ?? documentID;
+  const libraryID = committedLibraryID;
+  const api = galleryApi;
+  if (!api || libraryID === undefined || !resolvedDocumentID) return [];
+  const [deleteLabel, clearLabel, busy] = await Promise.all([
+    localize("gallery-delete-result"),
+    localize("gallery-clear-document"),
+    api.isRemovalBusy(libraryID, resolvedDocumentID),
+  ]);
+  const ownerDocument = Zotero.getMainWindow().document;
+  const items: XULElement[] = [];
+  if (entryID)
+    items.push(
+      createGalleryMenuItem(
+        ownerDocument,
+        deleteLabel,
+        () => {
+          void runRemoval(() => api.removeResult(entryID));
+        },
+        busy || removalPending,
+      ),
+    );
+  items.push(
+    createGalleryMenuItem(
+      ownerDocument,
+      clearLabel,
+      () => {
+        void runRemoval(() => api.clearDocument(libraryID, resolvedDocumentID));
+      },
+      busy || removalPending,
+    ),
+  );
+  if (busy)
+    items.push(
+      createGalleryMenuItem(
+        ownerDocument,
+        await localize("gallery-delete-busy"),
+        undefined,
+        true,
+      ),
+    );
+  return items;
+}
+
+async function openRemovalMenu(
+  entryID: string | undefined,
+  documentID: number | undefined,
+  screenX: number,
+  screenY: number,
+): Promise<void> {
+  closeGalleryContextMenu();
+  const requestID = ++galleryContextMenuRequestID;
+  const version = renderVersion;
+  try {
+    const items = await getRemovalMenuItems(entryID, documentID);
+    if (
+      disposed ||
+      version !== renderVersion ||
+      requestID !== galleryContextMenuRequestID ||
+      !items.length
+    )
+      return;
+    const ownerDocument = Zotero.getMainWindow().document;
+    const popup = ownerDocument.createXULElement(
+      "menupopup",
+    ) as GalleryContextMenuPopup;
+    popup.id = GALLERY_CONTEXT_MENU_ID;
+    popup.append(...items);
+    (
+      ownerDocument.querySelector("#browser") ?? ownerDocument.documentElement
+    ).append(popup);
+    galleryContextMenu = popup;
+    popup.addEventListener(
+      "popuphidden",
+      () => {
+        popup.remove();
+        if (galleryContextMenu === popup) galleryContextMenu = undefined;
+      },
+      { once: true },
+    );
+    popup.openPopupAtScreen(screenX, screenY, true);
+  } catch (error) {
+    if (!disposed) showError(error);
+  }
+}
+
+function createRemovalMenuButton(entry: FigureGalleryEntry): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "gallery-icon-button gallery-card-menu";
+  setLocalizedControl(button, "gallery-result-menu", "Result actions");
+  button.setAttribute("aria-haspopup", "menu");
+  button.append(createFigureSidebarIcon(document, "menu"));
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const rect = button.getBoundingClientRect();
+    void openRemovalMenu(
+      entry.id,
+      entry.documentItemID,
+      window.mozInnerScreenX + rect.left,
+      window.mozInnerScreenY + rect.bottom,
+    );
+  });
+  button.addEventListener("dblclick", (event) => event.stopPropagation());
+  button.addEventListener("keydown", (event) => event.stopPropagation());
+  return button;
+}
+
+async function runRemoval(action: () => Promise<void>): Promise<void> {
+  if (disposed || removalPending) return;
+  removalPending = true;
+  closeGalleryContextMenu();
+  const viewport = captureGalleryViewport();
+  let failure: unknown;
+  try {
+    clearError();
+    await action();
+  } catch (error) {
+    failure = error;
+  } finally {
+    if (!disposed && selectedLibraryID !== undefined) {
+      await loadLibrary(selectedLibraryID);
+      if (!disposed) {
+        restoreGalleryViewport(viewport);
+        (
+          elements.galleryGrid.querySelector<HTMLElement>(".gallery-card") ??
+          elements.documentFilter
+        ).focus({ preventScroll: true });
+        if (failure) showError(failure);
+      }
+    }
+    removalPending = false;
+  }
 }
 
 function createGalleryMenuItem(
@@ -1226,6 +1420,7 @@ function applyFilters(): void {
     labels.kindLabels,
   );
   populateEntryFilters(facets, labels);
+  elements.clearDocument.disabled = !facets.filters.documentID;
   activeKeyword = facets.filters.keyword;
   filteredEntries = filterGalleryEntries(allEntries, facets.filters);
   filteredEntryIDs = new Set(filteredEntries.map(({ id }) => id));
@@ -1575,6 +1770,24 @@ function createComparisonDocumentHeader(documentID: number): HTMLElement {
   meta.append(count);
   text.append(title, meta);
   header.append(text);
+  const clear = document.createElement("button");
+  clear.type = "button";
+  clear.className = "gallery-icon-button gallery-document-clear";
+  setLocalizedControl(
+    clear,
+    "gallery-clear-document-control",
+    "Clear document results",
+  );
+  clear.append(createFigureSidebarIcon(document, "trash"));
+  clear.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const libraryID = committedLibraryID;
+    if (libraryID !== undefined)
+      void runRemoval(() => galleryApi!.clearDocument(libraryID, documentID));
+  });
+  clear.addEventListener("pointerdown", (event) => event.stopPropagation());
+  clear.addEventListener("keydown", (event) => event.stopPropagation());
+  header.append(clear);
   return header;
 }
 
@@ -2016,7 +2229,7 @@ function createCard(
   tag.className = "gallery-tag";
   setHighlightedText(tag, entry.tag);
   tag.title = entry.tag;
-  labels.append(kind, tag);
+  labels.append(kind, tag, createRemovalMenuButton(entry));
 
   const title = document.createElement("h2");
   title.className = "gallery-document";
@@ -2235,6 +2448,8 @@ function dispose(): void {
   libraryLoader?.cancel();
   unsubscribeFormulaLatex?.();
   unsubscribeFormulaLatex = undefined;
+  unsubscribeRemovals?.();
+  unsubscribeRemovals = undefined;
   renderVersion++;
   imageLoader?.dispose();
   imageObserver?.disconnect();
@@ -2270,6 +2485,8 @@ function setControlsDisabled(disabled: boolean): void {
     if (control === elements.toolbarToggle) continue;
     control.disabled = disabled;
   }
+  if (!disabled)
+    elements.clearDocument.disabled = !elements.documentFilter.value;
 }
 
 function showError(error: unknown): void {
