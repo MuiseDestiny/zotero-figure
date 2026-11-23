@@ -1,0 +1,226 @@
+menu-analyze = Analiziraj slike, tabele i formule u PDF-u
+menu-cancel-analysis = Otkaži analizu rasporeda
+menu-view-figures = Prikaži samo automatski pronađene slike
+menu-view-annotations = Prikaži samo obične oznake
+menu-add-note = Dodaj slike u belešku
+menu-remove-generated = Ukloni automatski napravljene oznake slika
+menu-remove-all = Ukloni sve oznake
+reader-menu-add-to-figure = Dodaj među slike
+progress-add-to-results = Dodavanje oznaka slika u rezultate analize…
+progress-add-to-results-done = Dodato oznaka slika: { $created } (već postoji: { $skipped })
+
+batch-menu-analyze = Analiziraj slike, tabele i formule
+batch-menu-analyze-note = Analiziraj slike, tabele i formule i dodaj ih u belešku
+batch-menu-analyze-annotations = Analiziraj slike, tabele i formule i napravi oznake
+batch-progress-no-annotations = Nije izabrana nijedna oznaka slike
+batch-progress-import-done = Uvezeno oznaka slika: { $created } (već postoji: { $skipped }); neuspešno: { $failed }
+batch-progress-no-pdf = Nijedna izabrana stavka nema dostupan PDF prilog
+batch-progress-already-running = Grupna obrada dodatka PDF Figure već traje
+batch-progress-current = [{ $current }/{ $total }] { $title }: { $detail }
+batch-progress-finished-item = Završen PDF { $current } od { $total }
+batch-progress-done = Obrađeno PDF-ova: { $succeeded }; neuspešno: { $failed }; rezultata: { $results }; napravljenih beležaka: { $notes }; oznaka: { $annotations }
+
+gallery-title = Biblioteka dodatka PDF Figure
+gallery-menu-open = Biblioteka dodatka PDF Figure
+gallery-refresh =
+    .title = Osveži indeks biblioteke
+    .aria-label = Osveži indeks biblioteke
+gallery-reset-filters =
+    .title = Poništi filtere i pretragu
+    .aria-label = Poništi filtere i pretragu
+gallery-toolbar-collapse =
+    .title = Smanji prikaz filtera
+    .aria-label = Smanji prikaz filtera
+gallery-toolbar-expand =
+    .title = Prikaži sve filtere
+    .aria-label = Prikaži sve filtere
+gallery-view-switch-to-documents =
+    .title = Pređi na kolone dokumenata
+    .aria-label = Pređi na kolone dokumenata
+gallery-view-switch-to-waterfall =
+    .title = Pređi na kaskadni prikaz
+    .aria-label = Pređi na kaskadni prikaz
+gallery-scale-toggle =
+    .title = Podesi veličinu slike
+    .aria-label = Podesi veličinu slike
+gallery-scale-label = Veličina slike
+gallery-scale-range =
+    .aria-label = Veličina slike
+gallery-comparison-rows = Redovi za poređenje
+gallery-comparison-result-count = Rezultata: { $count }
+gallery-comparison-name-row =
+    .title = Imenuj red za poređenje
+    .aria-label = Imenuj red za poređenje
+gallery-comparison-row-label =
+    .placeholder = Naziv reda
+    .aria-label = Naziv reda za poređenje
+gallery-comparison-add-row =
+    .title = Dodaj red za poređenje
+    .aria-label = Dodaj red za poređenje
+gallery-comparison-add-to-group = Dodaj u grupu
+gallery-comparison-group-default = Grupa { $index }
+gallery-comparison-no-other-groups = Nema drugih grupa
+gallery-comparison-dissolve-group = Rasformiraj grupu
+gallery-comparison-make-primary = Postavi { $tag } kao glavnu sliku
+gallery-comparison-previous =
+    .title = Prethodna slika za poređenje
+    .aria-label = Prethodna slika za poređenje
+gallery-comparison-next =
+    .title = Sledeća slika za poređenje
+    .aria-label = Sledeća slika za poređenje
+gallery-filter-document = Dokument
+gallery-filter-year = Godina
+gallery-filter-collection = Kategorija
+gallery-filter-type = Vrsta
+gallery-filter-keyword = Ključna reč u opisu
+gallery-filter-keyword-placeholder =
+    .placeholder = Pretraži opise
+gallery-filter-all-documents = Svi dokumenti
+gallery-filter-all-years = Sve godine
+gallery-filter-all-collections = Sve kategorije
+gallery-filter-all-types = Sve vrste
+gallery-kind-figure = Slika
+gallery-kind-table = Tabela
+gallery-kind-formula = Formula
+gallery-result-count = { $filtered }/{ $total }
+gallery-page = Stranica { $page }
+gallery-loading = Učitavanje indeksa slika...
+gallery-load-error = Indeks slika nije mogao da se učita
+gallery-api-unavailable = Interfejs dodatka PDF Figure za pregledanje nije dostupan
+gallery-no-libraries = Nema dostupnih Zotero biblioteka
+gallery-empty-library = U ovoj biblioteci nema lokalno pronađenih slika, tabela ni formula
+gallery-empty-filtered = Nema rezultata za izabrane filtere
+gallery-image-loading = Učitavanje pregleda...
+gallery-image-error = Pregled nije dostupan
+
+sidebar-title = Zotero Figure
+sidebar-analyze = Analiziraj slike, tabele i formule
+sidebar-cancel = Otkaži analizu
+sidebar-translate = Prevedi opise
+sidebar-show-original = Prikaži izvorne opise
+sidebar-expand-caption = Proširi opis
+sidebar-collapse-caption = Sažmi opis
+sidebar-translation-error = Neki opisi nisu mogli da se prevedu; prikazan je izvorni tekst
+sidebar-sync-annotations = Pretvori lokalne rezultate u Zotero oznake
+sidebar-add-all-to-note = Dodaj sve rezultate u belešku
+sidebar-clear = Obriši lokalne rezultate
+sidebar-loading = Učitavanje lokalnih rezultata...
+sidebar-load-error = Lokalni rezultati nisu mogli da se učitaju
+sidebar-analysis-progress-title = Analiza dokumenta
+sidebar-filter-figure =
+    { $count ->
+        [one] Slika
+       *[other] Slike
+    }
+sidebar-filter-table =
+    { $count ->
+        [one] Tabela
+       *[other] Tabele
+    }
+sidebar-filter-formula =
+    { $count ->
+        [one] Formula
+       *[other] Formule
+    }
+sidebar-refresh = Osveži slike, tabele i formule
+sidebar-empty = Nema automatski pronađenih slika, tabela ni formula
+sidebar-start-analysis = Pokreni analizu
+sidebar-page = Stranica { $page }
+sidebar-image-preparing = Priprema slike...
+sidebar-image-unavailable = Slika nije dostupna
+sidebar-no-caption = Nema opisa
+sidebar-untitled = Slika, tabela ili formula bez naslova
+sidebar-menu = Radnje sa slikom, tabelom ili formulom
+sidebar-copy-image = Kopiraj sliku
+sidebar-copy-latex = Kopiraj LaTeX
+sidebar-copy-latex-loading = Pretvaranje formule u LaTeX
+sidebar-copy-latex-success = LaTeX je kopiran
+sidebar-copy-latex-failed = Pretvaranje u LaTeX nije uspelo: { $message }
+sidebar-rerecognize-latex = Ponovo prepoznaj formulu
+sidebar-rerecognize-latex-loading = Ponovno prepoznavanje formule
+sidebar-rerecognize-latex-success = Formula je ponovo prepoznata
+sidebar-formula-latex = LaTeX formule
+sidebar-save-image = Sačuvaj sliku kao...
+sidebar-pin-image = Zakači sliku
+sidebar-go-to-page = Idi na stranicu
+sidebar-edit-comment = Uredi opis
+sidebar-edit-comment-title = Uredi opis rezultata
+sidebar-edit-comment-description = Ispravite lokalno sačuvan opis. Čuvanjem se brišu sačuvani prevodi ovog rezultata.
+sidebar-edit-comment-save = Sačuvaj
+sidebar-edit-comment-cancel = Otkaži
+sidebar-edit-latex = Uredi LaTeX
+sidebar-edit-latex-title = Uredi LaTeX formule
+sidebar-edit-latex-description = Uredite lokalno sačuvan LaTeX izvor. Čuvanjem se ažuriraju svi otvoreni prikazi formule.
+sidebar-edit-latex-failed = LaTeX uređivač nije mogao da se otvori: { $message }
+sidebar-edit-latex-source = LaTeX izvor
+sidebar-edit-latex-preview = Pregled
+sidebar-edit-latex-invalid = Ovaj LaTeX ne može da se prikaže
+sidebar-edit-latex-save = Sačuvaj
+sidebar-edit-latex-cancel = Otkaži
+sidebar-correct-region = Ispravi oblast
+sidebar-correct-region-title = Ispravi oblast rezultata
+sidebar-correct-region-selection = Podesiva oblast rezultata
+sidebar-correct-region-reset = Vrati pronađenu oblast
+sidebar-correct-region-save = Sačuvaj
+sidebar-correct-region-cancel = Otkaži
+sidebar-add-to-note = Dodaj u belešku
+sidebar-remove = Ukloni lokalni rezultat
+progress-correct-region = Čuvanje ispravljene oblasti...
+progress-correct-region-done = Ispravljena oblast je sačuvana
+note-title = Rezultati dodatka Zotero Figure
+
+confirm-remove-generated = Ukloniti iz ovog PDF-a sve oznake slika, tabela i formula koje je napravio Zotero Figure?
+confirm-remove-all = Ukloniti sve oznake iz ovog PDF-a? Biće uklonjene i oznake koje Zotero Figure nije napravio.
+confirm-remove-one = Ukloniti ovaj lokalni rezultat i njegovu preslikanu oznaku?
+
+progress-initializing = Pokretanje analize rasporeda...
+progress-exporting = [{ $current }/{ $total }] Izdvajanje stranica PDF-a
+progress-detecting = [{ $current }/{ $total }] Prepoznavanje slika, tabela i formula
+progress-done = Sačuvano lokalnih rezultata: { $count }; uklonjeno: { $removed }; preskočeno: { $skipped }; sinhronizovano oznaka: { $annotations }; trajanje: { $seconds } s
+progress-cancelled = Analiza rasporeda je otkazana
+progress-error = Greška: { $message }
+progress-add-note = Dodavanje rezultata u belešku...
+progress-sync-annotations = Pretvaranje lokalnih rezultata u Zotero oznake...
+progress-sync-annotations-done = Sinhronizovano oznaka: { $created }; uklonjeno: { $removed }; preskočeno: { $skipped }
+progress-remove-generated = Uklanjanje automatski napravljenih oznaka slika...
+progress-remove-all = Uklanjanje svih oznaka...
+progress-switch-view = Prelazak na prikaz „{ $view }“...
+
+error-model-file-unavailable = Ugrađeni model za prepoznavanje rasporeda nije mogao da se pripremi. Vratite ga u podešavanjima dodatka Zotero Figure.
+error-model-integrity = Instalirana kopija ugrađenog modela nije prošla proveru veličine ili SHA-256 sažetka. Vratite je u podešavanjima dodatka Zotero Figure.
+error-analysis-failed = Prepoznavanje rasporeda nije uspelo na { $count } stranica. Proverite datoteku modela i ponovo pokrenite Zotero.
+error-formula-api-key-missing = Najpre dodajte SiliconFlow API ključ u podešavanjima dodatka PDF Figure.
+error-formula-api-http = SiliconFlow je vratio HTTP { $status }.
+error-formula-api-network = Povezivanje sa SiliconFlow-om nije uspelo.
+error-formula-api-timeout = Zahtev ka SiliconFlow-u je istekao.
+error-formula-api-response = SiliconFlow nije vratio ispravan LaTeX.
+error-formula-api-failed = Pretvaranje formule nije moglo da se dovrši.
+
+model-variant-optimized = Ugrađeni optimizovani Q8 model
+
+preferences-restore-model = Vrati ugrađeni model
+preferences-cancel-install = Otkaži pripremu
+preferences-status-preparing = Priprema ugrađenog modela...
+preferences-status-install-progress = Priprema: { $loaded } / { $total } ({ $percent }%)
+preferences-status-install-cancelled = Priprema ugrađenog modela je otkazana
+preferences-status-install-failed = Ugrađeni model nije mogao da se pripremi: { $message }
+preferences-status-checking = Provera celovitosti modela...
+preferences-status-check-failed = Provera modela nije uspela: { $message }
+preferences-status-missing = Kopija ugrađenog modela nije pripremljena
+preferences-status-invalid = Provera celovitosti instaliranog modela nije uspela
+preferences-status-valid = Provereno: { $name }
+preferences-model-expected = Očekivana datoteka: { $size }, SHA-256 { $hash }
+preferences-model-invalid-details = Pronađeno: { $size }, SHA-256 { $hash }
+preferences-model-valid-details = { $name }, { $size }, SHA-256 { $hash }
+preferences-api-status-checking = Provera izabranog SiliconFlow modela...
+preferences-api-status-valid = Ključ je proveren; dostupno je automatsko prepoznavanje formula.
+preferences-api-status-failed = Provera ključa nije uspela: { $message }
+preferences-hash-not-computed = nije izračunat
+preferences-existing-formulae-scanning = Traženje postojećih slika formula…
+preferences-existing-formulae-progress = Pretvaranje: { $completed } od { $total } (uspelo: { $succeeded }; neuspešno: { $failed })…
+preferences-existing-formulae-complete = Obrađeno formula: { $total } (uspelo: { $succeeded }; neuspešno: { $failed }).
+preferences-existing-formulae-empty = Sve pronađene formule već imaju sačuvan LaTeX.
+preferences-existing-formulae-failed = Pretvaranje nije uspelo: { $message }
+preferences-about-version = Verzija { $version }
+prompt-figure-caption = Opis slike:
+
