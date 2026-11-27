@@ -21,10 +21,15 @@ import { installMemoryIO } from "./helpers/memoryIO";
 
 class AnalyzerWorker {
   public static automatic = true;
+  public static pageDetections?: (pageIndex: number) => LayoutElement[];
   public static readonly instances: AnalyzerWorker[] = [];
   public onerror: ((event: ErrorEvent) => unknown) | null = null;
   public onmessage: ((event: MessageEvent) => unknown) | null = null;
-  public readonly messages: Array<{ taskID?: number; type: string }> = [];
+  public readonly messages: Array<{
+    pageIndex?: number;
+    taskID?: number;
+    type: string;
+  }> = [];
   public terminated = false;
   private readonly respondedTasks = new Set<number>();
 
@@ -32,7 +37,7 @@ class AnalyzerWorker {
     AnalyzerWorker.instances.push(this);
   }
 
-  public postMessage(message: { taskID?: number; type: string }): void {
+  public postMessage(message: (typeof this.messages)[number]): void {
     this.messages.push(message);
     if (message.type === "INIT") {
       queueMicrotask(() => this.respond({ type: "READY" }));
@@ -67,8 +72,14 @@ class AnalyzerWorker {
   private respondToDetection(taskID: number): void {
     if (this.respondedTasks.has(taskID)) return;
     this.respondedTasks.add(taskID);
+    const pageIndex = this.messages.find(
+      (message) => message.taskID === taskID,
+    )?.pageIndex;
     this.respond({
-      results: detectionResults,
+      results:
+        pageIndex === undefined
+          ? detectionResults
+          : (AnalyzerWorker.pageDetections?.(pageIndex) ?? detectionResults),
       taskID,
       timings: {
         decodeMs: 1,
@@ -94,6 +105,125 @@ const detectionResults: LayoutElement[] = [
     xyxy: [0.1, 0.82, 0.8, 0.95],
   },
 ];
+
+const adjacentCaption: LayoutElement = {
+  score: 0.9,
+  type: "figure_caption",
+  xyxy: [0.1, 0.08, 0.5, 0.38],
+};
+
+test("revisits only the preceding skipped page for a numbered caption and mirrors its image page", async () => {
+  const harness = installAnalyzerHarness({
+    allowAnnotations: true,
+    pageCount: 3,
+    pageText: (pageIndex) =>
+      pageIndex === 2 ? "Figure 2. Next-page caption" : "Running header",
+    captionRect: [10, 75, 45, 90],
+    pageDetections: (pageIndex) => [
+      pageIndex === 2 ? adjacentCaption : detectionResults[0],
+    ],
+  });
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  try {
+    const summary = await analyzer.analyze(
+      harness.reader,
+      { update() {} },
+      { syncAnnotations: true },
+    );
+    assert.deepEqual(harness.renderedPages, [2, 1]);
+    assert.deepEqual(
+      [
+        summary.pagesAnalyzed,
+        summary.pagesSkipped,
+        summary.resultsCreated,
+        summary.annotationsCreated,
+      ],
+      [2, 1, 1, 1],
+    );
+    assert.deepEqual(
+      (await store.list(harness.reader._item)).map(
+        ({ comment, pageIndex, rect, tag }) => ({
+          comment,
+          pageIndex,
+          rect,
+          tag,
+        }),
+      ),
+      [
+        {
+          comment: "Figure 2. Next-page caption",
+          pageIndex: 1,
+          rect: [10, 20, 80, 80],
+          tag: "Figure 2",
+        },
+      ],
+    );
+    assert.deepEqual(harness.annotationComments(), [
+      "Figure 2. Next-page caption",
+    ]);
+    const repeated = await analyzer.analyze(harness.reader, { update() {} });
+    assert.equal(repeated.resultsSkipped, 1);
+    assert.equal(harness.renderedPreviewPageCount(), 1);
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("a rejected cross-page pairing does not save incidental detections on a skipped page", async () => {
+  const harness = installAnalyzerHarness({
+    pageCount: 2,
+    pageText: (pageIndex) =>
+      pageIndex === 0 ? "Running header" : "Figure 2. Next-page caption",
+    captionRect: [10, 75, 45, 90],
+    pageDetections: (pageIndex) =>
+      pageIndex === 0
+        ? [{ score: 0.9, type: "isolate_formula", xyxy: [0.1, 0.2, 0.5, 0.3] }]
+        : [adjacentCaption],
+  });
+  const store = new FigureResultStore();
+  const analyzer = new LayoutAnalyzer(store, harness.pdfEngine, 1);
+  try {
+    const summary = await analyzer.analyze(harness.reader, { update() {} });
+    assert.deepEqual(harness.renderedPages, [1, 0]);
+    assert.equal(summary.pagesSkipped, 1);
+    assert.deepEqual(await store.list(harness.reader._item), []);
+  } finally {
+    analyzer.dispose();
+    harness.restore();
+  }
+});
+
+test("cancels while a skipped page waits for next-page detection", async () => {
+  const harness = installAnalyzerHarness({
+    automatic: false,
+    pageCount: 2,
+    pageText: (pageIndex) =>
+      pageIndex === 0 ? "Running header" : "Figure 2. Caption",
+  });
+  const analyzer = new LayoutAnalyzer(undefined, harness.pdfEngine, 1);
+  const controller = new AbortController();
+  const analysis = analyzer.analyze(
+    harness.reader,
+    { update() {} },
+    { signal: controller.signal },
+  );
+  try {
+    await waitFor(
+      () => AnalyzerWorker.instances[0]?.detectionMessages.length === 1,
+    );
+    controller.abort();
+    await assert.rejects(analysis, OperationCancelledError);
+    assert.deepEqual(harness.renderedPages, [1]);
+    assert.equal(harness.renderedPreviewPageCount(), 0);
+  } finally {
+    controller.abort();
+    await analysis.catch(() => undefined);
+    analyzer.dispose();
+    harness.restore();
+  }
+});
 
 test("analysis renders one high-resolution page for all local previews", async () => {
   const harness = installAnalyzerHarness();
@@ -633,7 +763,9 @@ test("cancels active and permit-waiting pages as OperationCancelledError", async
 interface AnalyzerHarnessOptions {
   allowAnnotations?: boolean;
   automatic?: boolean;
+  captionRect?: Rect;
   pageCount?: number;
+  pageDetections?: (pageIndex: number) => LayoutElement[];
   pageText?: (pageIndex: number) => string;
   pdfPreparationError?: Error;
   previewRenderer?: boolean;
@@ -670,6 +802,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
   const renderedRegionRects: Rect[][] = [];
 
   AnalyzerWorker.automatic = options.automatic ?? true;
+  AnalyzerWorker.pageDetections = options.pageDetections;
   AnalyzerWorker.instances.length = 0;
 
   globalThis.Worker = AnalyzerWorker as unknown as typeof Worker;
@@ -782,7 +915,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
             chars: [
               {
                 c: options.pageText?.(pageIndex) ?? "Figure 1. Caption",
-                rect: [10, 5, 80, 18],
+                rect: options.captionRect ?? [10, 5, 80, 18],
               },
             ],
             pageBounds: [0, 0, 100, 100],
@@ -837,6 +970,7 @@ function installAnalyzerHarness(options: AnalyzerHarnessOptions = {}): {
       (globalThis as any).addon = previousAddon;
       (globalThis as any).ztoolkit = previousZtoolkit;
       AnalyzerWorker.instances.length = 0;
+      AnalyzerWorker.pageDetections = undefined;
     },
     worker: () => {
       const worker = AnalyzerWorker.instances[0];

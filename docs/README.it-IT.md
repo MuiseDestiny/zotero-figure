@@ -10,6 +10,7 @@ Zotero Figure rileva figure, tabelle, formule isolate, didascalie e note a piè 
 
 - Elimina singoli risultati locali dal menu delle schede della libreria, oppure cancella un documento dall’intestazione della colonna o dal pulsante accanto al filtro del documento. La cancellazione comprende tutti gli allegati PDF e i risultati nascosti dai filtri. La conferma consente di eliminare anche le annotazioni generate da Figure; i PDF originali e le note salvate vengono conservati. Una nuova analisi può ricreare i risultati. L’eliminazione non è disponibile durante l’analisi o l’aggiornamento degli allegati interessati.
 - Analizza i PDF localmente, senza caricare pagine o scaricare un modello durante l'esecuzione.
+- Se una figura di grandi dimensioni può essere abbinata alla didascalia numerata nella pagina successiva, il risultato apre la pagina della figura.
 - Mostra i risultati in un pannello Reader dedicato, con filtri per tipo combinabili che nascondono i tipi non disponibili e con l'avanzamento dell'analisi.
 - Consente di copiare, salvare o fissare immagini; modificare le didascalie o correggere i ritagli in una finestra adattata alla pagina PDF; aprire la pagina PDF; aggiungere a una nota o eliminare il risultato.
 - Nel PDF Reader, fai clic con il pulsante destro su un'annotazione immagine selezionata per aggiungerla ai risultati locali dell'analisi; i tag Figure, Table o Formula esistenti vengono mantenuti.

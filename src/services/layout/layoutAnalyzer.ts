@@ -1,8 +1,10 @@
 import { config } from "../../../package.json";
 import type { DuplicateMode } from "../../domain/figureResults";
 import {
-  buildAnnotationCandidates,
+  matchAdjacentFigureCaption,
+  matchPageLayout,
   pageMayContainFigures,
+  type PageLayoutMatches,
   type PageLayoutData,
   type Rect,
 } from "../../domain/layout";
@@ -82,6 +84,21 @@ const MAX_STORAGE_PAGES = 1;
 const MAX_ANNOTATION_PAGES = 1;
 const NO_PAGE_TASK_ERROR = Symbol("no-page-task-error");
 const SCAN_PROGRESS_WEIGHT = 0.2;
+const CAPTION_PAGE_UNAVAILABLE = Symbol("caption-page-unavailable");
+
+type AnalysisPage = Omit<PageLayoutData, "elements"> &
+  Pick<PdfAnalysisPageData, "pageBounds" | "pageToPdf">;
+type CaptionPageResult =
+  | PageLayoutMatches["captionForPreviousFigure"]
+  | typeof CAPTION_PAGE_UNAVAILABLE;
+
+function createCaptionSlot() {
+  let publish!: (caption: CaptionPageResult) => void;
+  const caption = new Promise<CaptionPageResult>((resolve) => {
+    publish = resolve;
+  });
+  return { caption, publish };
+}
 
 export class LayoutAnalyzer {
   private disposed = false;
@@ -350,6 +367,7 @@ export class LayoutAnalyzer {
     const skippedPageIndices: number[] = [];
     let pageTaskError: unknown | typeof NO_PAGE_TASK_ERROR = NO_PAGE_TASK_ERROR;
     const pendingPageTasks = new Set<Promise<void>>();
+    let captionSlot = createCaptionSlot();
     const report = (text: string, value: number) => {
       lastProgress = Math.max(lastProgress, Math.min(100, value));
       progress.update(text, lastProgress);
@@ -375,15 +393,6 @@ export class LayoutAnalyzer {
           );
           timings.pageDataMs += Date.now() - pageDataStartedAt;
           throwIfAborted(operationSignal);
-          if (!pageMayContainFigures(page.chars)) {
-            telemetry.recordSkippedPage();
-            skippedPageIndices.push(pageIndex);
-            completedPages++;
-            reportDetectionProgress(report, completedPages, totalPages);
-            await yieldToUI(operationSignal);
-            continue;
-          }
-
           const releasePage =
             await this.scheduledPages.acquire(operationSignal);
           let pageScheduled = false;
@@ -399,6 +408,9 @@ export class LayoutAnalyzer {
               viewBox: page.viewBox,
               width: page.viewBox[2] - page.viewBox[0],
             };
+            const { publish } = captionSlot;
+            captionSlot = createCaptionSlot();
+            const nextCaption = captionSlot.caption;
             const pageTask = (async () => {
               try {
                 const outcome = await this.processPage(
@@ -406,6 +418,8 @@ export class LayoutAnalyzer {
                   pdfDocument,
                   workerPool,
                   pageData,
+                  publish,
+                  nextCaption,
                   sourceFingerprint,
                   duplicateMode,
                   syncAnnotations,
@@ -413,7 +427,12 @@ export class LayoutAnalyzer {
                   operationSignal,
                 );
                 completedPages++;
-                telemetry.mergePage(outcome);
+                if (outcome) {
+                  telemetry.mergePage(outcome);
+                } else {
+                  telemetry.recordSkippedPage();
+                  skippedPageIndices.push(pageIndex);
+                }
                 reportDetectionProgress(report, completedPages, totalPages);
                 await yieldToUI(operationSignal);
               } catch (error) {
@@ -422,6 +441,7 @@ export class LayoutAnalyzer {
                 }
                 operationController.abort();
               } finally {
+                publish(CAPTION_PAGE_UNAVAILABLE);
                 releasePage();
               }
             })();
@@ -442,6 +462,7 @@ export class LayoutAnalyzer {
           }
         }
 
+        captionSlot.publish(undefined);
         await Promise.all(Array.from(pendingPageTasks));
         if (pageTaskError !== NO_PAGE_TASK_ERROR) throw pageTaskError;
         throwIfAborted(operationSignal);
@@ -468,6 +489,7 @@ export class LayoutAnalyzer {
         return summary;
       } catch (error) {
         operationController.abort();
+        captionSlot.publish(CAPTION_PAGE_UNAVAILABLE);
         await Promise.all(Array.from(pendingPageTasks));
         const primaryError =
           pageTaskError !== NO_PAGE_TASK_ERROR &&
@@ -497,56 +519,54 @@ export class LayoutAnalyzer {
     attachment: Zotero.Item,
     pdfDocument: PdfAnalysisDocument,
     workerPool: LayoutWorkerPool,
-    page: Omit<PageLayoutData, "elements"> &
-      Pick<PdfAnalysisPageData, "pageBounds" | "pageToPdf">,
+    page: AnalysisPage,
+    publishCaption: ReturnType<typeof createCaptionSlot>["publish"],
+    nextCaption: ReturnType<typeof createCaptionSlot>["caption"],
     sourceFingerprint: string,
     duplicateMode: DuplicateMode,
     syncAnnotations: boolean,
     annotationTarget?: AnnotationTarget,
     signal?: AbortSignal,
-  ): Promise<PageAnalysisOutcome> {
+  ): Promise<PageAnalysisOutcome | undefined> {
     const telemetry = new PageAnalysisTelemetry();
     const timings = telemetry.timings;
     try {
-      const detectionWaitStartedAt = Date.now();
-      const releaseDetection = await this.detectionPages.acquire(signal);
-      timings.detectionStageWaitMs = Date.now() - detectionWaitStartedAt;
-      let elements: PageLayoutData["elements"];
-      try {
-        const renderWaitStartedAt = Date.now();
-        const releaseRender = await this.pdfRenders.acquire(signal);
-        timings.detectionRenderWaitMs = Date.now() - renderWaitStartedAt;
-        let image: ArrayBuffer;
-        try {
-          const rendered = await pdfDocument.renderDetectionImage(
-            page.pageIndex,
+      const admitted = pageMayContainFigures(page.chars);
+      let matches = admitted
+        ? await this.detectPageLayout(
+            pdfDocument,
+            workerPool,
+            page,
+            timings,
+            signal,
+          )
+        : undefined;
+      publishCaption(matches?.captionForPreviousFigure);
+
+      const candidates = matches?.candidates ?? [];
+      if (!matches || matches.figureForNextCaption) {
+        const caption = await nextCaption;
+        throwIfAborted(signal);
+        if (caption === CAPTION_PAGE_UNAVAILABLE) return telemetry.fail();
+        let paired;
+        if (caption) {
+          matches ??= await this.detectPageLayout(
+            pdfDocument,
+            workerPool,
+            page,
+            timings,
             signal,
           );
-          image = rendered.image;
-          timings.renderingMs = rendered.renderMs + rendered.encodeMs;
-        } finally {
-          releaseRender();
+          paired = matchAdjacentFigureCaption(
+            page.pageIndex,
+            matches.figureForNextCaption,
+            caption,
+          );
+          if (paired) candidates.push(paired);
         }
-        await yieldToUI(signal);
-        const detectionStartedAt = Date.now();
-        const detection = await workerPool.detectWithTiming(
-          image,
-          page.pageIndex,
-          signal,
-        );
-        elements = mapLayoutElementsToPdf(detection.elements, page);
-        timings.workerDecodeMs = detection.timings.decodeMs;
-        timings.workerQueueMs = detection.timings.queueMs;
-        timings.preprocessMs = detection.timings.preprocessMs;
-        timings.inferenceMs = detection.timings.inferenceMs;
-        timings.postprocessMs = detection.timings.postprocessMs;
-        timings.workerTotalMs = detection.timings.totalMs;
-        timings.detectionMs = Date.now() - detectionStartedAt;
-      } finally {
-        releaseDetection();
+        if (!admitted && !paired) return undefined;
       }
       throwIfAborted(signal);
-      const candidates = buildAnnotationCandidates({ ...page, elements });
       const cacheLookupStartedAt = Date.now();
       const reusableResults = await this.resultStore.getReusablePageResults(
         attachment,
@@ -684,6 +704,53 @@ export class LayoutAnalyzer {
         error,
       );
       return telemetry.fail();
+    }
+  }
+
+  private async detectPageLayout(
+    pdfDocument: PdfAnalysisDocument,
+    workerPool: LayoutWorkerPool,
+    page: AnalysisPage,
+    timings: PageAnalysisTelemetry["timings"],
+    signal?: AbortSignal,
+  ): Promise<PageLayoutMatches> {
+    const detectionWaitStartedAt = Date.now();
+    const releaseDetection = await this.detectionPages.acquire(signal);
+    timings.detectionStageWaitMs = Date.now() - detectionWaitStartedAt;
+    try {
+      const renderWaitStartedAt = Date.now();
+      const releaseRender = await this.pdfRenders.acquire(signal);
+      timings.detectionRenderWaitMs = Date.now() - renderWaitStartedAt;
+      let image: ArrayBuffer;
+      try {
+        const rendered = await pdfDocument.renderDetectionImage(
+          page.pageIndex,
+          signal,
+        );
+        image = rendered.image;
+        timings.renderingMs = rendered.renderMs + rendered.encodeMs;
+      } finally {
+        releaseRender();
+      }
+      await yieldToUI(signal);
+      const detectionStartedAt = Date.now();
+      const detection = await workerPool.detectWithTiming(
+        image,
+        page.pageIndex,
+        signal,
+      );
+      timings.workerDecodeMs = detection.timings.decodeMs;
+      timings.workerQueueMs = detection.timings.queueMs;
+      timings.preprocessMs = detection.timings.preprocessMs;
+      timings.inferenceMs = detection.timings.inferenceMs;
+      timings.postprocessMs = detection.timings.postprocessMs;
+      timings.workerTotalMs = detection.timings.totalMs;
+      timings.detectionMs = Date.now() - detectionStartedAt;
+      throwIfAborted(signal);
+      const elements = mapLayoutElementsToPdf(detection.elements, page);
+      return matchPageLayout({ ...page, elements });
+    } finally {
+      releaseDetection();
     }
   }
 

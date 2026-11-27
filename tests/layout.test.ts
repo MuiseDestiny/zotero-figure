@@ -3,7 +3,10 @@ import test from "node:test";
 import {
   buildAnnotationCandidates,
   charsToText,
+  matchAdjacentFigureCaption,
+  matchPageLayout,
   pageMayContainFigures,
+  type LayoutElement,
   type PageLayoutData,
   type PdfCharacter,
 } from "../src/domain/layout";
@@ -170,6 +173,105 @@ test("does not reuse one caption for multiple detected subjects", () => {
   });
   assert.equal(buildAnnotationCandidates(page).length, 1);
 });
+
+test("cross-page matching accepts a figure-sized crop and an aligned numbered caption", () => {
+  const figurePage = createPage({ elements: [fullPageFigure] });
+  const captionPage = createPage({
+    elements: [topCaption],
+    chars: [character("Fig. 12. Two-column legend", [110, 860, 430, 920])],
+  });
+  assert.deepEqual(
+    matchAdjacentFigureCaption(
+      figurePage.pageIndex,
+      matchPageLayout(figurePage).figureForNextCaption,
+      matchPageLayout(captionPage).captionForPreviousFigure,
+    ),
+    {
+      pageIndex: 2,
+      rect: [110, 120, 910, 920],
+      tag: "Figure 12",
+      comment: "Fig. 12. Two-column legend",
+    },
+  );
+});
+
+test("cross-page matching does not export ambiguous or unnumbered captions", () => {
+  const heading = character("Figure 1. Caption", [110, 860, 430, 920]);
+  for (const page of [
+    createPage({
+      elements: [topCaption],
+      chars: [character("See Figure 1 in text", heading.rect)],
+    }),
+    createPage({
+      elements: [topCaption],
+      chars: [character("Figure 1A. Panel label", heading.rect)],
+    }),
+    createPage({
+      elements: [topCaption],
+      chars: [character("Figure without a number", heading.rect)],
+    }),
+    createPage({ elements: [topCaption], chars: [] }),
+    createPage({
+      elements: [{ ...topCaption, xyxy: [0.1, 0.4, 0.45, 0.6] }],
+      chars: [character(heading.c, [110, 430, 430, 580])],
+    }),
+    createPage({
+      elements: [topCaption, { ...topCaption, xyxy: [0.55, 0.08, 0.9, 0.3] }],
+      chars: [heading, character("Figure 2. Caption", [570, 860, 840, 920])],
+    }),
+    createPage({ elements: [topCaption, fullPageFigure], chars: [heading] }),
+  ]) {
+    assert.equal(matchPageLayout(page).captionForPreviousFigure, undefined);
+  }
+});
+
+test("cross-page matching leaves same-page pairs, ambiguous crops and misaligned columns alone", () => {
+  const bottomCaption: LayoutElement = {
+    ...topCaption,
+    xyxy: [0.1, 0.91, 0.9, 0.99],
+  };
+  const page = createPage({
+    elements: [fullPageFigure, bottomCaption],
+    chars: [character("Figure 1. Same-page caption", [110, 20, 800, 70])],
+  });
+  const matches = matchPageLayout(page);
+  assert.equal(matches.candidates[0]?.tag, "Figure 1");
+  assert.equal(matches.figureForNextCaption, undefined);
+  assert.equal(matches.captionForPreviousFigure, undefined);
+  for (const elements of [
+    [
+      fullPageFigure,
+      { ...fullPageFigure, xyxy: [0.1, 0.15, 0.3, 0.35] } as LayoutElement,
+    ],
+    [{ ...fullPageFigure, score: 0.49 }],
+    [{ ...fullPageFigure, xyxy: [0.1, 0.1, 0.6, 0.5] } as LayoutElement],
+  ]) {
+    assert.equal(
+      matchPageLayout(createPage({ elements })).figureForNextCaption,
+      undefined,
+    );
+  }
+  assert.equal(
+    matchAdjacentFigureCaption(
+      0,
+      { rect: [40, 0, 100, 100], left: 0.4, right: 1 },
+      { comment: "Figure 2. Caption", number: "2", left: 0, right: 0.45 },
+    ),
+    undefined,
+  );
+});
+
+const fullPageFigure: LayoutElement = {
+  score: 0.9,
+  type: "figure",
+  xyxy: [0.1, 0.1, 0.9, 0.9],
+};
+
+const topCaption: LayoutElement = {
+  score: 0.9,
+  type: "figure_caption",
+  xyxy: [0.1, 0.08, 0.45, 0.3],
+};
 
 function createPage(overrides: Partial<PageLayoutData> = {}): PageLayoutData {
   return {

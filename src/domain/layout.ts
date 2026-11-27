@@ -48,6 +48,19 @@ interface Caption {
   top: number;
 }
 
+interface CrossPageFigureCaption {
+  comment: string;
+  number: string;
+  left: number;
+  right: number;
+}
+
+export interface PageLayoutMatches {
+  candidates: AnnotationCandidate[];
+  figureForNextCaption?: { rect: Rect; left: number; right: number };
+  captionForPreviousFigure?: CrossPageFigureCaption;
+}
+
 const LATIN_PAGE_HINT =
   /(?:^|[^a-z0-9_])(?:fig(?:ure)?s?|tables?|charts?|schemes?|equations?|eqs?|formulae?|figura|figure|tabella|tabelle|grafico|grafici|schema|schemi|equazione|equazioni)(?:$|[^a-z0-9_])/i;
 const RUSSIAN_PAGE_HINT =
@@ -62,6 +75,8 @@ const CAPTION_PADDING = 5;
 const MAX_CAPTION_DISTANCE_RATIO = 0.3;
 const MAX_FOOTNOTE_DISTANCE_RATIO = 0.2;
 const MAX_FORMULA_CAPTION_DISTANCE_RATIO = 0.25;
+const FIGURE_CAPTION_HEADING =
+  /^(?:(?:fig(?:ure|ura)?|рис(?:унок)?)\.?\s+|[图図]\s*)(\d+)(?=\s|[.:：．、。]|$)/i;
 
 export function charsToText(chars: readonly PdfCharacter[]): string {
   const text: string[] = [];
@@ -93,18 +108,86 @@ export function pageMayContainFigures(chars: readonly PdfCharacter[]): boolean {
 export function buildAnnotationCandidates(
   page: PageLayoutData,
 ): AnnotationCandidate[] {
-  const candidates: AnnotationCandidate[] = [];
-  for (const subjectType of ["figure", "table"] as const) {
-    candidates.push(...matchSubjectType(page, subjectType));
-  }
-  candidates.push(...matchFormulae(page));
-  return candidates;
+  return matchPageLayout(page).candidates;
+}
+
+export function matchPageLayout(page: PageLayoutData): PageLayoutMatches {
+  const figures = matchSubjectType(page, "figure");
+  const tables = matchSubjectType(page, "table");
+  const candidates = [
+    ...figures.candidates,
+    ...tables.candidates,
+    ...matchFormulae(page),
+  ];
+
+  const [figure] = figures.subjects;
+  const figureForNextCaption =
+    figures.subjects.length === 1 &&
+    figures.candidates.length === 0 &&
+    isPageSpanningFigure(figure)
+      ? {
+          rect: toAnnotationRect(
+            toPdfRect(figure.xyxy, page.width, page.height),
+            page.viewBox,
+          ),
+          left: figure.xyxy[0],
+          right: figure.xyxy[2],
+        }
+      : undefined;
+
+  const unmatchedCaptions = figures.unusedCaptions.flatMap((caption) => {
+    const comment = caption.text.trim();
+    const number = FIGURE_CAPTION_HEADING.exec(comment)?.[1];
+    return number ? [{ ...caption, comment, number }] : [];
+  });
+  const [caption] = unmatchedCaptions;
+  const captionForPreviousFigure =
+    figures.subjects.length === figures.candidates.length &&
+    unmatchedCaptions.length === 1 &&
+    caption.top >= page.height * 0.8
+      ? {
+          comment: caption.comment,
+          number: caption.number,
+          left: caption.left / page.width,
+          right: caption.right / page.width,
+        }
+      : undefined;
+
+  return { candidates, figureForNextCaption, captionForPreviousFigure };
+}
+
+export function matchAdjacentFigureCaption(
+  pageIndex: number,
+  figure: PageLayoutMatches["figureForNextCaption"],
+  caption: PageLayoutMatches["captionForPreviousFigure"],
+): AnnotationCandidate | undefined {
+  if (!figure || !caption) return undefined;
+  const overlap =
+    Math.min(figure.right, caption.right) - Math.max(figure.left, caption.left);
+  if (overlap < (caption.right - caption.left) / 2) return undefined;
+  return {
+    comment: caption.comment,
+    pageIndex,
+    rect: figure.rect,
+    tag: `Figure ${caption.number}`,
+  };
+}
+
+function isPageSpanningFigure(figure: LayoutElement): boolean {
+  const [left, top, right, bottom] = figure.xyxy;
+  return (
+    figure.score >= 0.5 &&
+    right - left >= 0.6 &&
+    bottom - top >= 0.5 &&
+    bottom >= 0.75
+  );
 }
 
 function matchSubjectType(
   page: PageLayoutData,
   subjectType: "figure" | "table",
-): AnnotationCandidate[] {
+) {
+  const subjects = page.elements.filter(({ type }) => type === subjectType);
   const captions = collectCaptions(page, `${subjectType}_caption`);
   const footnotes =
     subjectType === "table" ? collectTextRegions(page, "table_footnote") : [];
@@ -112,9 +195,7 @@ function matchSubjectType(
   const usedFootnotes = new Set<number>();
   const candidates: AnnotationCandidate[] = [];
 
-  for (const element of page.elements) {
-    if (element.type !== subjectType) continue;
-
+  for (const element of subjects) {
     const subject = toPdfRect(element.xyxy, page.width, page.height);
     const captionIndex = findClosestCaption(
       subject,
@@ -126,7 +207,6 @@ function matchSubjectType(
     if (captionIndex === undefined) continue;
 
     const caption = captions[captionIndex];
-    const [xMin, yMin] = page.viewBox;
     let crop = subject;
     let comment = caption.text;
     if (subjectType === "table") {
@@ -143,12 +223,7 @@ function matchSubjectType(
         comment = [comment, footnote.text].filter(Boolean).join("\n\n");
       }
     }
-    const rect: Rect = [
-      roundCoordinate(crop[0] + xMin),
-      roundCoordinate(crop[1] + yMin),
-      roundCoordinate(crop[2] + xMin),
-      roundCoordinate(crop[3] + yMin),
-    ];
+    const rect = toAnnotationRect(crop, page.viewBox);
 
     if (!comment && rect[2] - rect[0] < 30) continue;
 
@@ -161,7 +236,11 @@ function matchSubjectType(
     });
   }
 
-  return candidates;
+  return {
+    candidates,
+    subjects,
+    unusedCaptions: captions.filter((_, index) => !usedCaptions.has(index)),
+  };
 }
 
 function matchFormulae(page: PageLayoutData): AnnotationCandidate[] {
@@ -383,6 +462,15 @@ function toPdfRect(normalizedRect: Rect, width: number, height: number): Rect {
     (1 - normalizedRect[3]) * height,
     normalizedRect[2] * width,
     (1 - normalizedRect[1]) * height,
+  ];
+}
+
+function toAnnotationRect(rect: Rect, [xMin, yMin]: Rect): Rect {
+  return [
+    roundCoordinate(rect[0] + xMin),
+    roundCoordinate(rect[1] + yMin),
+    roundCoordinate(rect[2] + xMin),
+    roundCoordinate(rect[3] + yMin),
   ];
 }
 

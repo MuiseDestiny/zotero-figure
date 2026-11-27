@@ -10,6 +10,7 @@ Zotero Figure detecta figuras, tablas, fórmulas aisladas, leyendas y notas al p
 
 - Elimina resultados locales individuales desde el menú de una tarjeta de la biblioteca o vacía un documento desde la cabecera de su columna o el botón junto al filtro de documento. El vaciado incluye todos sus adjuntos PDF y los resultados ocultos por los filtros. La confirmación permite eliminar también las anotaciones generadas por Figure; se conservan los PDF originales y las notas guardadas. Un nuevo análisis puede recrear los resultados. No se pueden eliminar mientras los adjuntos afectados se estén analizando o actualizando.
 - Analiza archivos PDF localmente, sin subir páginas ni descargar un modelo durante la ejecución.
+- Cuando una figura grande se puede asociar con su leyenda numerada en la página siguiente, el resultado abre la página de la figura.
 - Muestra los resultados en un panel del Reader con filtros de tipo combinables que ocultan los tipos no disponibles y con el progreso del análisis.
 - Permite copiar, guardar o fijar imágenes; editar leyendas o corregir recortes en un diálogo adaptado a la página del PDF; abrir la página del PDF; añadir a una nota o eliminar el resultado.
 - En el PDF Reader, haz clic derecho en una anotación de imagen seleccionada para añadirla a los resultados locales del análisis; se conservan las etiquetas Figure, Table o Formula existentes.

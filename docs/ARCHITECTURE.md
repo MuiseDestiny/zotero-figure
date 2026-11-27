@@ -138,14 +138,19 @@ same attachment concurrently; unrelated attachments still overlap.
 2. Compute an attachment source fingerprint, prepare the ONNX worker pool, read
    the PDF once, and open a MuPDF worker document handle.
 3. Walk page text in order. Text-bearing pages without figure, table, formula,
-   or mathematical hints are skipped; pages without extractable text still go
-   to detection.
+   or mathematical hints are provisionally skipped; pages without extractable
+   text still go to detection.
 4. Render a 640 px JPEG in the MuPDF worker. A layout worker decodes it,
    preprocesses a 640 x 640 tensor, runs the optimized Q8 model, filters
    relevant classes, and applies non-maximum suppression.
 5. Map detector rectangles through the MuPDF page transform. Pure domain logic
    pairs figures/tables with captions, merges a nearby table footnote, associates
-   formula labels, and emits `AnnotationCandidate` values.
+   formula labels, and emits `AnnotationCandidate` values. When a detected
+   page has a single unused, numbered figure caption near its top, only its
+   immediate predecessor can use it. This can trigger detection on a
+   provisionally skipped page. The cross-page fallback requires one large
+   unmatched figure with horizontal alignment. Same-page matches take
+   precedence; the crop and page index always belong to the figure page.
 6. Ask the result store whether every candidate and PNG on the page is reusable.
    A reusable page skips high-resolution rendering and image writes.
 7. For an invalid cache, ask the store for page render candidates. Render each

@@ -42,6 +42,13 @@ removes the much larger full-page preview canvas and improves throughput. Do
 not increase worker count, scheduled pages, the 8 MP region bound, or document
 concurrency without a real-Zotero memory profile and focused tests.
 
+For adjacent-page captions, a scheduled page may wait for the next page's
+small caption summary, but it holds no render, inference, or preview permit
+while waiting. A page publishes that summary before waiting on its own
+successor. Page text and candidates remain inside the same scheduled-page
+window, and a previously filtered page is detected at most once, through the
+existing permits, only if the next page supplies an eligible caption.
+
 ## Required measurements
 
 Performance logs distinguish wall time from concurrent stage totals. Record at
